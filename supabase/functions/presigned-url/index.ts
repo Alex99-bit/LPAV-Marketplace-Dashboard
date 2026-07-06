@@ -1,7 +1,8 @@
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { getUser, createServiceClient } from "../_shared/auth.ts";
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -16,26 +17,20 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createServiceClient();
 
-  // Obtener perfil con tenant
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("tenant_id, role_name")
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile?.tenant_id) {
+  if (!profile?.tenant_id) {
     return new Response(
       JSON.stringify({ error: "Sin tenant asignado" }),
-      {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
-  // Verificar permiso can_manage_catalog
   let hasCatalogPermission = false;
-
   if (profile.role_name === "Agency_Admin") {
     hasCatalogPermission = true;
   } else {
@@ -45,7 +40,6 @@ Deno.serve(async (req: Request) => {
       .eq("tenant_id", profile.tenant_id)
       .eq("role_name", profile.role_name)
       .single();
-
     hasCatalogPermission = rolePerm?.can_manage_catalog === true;
   }
 
@@ -56,7 +50,6 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Extraer filename del body
   let body: { filename: string };
   try {
     body = await req.json();
@@ -70,10 +63,7 @@ Deno.serve(async (req: Request) => {
   if (!body.filename) {
     return new Response(
       JSON.stringify({ error: "filename es requerido" }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
