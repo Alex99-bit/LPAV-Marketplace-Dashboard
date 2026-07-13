@@ -1,4 +1,4 @@
-import type { SubscriptionTier, PublicationStatus, Currency, NotificationType } from "@/types";
+import type { SubscriptionTier, PublicationStatus, Currency, NotificationType, CRMLeadStatus } from "@/types";
 
 export const PLAN_LIMITS: Record<
   SubscriptionTier,
@@ -90,3 +90,50 @@ export const GRACE_PERIOD_DAYS = 14;
 export const MAX_CENSORSHIP_STRIKES = 5;
 export const AI_DAILY_LIMIT = 5;
 export const AI_PER_MINUTE_LIMIT = 3;
+
+export const CRM_LEAD_STATUS: Record<
+  CRMLeadStatus,
+  { label: string; variant: "default" | "success" | "warning" | "danger" | "info" }
+> = {
+  new: { label: "Nuevo", variant: "info" },
+  contacted: { label: "Contactado", variant: "warning" },
+  qualified: { label: "Cualificado", variant: "success" },
+  proposal_sent: { label: "Propuesta enviada", variant: "default" },
+  won: { label: "Ganado", variant: "success" },
+  lost: { label: "Perdido", variant: "danger" },
+};
+
+export const CRM_LEAD_STATUS_OPTIONS = [
+  { value: "new", label: "Nuevo" },
+  { value: "contacted", label: "Contactado" },
+  { value: "qualified", label: "Cualificado" },
+  { value: "proposal_sent", label: "Propuesta enviada" },
+  { value: "won", label: "Ganado" },
+  { value: "lost", label: "Perdido" },
+];
+
+export const CRM_PRIORITY_OPTIONS = [
+  { value: "low", label: "Baja" },
+  { value: "medium", label: "Media" },
+  { value: "high", label: "Alta" },
+];
+
+export const CRM_TRAVEL_TYPES = [
+  "Playa",
+  "Aventura",
+  "Cultural",
+  "Familiar",
+  "Lujo",
+  "Mochilero",
+  "Romantico",
+  "Ecoturismo",
+  "Gastronomico",
+] as const;
+
+export const CRM_ACCOMMODATION_TYPES = [
+  "Hotel",
+  "Hostel",
+  "Airbnb",
+  "Resort",
+  "All-Inclusive",
+] as const;

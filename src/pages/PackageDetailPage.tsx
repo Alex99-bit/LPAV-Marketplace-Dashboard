@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { ArrowLeft, ShoppingCart, Sparkles, MapPin, Calendar, Building2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle } from "lucide-react";
 import type { TravelPackage, ItineraryData } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -26,6 +26,7 @@ export default function PackageDetailPage() {
   const [itineraryLoading, setItineraryLoading] = useState(false);
   const [itineraryError, setItineraryError] = useState("");
   const [showItinerary, setShowItinerary] = useState(false);
+  const [requestingInfo, setRequestingInfo] = useState(false);
 
   const isInCart = items.some((i) => i.package_id === id);
 
@@ -86,6 +87,44 @@ export default function PackageDetailPage() {
       );
     } finally {
       setItineraryLoading(false);
+    }
+  };
+
+  const handleRequestInfo = async () => {
+    if (!user) {
+      navigate("/auth/login", { state: { from: location } });
+      return;
+    }
+    if (!id) return;
+
+    setRequestingInfo(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("No session");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-lead`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ package_id: id }),
+        },
+      );
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error creando solicitud");
+
+      navigate("/chat", { state: { conversationId: json.conversation_id, leadId: json.lead_id } });
+    } catch (err) {
+      setItineraryError(
+        err instanceof Error ? err.message : "Error desconocido",
+      );
+    } finally {
+      setRequestingInfo(false);
     }
   };
 
@@ -193,6 +232,17 @@ export default function PackageDetailPage() {
             >
               <Sparkles className="h-5 w-5" />
               Generar Itinerario con IA ✨
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              loading={requestingInfo}
+              onClick={handleRequestInfo}
+              disabled={pkg.publication_status !== "published"}
+            >
+              <MessageCircle className="h-5 w-5" />
+              Solicitar informacion
             </Button>
             {itineraryError && (
               <p className="text-sm text-red-500">{itineraryError}</p>

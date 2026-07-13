@@ -22,6 +22,13 @@ export type {
   ReportStatus,
   Notification,
   NotificationType,
+  CRMLead,
+  CRMLeadStatus,
+  CRMLeadSource,
+  CRMPriority,
+  CRMActivity,
+  CRMActivityType,
+  CRMAIQualificationSession,
   Database,
 } from "./database";
 
@@ -38,4 +45,12 @@ export type {
   ReviewPackageRequest,
   ReviewPackageResponse,
   ApiError,
+  CreateLeadRequest,
+  CreateLeadResponse,
+  AIQualifyLeadRequest,
+  AIQualifyLeadResponse,
+  AssignLeadRequest,
+  UpdateLeadStatusRequest,
+  AddLeadActivityRequest,
+  TransferLeadToHumanRequest,
 } from "./api";
