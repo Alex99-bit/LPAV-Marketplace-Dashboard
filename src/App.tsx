@@ -10,6 +10,7 @@ import AgencyRegister from "@/pages/AgencyRegister";
 import AgencyDashboard from "@/pages/AgencyDashboard";
 import AgencyFlyers from "@/pages/AgencyFlyers";
 import AgencyRoles from "@/pages/AgencyRoles";
+import AgencyCRM from "@/pages/AgencyCRM";
 import Checkout from "@/pages/Checkout";
 import Orders from "@/pages/Orders";
 import Chat from "@/pages/Chat";
@@ -46,6 +47,14 @@ export default function App() {
               element={
                 <AuthGuard requireAgency>
                   <AgencyRoles />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/agency/crm"
+              element={
+                <AuthGuard requireAgency>
+                  <AgencyCRM />
                 </AuthGuard>
               }
             />

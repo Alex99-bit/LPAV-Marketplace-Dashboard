@@ -1,4 +1,4 @@
-import type { ItineraryData } from "./database";
+import type { ItineraryData, CRMLeadStatus } from "./database";
 
 export interface PresignedUrlResponse {
   signedUrl: string;
@@ -72,4 +72,49 @@ export interface ReviewPackageResponse {
 
 export interface ApiError {
   error: string;
+}
+
+export interface CreateLeadRequest {
+  package_id: string;
+  traveler_user_id?: string;
+}
+
+export interface CreateLeadResponse {
+  lead_id: string;
+  conversation_id: string;
+  assigned_to: string | null;
+}
+
+export interface AIQualifyLeadRequest {
+  lead_id: string;
+  conversation_id: string;
+  latest_message: string;
+}
+
+export interface AIQualifyLeadResponse {
+  reply: string;
+  extracted_fields: Record<string, unknown>;
+  should_transfer_to_human: boolean;
+  qualification_completed: boolean;
+}
+
+export interface AssignLeadRequest {
+  lead_id: string;
+  agent_id: string;
+}
+
+export interface UpdateLeadStatusRequest {
+  lead_id: string;
+  status: CRMLeadStatus;
+}
+
+export interface AddLeadActivityRequest {
+  lead_id: string;
+  activity_type: "note";
+  description: string;
+}
+
+export interface TransferLeadToHumanRequest {
+  lead_id: string;
+  conversation_id: string;
 }

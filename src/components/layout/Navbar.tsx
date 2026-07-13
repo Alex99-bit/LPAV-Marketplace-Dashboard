@@ -25,12 +25,20 @@ export default function Navbar() {
             Explorar
           </Link>
           {isAgency && (
-            <Link
-              to="/agency/dashboard"
-              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
-            >
-              Dashboard
-            </Link>
+            <>
+              <Link
+                to="/agency/dashboard"
+                className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/agency/crm"
+                className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+              >
+                CRM
+              </Link>
+            </>
           )}
         </div>
 
@@ -98,9 +106,14 @@ export default function Navbar() {
               Carrito ({itemCount})
             </Link>
             {isAgency && (
-              <Link to="/agency/dashboard" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
-                Dashboard
-              </Link>
+              <>
+                <Link to="/agency/dashboard" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
+                  Dashboard
+                </Link>
+                <Link to="/agency/crm" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
+                  CRM
+                </Link>
+              </>
             )}
             {user ? (
               <>
