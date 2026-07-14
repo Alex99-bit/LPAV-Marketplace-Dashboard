@@ -70,7 +70,16 @@ ALTER TABLE public.crm_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_ai_qualification_sessions ENABLE ROW LEVEL SECURITY;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.crm_leads;
+-- Habilitar realtime solo si no está ya habilitado
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'crm_leads'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.crm_leads;
+  END IF;
+END $$;
 
 -- 6. POLÍTICAS RLS PARA CRM_LEADS
 CREATE POLICY "Agencias ven sus propios leads (ALL)"
