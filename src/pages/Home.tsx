@@ -40,7 +40,12 @@ export default function Home() {
       .gte("price", priceRange[0])
       .lte("price", priceRange[1]);
 
-    const { data } = await query;
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("[Home] Error fetching packages:", error);
+    }
+
     setPackages(data ?? []);
     setLoading(false);
   }, [debouncedSearch, region, priceRange]);

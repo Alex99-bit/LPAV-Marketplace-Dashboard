@@ -3,10 +3,11 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import Layout from "@/components/layout/Layout";
 import AuthGuard from "@/components/auth/AuthGuard";
-import LoginModal from "@/components/auth/LoginModal";
+import LoginPage from "@/pages/auth/LoginPage";
+import AgencyAuth from "@/pages/auth/AgencyAuth";
+import AcceptInvitation from "@/pages/auth/AcceptInvitation";
 import Home from "@/pages/Home";
 import PackageDetailPage from "@/pages/PackageDetailPage";
-import AgencyRegister from "@/pages/AgencyRegister";
 import AgencyDashboard from "@/pages/AgencyDashboard";
 import AgencyFlyers from "@/pages/AgencyFlyers";
 import AgencyRoles from "@/pages/AgencyRoles";
@@ -24,8 +25,9 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/package/:id" element={<PackageDetailPage />} />
-            <Route path="/auth/login" element={<LoginModal />} />
-            <Route path="/agency/register" element={<AgencyRegister />} />
+            <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth/agency" element={<AgencyAuth />} />
+            <Route path="/auth/accept-invite" element={<AcceptInvitation />} />
             <Route
               path="/agency/dashboard"
               element={

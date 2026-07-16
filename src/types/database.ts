@@ -8,6 +8,7 @@ export interface AgencyTenant {
   stripe_account_id: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  owner_user_id: string | null;
   status: AgencyStatus;
   subscription_tier: SubscriptionTier;
   created_at: string;
@@ -33,9 +34,32 @@ export interface Profile {
   full_name: string | null;
   tenant_id: string | null;
   role_name: string;
+  avatar_url: string | null;
+  phone: string | null;
   censorship_strikes: number;
   created_at: string;
 }
+
+export interface AgencyInvitation {
+  invitation_id: string;
+  tenant_id: string;
+  invited_by: string | null;
+  email: string;
+  role_name: string;
+  token: string;
+  status: InvitationStatus;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked";
+
+export type AuthIntent =
+  | "traveler_login"
+  | "traveler_register"
+  | "agency_login"
+  | "agency_register";
 
 export interface TravelPackage {
   package_id: string;
@@ -236,6 +260,7 @@ export interface Database {
       agencies_tenants: { Row: AgencyTenant; Insert: Partial<AgencyTenant>; Update: Partial<AgencyTenant> };
       custom_roles_permissions: { Row: CustomRolePermission; Insert: Partial<CustomRolePermission>; Update: Partial<CustomRolePermission> };
       profiles: { Row: Profile; Insert: Partial<Profile>; Update: Partial<Profile> };
+      agency_invitations: { Row: AgencyInvitation; Insert: Partial<AgencyInvitation>; Update: Partial<AgencyInvitation> };
       travel_packages: { Row: TravelPackage; Insert: Partial<TravelPackage>; Update: Partial<TravelPackage> };
       transactions_orders: { Row: TransactionOrder; Insert: Partial<TransactionOrder>; Update: Partial<TransactionOrder> };
       user_recommendation_profiles: { Row: UserRecommendationProfile; Insert: Partial<UserRecommendationProfile>; Update: Partial<UserRecommendationProfile> };
