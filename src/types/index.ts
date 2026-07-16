@@ -32,6 +32,15 @@ export type {
   CRMActivity,
   CRMActivityType,
   CRMAIQualificationSession,
+  StripeAccount,
+  InstallmentSchedule,
+  SaasSubscription,
+  TravelerDocument,
+  RoomingList,
+  TravelIncident,
+  PackageReview,
+  NotificationPreference,
+  AgencyTeamMember,
   Database,
 } from "./database";
 
@@ -56,4 +65,10 @@ export type {
   UpdateLeadStatusRequest,
   AddLeadActivityRequest,
   TransferLeadToHumanRequest,
+  CreateConnectAccountResponse,
+  ManageSubscriptionRequest,
+  ManageSubscriptionResponse,
+  GenerateCfdiRequest,
+  GenerateCfdiResponse,
+  DispatchNotificationRequest,
 } from "./api";

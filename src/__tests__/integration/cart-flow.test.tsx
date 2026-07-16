@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CartProvider, useCart } from '@/context/CartContext';
 import type { TravelPackage } from '@/types';
@@ -12,11 +12,15 @@ describe('Cart Flow Integration', () => {
   const createMockPackage = (overrides: Partial<TravelPackage> = {}): TravelPackage => ({
     package_id: 'pkg-1',
     title: 'Test Package',
-    description: 'Test Description',
     price: 100,
     currency: 'MXN',
     region: 'Test Region',
+    url_flyer_storage: 'https://example.com/flyer.jpg',
     url_thumbnail_storage: 'https://example.com/image.jpg',
+    has_coordinator: false,
+    publication_status: 'published',
+    departure_date: '2026-12-01',
+    created_at: '2026-01-01',
     tenant_id: 'tenant-1',
     ...overrides,
   });

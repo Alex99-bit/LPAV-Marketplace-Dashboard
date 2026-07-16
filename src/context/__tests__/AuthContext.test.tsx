@@ -72,7 +72,7 @@ describe('AuthContext', () => {
       vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
         data: { user: null, session: null },
         error: null,
-      });
+      } as never);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       

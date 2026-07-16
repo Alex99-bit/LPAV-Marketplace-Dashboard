@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
 import { Plus, Eye, Archive } from "lucide-react";
 import type { TravelPackage } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
@@ -14,6 +13,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Switch from "@/components/ui/Switch";
 import { CURRENCIES, REGIONS } from "@/lib/constants";
+import FlyerImageUpload from "@/components/agency/FlyerImageUpload";
 
 export default function AgencyFlyers() {
   const { profile } = useAuth();
@@ -29,7 +29,12 @@ export default function AgencyFlyers() {
     currency: "MXN",
     departure_date: "",
     has_coordinator: false,
+    deposit_percent: "20",
+    max_installments: "0",
+    description: "",
   });
+  const [_imagePath, setImagePath] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const fetchPackages = async () => {
     if (!profile?.tenant_id) return;
@@ -56,11 +61,14 @@ export default function AgencyFlyers() {
       region: form.region,
       price: Number(form.price),
       currency: form.currency,
-      url_flyer_storage: "https://placehold.co/600x800/3B82F6/white?text=Flyer",
-      url_thumbnail_storage: "https://placehold.co/300x400/3B82F6/white?text=Flyer",
+      url_flyer_storage: imageUrl ?? "https://placehold.co/600x800/3B82F6/white?text=Flyer",
+      url_thumbnail_storage: imageUrl ?? "https://placehold.co/300x400/3B82F6/white?text=Flyer",
       departure_date: new Date(form.departure_date).toISOString(),
       has_coordinator: form.has_coordinator,
       publication_status: "draft",
+      deposit_percent: Number(form.deposit_percent) / 100,
+      max_installments: Number(form.max_installments),
+      description: form.description || null,
     });
 
     if (!error) {
@@ -72,7 +80,12 @@ export default function AgencyFlyers() {
         currency: "MXN",
         departure_date: "",
         has_coordinator: false,
+        deposit_percent: "20",
+        max_installments: "0",
+        description: "",
       });
+      setImagePath(null);
+      setImageUrl(null);
       fetchPackages();
     }
     setSaving(false);
@@ -97,6 +110,11 @@ export default function AgencyFlyers() {
     fetchPackages();
   };
 
+  const handleUploadComplete = (path: string, url: string) => {
+    setImagePath(path);
+    setImageUrl(url);
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -114,14 +132,9 @@ export default function AgencyFlyers() {
             {packages.length} paquete{packages.length !== 1 && "s"}
           </p>
         </div>
-        <div className="flex gap-3">
-          <Link to="/agency/dashboard">
-            <Button variant="outline" size="sm">Dashboard</Button>
-          </Link>
-          <Button size="sm" onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4" /> Nuevo Flyer
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => setShowForm(true)}>
+          <Plus className="h-4 w-4" /> Nuevo Flyer
+        </Button>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
@@ -245,6 +258,12 @@ export default function AgencyFlyers() {
               setForm({ ...form, departure_date: e.target.value })
             }
           />
+          <Input
+            label="Descripción"
+            placeholder="Describe el viaje..."
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
           <Switch
             label="Coordinador de viaje"
             checked={form.has_coordinator}
@@ -252,11 +271,47 @@ export default function AgencyFlyers() {
               setForm({ ...form, has_coordinator: checked })
             }
           />
-          <div className="rounded-xl border-2 border-dashed border-gray-200 p-6 text-center">
-            <p className="text-sm text-text-muted">
-              Imagen del flyer (3:4) — Se cargará mediante URL firmada
-            </p>
+
+          <div className="rounded-xl border border-gray-100 p-4 space-y-3">
+            <h4 className="text-sm font-medium text-text">Configuración de Pagos</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="% Anticipo"
+                type="number"
+                min="20"
+                max="100"
+                value={form.deposit_percent}
+                onChange={(e) => setForm({ ...form, deposit_percent: e.target.value })}
+              />
+              <Input
+                label="Meses diferidos (máx 4)"
+                type="number"
+                min="0"
+                max="4"
+                value={form.max_installments}
+                onChange={(e) => setForm({ ...form, max_installments: e.target.value })}
+              />
+            </div>
+            {Number(form.max_installments) > 0 && Number(form.price) > 0 && (
+              <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-700">
+                <p className="font-medium">Plan de pagos estimado:</p>
+                <ul className="mt-1 space-y-0.5">
+                  <li>Anticipo: {form.deposit_percent}% = {formatCurrency(Number(form.price) * Number(form.deposit_percent) / 100, form.currency as "MXN" | "USD" | "EUR")}</li>
+                  {Array.from({ length: Number(form.max_installments) }, (_, i) => (
+                    <li key={i}>
+                      Abono {i + 1}: {formatCurrency(
+                        (Number(form.price) * (1 - Number(form.deposit_percent) / 100)) / Number(form.max_installments),
+                        form.currency as "MXN" | "USD" | "EUR"
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
+
+          <FlyerImageUpload onUploadComplete={handleUploadComplete} />
+
           <Button
             className="w-full"
             loading={saving}

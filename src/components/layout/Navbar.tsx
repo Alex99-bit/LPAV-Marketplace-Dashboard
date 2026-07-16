@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Menu, X, ShoppingCart, User, LogOut, Bell, LayoutDashboard, Building2 } from "lucide-react";
+import { Menu, X, ShoppingCart, User, LogOut, LayoutDashboard, Building2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import Button from "@/components/ui/Button";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -63,9 +64,7 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-2">
-              <button className="rounded-lg p-2 text-text-muted hover:bg-surface hover:text-primary transition-colors">
-                <Bell className="h-5 w-5" />
-              </button>
+              <NotificationBell />
               {isAgency && (
                 <Link to="/agency/dashboard" className="rounded-lg p-2 text-text-muted hover:bg-surface hover:text-primary transition-colors">
                   <LayoutDashboard className="h-5 w-5" />

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router";
-import { MessageSquare, Send, AlertTriangle, Hand, Bot } from "lucide-react";
+import { MessageSquare, Send, AlertTriangle, Hand, Bot, ToggleLeft, ToggleRight } from "lucide-react";
 import type { ChatMessage } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +21,7 @@ export default function Chat() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isAgencyChat, setIsAgencyChat] = useState(false);
   const [aiActive, setAiActive] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const navState = location.state as { conversationId?: string; leadId?: string } | null;
@@ -85,6 +86,7 @@ export default function Chat() {
           profile?.role_name === "Agency_Agent" ||
           profile?.role_name === "Agency_Collaborator",
       );
+      setIsAdmin(profile?.role_name === "Agency_Admin");
     })();
   }, [user]);
 
@@ -222,6 +224,25 @@ export default function Chat() {
             <Hand className="h-3.5 w-3.5" />
             Tomar control
           </Button>
+        )}
+        {isAdmin && (
+          <button
+            onClick={() => {
+              if (aiActive) {
+                handleTakeControl();
+              } else {
+                setAiActive(true);
+              }
+            }}
+            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted hover:bg-gray-100 transition-colors"
+          >
+            {aiActive ? (
+              <ToggleRight className="h-5 w-5 text-primary" />
+            ) : (
+              <ToggleLeft className="h-5 w-5" />
+            )}
+            AI Agent
+          </button>
         )}
       </div>
 

@@ -254,6 +254,110 @@ export interface CRMAIQualificationSession {
   completed_at: string | null;
 }
 
+export interface StripeAccount {
+  stripe_account_id: string;
+  tenant_id: string;
+  account_type: string;
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+  onboarding_status: string;
+  created_at: string;
+}
+
+export interface InstallmentSchedule {
+  installment_id: string;
+  order_id: string;
+  installment_number: number;
+  amount_due: number;
+  amount_paid: number;
+  due_date: string;
+  paid_at: string | null;
+  stripe_checkout_url: string | null;
+  status: "pending" | "paid" | "overdue" | "cancelled";
+  reminder_sent_at: string | null;
+  created_at: string;
+}
+
+export interface SaasSubscription {
+  subscription_id: string;
+  tenant_id: string;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+  plan_tier: SubscriptionTier;
+  billing_cycle: "monthly" | "annual";
+  status: "active" | "past_due" | "cancelled" | "trialing";
+  current_period_start: string | null;
+  current_period_end: string | null;
+  grace_period_end: string | null;
+  created_at: string;
+}
+
+export interface TravelerDocument {
+  document_id: string;
+  order_id: string;
+  user_id: string;
+  document_type: string;
+  file_url: string;
+  file_name: string;
+  uploaded_at: string;
+}
+
+export interface RoomingList {
+  rooming_id: string;
+  order_id: string;
+  generated_by: string;
+  file_url: string;
+  generated_at: string;
+}
+
+export interface TravelIncident {
+  incident_id: string;
+  order_id: string;
+  reported_by: string;
+  severity: "low" | "medium" | "high" | "critical";
+  title: string;
+  description: string | null;
+  status: "open" | "in_progress" | "resolved" | "closed";
+  resolution: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface PackageReview {
+  review_id: string;
+  package_id: string;
+  order_id: string;
+  user_id: string;
+  rating: number;
+  title: string | null;
+  comment: string | null;
+  status: "published" | "hidden";
+  created_at: string;
+}
+
+export interface NotificationPreference {
+  pref_id: string;
+  user_id: string;
+  email_enabled: boolean;
+  push_enabled: boolean;
+  email_payment_reminders: boolean;
+  email_chat_notifications: boolean;
+  email_marketing: boolean;
+  created_at: string;
+}
+
+export interface AgencyTeamMember {
+  member_id: string;
+  tenant_id: string;
+  user_id: string | null;
+  email: string;
+  full_name: string | null;
+  role_name: string;
+  status: "active" | "invited" | "deactivated";
+  invited_at: string;
+  joined_at: string | null;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -272,6 +376,15 @@ export interface Database {
       crm_leads: { Row: CRMLead; Insert: Partial<CRMLead>; Update: Partial<CRMLead> };
       crm_activities: { Row: CRMActivity; Insert: Partial<CRMActivity>; Update: Partial<CRMActivity> };
       crm_ai_qualification_sessions: { Row: CRMAIQualificationSession; Insert: Partial<CRMAIQualificationSession>; Update: Partial<CRMAIQualificationSession> };
+      stripe_accounts: { Row: StripeAccount; Insert: Partial<StripeAccount>; Update: Partial<StripeAccount> };
+      installment_schedules: { Row: InstallmentSchedule; Insert: Partial<InstallmentSchedule>; Update: Partial<InstallmentSchedule> };
+      saas_subscriptions: { Row: SaasSubscription; Insert: Partial<SaasSubscription>; Update: Partial<SaasSubscription> };
+      traveler_documents: { Row: TravelerDocument; Insert: Partial<TravelerDocument>; Update: Partial<TravelerDocument> };
+      rooming_lists: { Row: RoomingList; Insert: Partial<RoomingList>; Update: Partial<RoomingList> };
+      travel_incidents: { Row: TravelIncident; Insert: Partial<TravelIncident>; Update: Partial<TravelIncident> };
+      package_reviews: { Row: PackageReview; Insert: Partial<PackageReview>; Update: Partial<PackageReview> };
+      notification_preferences: { Row: NotificationPreference; Insert: Partial<NotificationPreference>; Update: Partial<NotificationPreference> };
+      agency_team_members: { Row: AgencyTeamMember; Insert: Partial<AgencyTeamMember>; Update: Partial<AgencyTeamMember> };
     };
   };
 }
