@@ -13,7 +13,7 @@ export default function AuthGuard({
   requireAgency = false,
   requireSuperAdmin = false,
 }: AuthGuardProps) {
-  const { user, loading, isAgency, isSuperAdmin } = useAuth();
+  const { user, profile, loading, isAgency, isSuperAdmin } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -33,7 +33,10 @@ export default function AuthGuard({
   }
 
   if (requireAgency && !isAgency) {
-    return <Navigate to="/agency/register" replace />;
+    if (profile?.role_name === "Agency_Pending") {
+      return <Navigate to="/auth/agency" replace />;
+    }
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

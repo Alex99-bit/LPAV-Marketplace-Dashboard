@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Menu, X, ShoppingCart, User, LogOut, Bell, LayoutDashboard } from "lucide-react";
+import { Menu, X, ShoppingCart, User, LogOut, Bell, LayoutDashboard, Building2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import Button from "@/components/ui/Button";
@@ -24,6 +24,15 @@ export default function Navbar() {
           >
             Explorar
           </Link>
+          {!user && (
+            <Link
+              to="/auth/agency"
+              className="flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              <Building2 className="h-4 w-4" />
+              Soy Agencia
+            </Link>
+          )}
           {isAgency && (
             <>
               <Link
@@ -79,12 +88,14 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <Link to="/auth/login">
-              <Button size="sm">
-                <User className="h-4 w-4" />
-                Iniciar Sesión
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link to="/auth/login">
+                <Button size="sm">
+                  <User className="h-4 w-4" />
+                  Iniciar Sesión
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
 
@@ -102,6 +113,12 @@ export default function Navbar() {
             <Link to="/" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
               Explorar
             </Link>
+            {!user && (
+              <Link to="/auth/agency" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
+                <Building2 className="h-4 w-4" />
+                Soy Agencia
+              </Link>
+            )}
             <Link to="/checkout" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
               Carrito ({itemCount})
             </Link>
