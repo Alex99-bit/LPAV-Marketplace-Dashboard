@@ -1,15 +1,26 @@
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, useSearchParams } from "react-router";
+import { useEffect } from "react";
 import { Trash2, ShoppingCart, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency } from "@/lib/formatters";
 import { PLATFORM_COMMISSION_RATE, MIN_DEPOSIT_PERCENTAGE } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { items, removeItem, total } = useCart();
+  const [searchParams] = useSearchParams();
+  const { items, removeItem, total, clearCart } = useCart();
   useAuth();
+
+  useEffect(() => {
+    const sessionId = searchParams.get("session_id");
+    if (sessionId) {
+      clearCart();
+      navigate("/orders");
+    }
+  }, [searchParams, clearCart, navigate]);
 
   if (items.length === 0) {
     return (
@@ -31,6 +42,19 @@ export default function Checkout() {
   const totalToPay = depositAmount + platformFee;
 
   const handleCheckout = async () => {
+    for (const item of items) {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { package_id: item.package_id },
+      });
+      if (error) {
+        console.error(error);
+        continue;
+      }
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+    }
     navigate("/orders");
   };
 

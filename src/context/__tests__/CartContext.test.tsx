@@ -11,11 +11,15 @@ describe('CartContext', () => {
   const createMockPackage = (overrides: Partial<TravelPackage> = {}): TravelPackage => ({
     package_id: 'pkg-1',
     title: 'Test Package',
-    description: 'Test Description',
     price: 100,
     currency: 'MXN',
     region: 'Test Region',
+    url_flyer_storage: 'https://example.com/flyer.jpg',
     url_thumbnail_storage: 'https://example.com/image.jpg',
+    has_coordinator: false,
+    publication_status: 'published',
+    departure_date: '2026-12-01',
+    created_at: '2026-01-01',
     tenant_id: 'tenant-1',
     ...overrides,
   });
@@ -111,7 +115,7 @@ describe('CartContext', () => {
       });
       
       expect(result.current.items).toHaveLength(1);
-      expect(result.current.items[0].package_id).toBe('pkg-2');
+      expect(result.current.items[0]!.package_id).toBe('pkg-2');
     });
 
     it('updates total after removing item', () => {
@@ -263,7 +267,7 @@ describe('CartContext', () => {
       const { result } = renderHook(() => useCart(), { wrapper });
       
       expect(result.current.items).toHaveLength(1);
-      expect(result.current.items[0].package_id).toBe('pkg-1');
+      expect(result.current.items[0]!.package_id).toBe('pkg-1');
       expect(result.current.total).toBe(500);
     });
   });

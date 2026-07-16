@@ -118,3 +118,40 @@ export interface TransferLeadToHumanRequest {
   lead_id: string;
   conversation_id: string;
 }
+
+export interface CreateConnectAccountResponse {
+  url: string;
+  account_id?: string;
+}
+
+export interface ManageSubscriptionRequest {
+  action: "create" | "portal";
+  plan?: string;
+  billing_cycle?: "monthly" | "annual";
+}
+
+export interface ManageSubscriptionResponse {
+  url: string;
+}
+
+export interface GenerateCfdiRequest {
+  concept: string;
+  amount: number;
+  currency?: string;
+  tenant_id: string;
+}
+
+export interface GenerateCfdiResponse {
+  cfdi_id: string;
+  uuid: string;
+  pdf_url: string;
+  xml_url: string;
+}
+
+export interface DispatchNotificationRequest {
+  user_id: string;
+  type: string;
+  title: string;
+  message?: string;
+  metadata?: Record<string, unknown>;
+}
