@@ -17,6 +17,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Select from "@/components/ui/Select";
 import Input from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
 import AIQualificationProgress from "@/components/crm/AIQualificationProgress";
 import { CRM_LEAD_STATUS, CRM_LEAD_STATUS_OPTIONS } from "@/lib/constants";
 import { formatCurrency, formatDateTime, formatRelativeTime } from "@/lib/formatters";
@@ -40,6 +41,7 @@ export default function LeadDetailModal({
   onLeadUpdated,
 }: LeadDetailModalProps) {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [activities, setActivities] = useState<CRMActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [newNote, setNewNote] = useState("");
@@ -70,16 +72,43 @@ export default function LeadDetailModal({
 
   const handleStatusChange = async (newStatus: string) => {
     if (!user) return;
+
+    // Confirm critical status changes
+    if (newStatus === "won" || newStatus === "lost") {
+      const action = newStatus === "won" ? "marcar como ganado" : "marcar como perdido";
+      const confirmed = window.confirm(`¿Estás seguro de que deseas ${action} este lead? Esta acción es importante para tus métricas.`);
+      if (!confirmed) {
+        onLeadUpdated(); // Reset the select to current status
+        return;
+      }
+    }
+
     setUpdatingStatus(true);
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
-    if (!token) return;
+    if (!token) {
+      console.error("No auth token available");
+      setUpdatingStatus(false);
+      return;
+    }
 
-    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-lead-status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ lead_id: lead.lead_id, status: newStatus }),
-    });
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-lead-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lead_id: lead.lead_id, status: newStatus }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        console.error("Failed to update status:", error);
+        addToast("error", "Error al actualizar estado", error.error);
+      } else {
+        addToast("success", "Estado actualizado", `Lead cambiado a ${CRM_LEAD_STATUS[newStatus as keyof typeof CRM_LEAD_STATUS]?.label ?? newStatus}`);
+      }
+    } catch (err) {
+      console.error("Status update error:", err);
+    }
 
     setUpdatingStatus(false);
     onLeadUpdated();
@@ -90,13 +119,29 @@ export default function LeadDetailModal({
     setSavingNote(true);
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
-    if (!token) return;
+    if (!token) {
+      console.error("No auth token available");
+      setSavingNote(false);
+      return;
+    }
 
-    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/add-lead-activity`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ lead_id: lead.lead_id, description: newNote.trim() }),
-    });
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/add-lead-activity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lead_id: lead.lead_id, description: newNote.trim() }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        console.error("Failed to add note:", error);
+        addToast("error", "Error al agregar nota");
+      } else {
+        addToast("success", "Nota agregada");
+      }
+    } catch (err) {
+      console.error("Add note error:", err);
+    }
 
     setNewNote("");
     setSavingNote(false);
@@ -114,13 +159,29 @@ export default function LeadDetailModal({
     setTransferring(true);
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
-    if (!token) return;
+    if (!token) {
+      console.error("No auth token available");
+      setTransferring(false);
+      return;
+    }
 
-    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transfer-lead-to-human`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ lead_id: lead.lead_id, conversation_id: lead.conversation_id }),
-    });
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transfer-lead-to-human`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lead_id: lead.lead_id, conversation_id: lead.conversation_id }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        console.error("Failed to transfer lead:", error);
+        addToast("error", "Error al transferir lead");
+      } else {
+        addToast("success", "Control tomado", "Ahora puedes continuar la conversación manualmente.");
+      }
+    } catch (err) {
+      console.error("Transfer error:", err);
+    }
 
     setTransferring(false);
     onLeadUpdated();

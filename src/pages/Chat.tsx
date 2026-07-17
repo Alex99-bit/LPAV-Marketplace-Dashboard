@@ -34,27 +34,33 @@ export default function Chat() {
   }, [navState]);
 
   useEffect(() => {
-    const convId = conversationId ?? "demo-conversation";
-    (async () => {
+    if (!conversationId) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchMessages = async () => {
       const { data } = await supabase
         .from("chat_messages")
         .select("*")
-        .eq("conversation_id", convId)
+        .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(50);
       setMessages(data ?? []);
       setLoading(false);
-    })();
+    };
+
+    fetchMessages();
 
     const channel = supabase
-      .channel(`chat:${convId}`)
+      .channel(`chat:${conversationId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "chat_messages",
-          filter: `conversation_id=eq.${convId}`,
+          filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
           const msg = payload.new as ChatMessage;
@@ -137,9 +143,11 @@ export default function Chat() {
         if (data.qualification_completed || data.should_transfer_to_human) {
           setAiActive(false);
         }
+      } else {
+        console.error("AI qualification failed:", await res.text());
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("AI qualification error:", err);
     } finally {
       setAiProcessing(false);
     }
@@ -147,16 +155,19 @@ export default function Chat() {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user) return;
+    if (!conversationId) {
+      console.error("No conversation ID available");
+      return;
+    }
+    
     setSending(true);
     setCensorWarning("");
 
     const messageText = newMessage.trim();
     setNewMessage("");
 
-    const convId = conversationId ?? "demo-conversation";
-
     const { error } = await supabase.from("chat_messages").insert({
-      conversation_id: convId,
+      conversation_id: conversationId,
       sender_id: user.id,
       message_text: messageText,
     });
