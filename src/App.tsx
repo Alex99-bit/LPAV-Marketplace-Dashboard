@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { ToastProvider } from "@/components/ui/Toast";
 import Layout from "@/components/layout/Layout";
 import AgencyLayout from "@/components/agency/AgencyLayout";
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -27,7 +28,8 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Routes>
+        <ToastProvider>
+          <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/package/:id" element={<PackageDetailPage />} />
@@ -86,7 +88,8 @@ export default function App() {
               </AuthGuard>
             }
           />
-        </Routes>
+          </Routes>
+        </ToastProvider>
       </CartProvider>
     </AuthProvider>
   );
