@@ -1,10 +1,21 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
   Building2,
   Upload,
   FileText,
   CheckCircle,
+  CreditCard,
+  Shield,
+  Brain,
+  FileWarning,
+  Crown,
+  Store,
+  Briefcase,
+  ArrowRight,
+  ArrowLeft,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -17,31 +28,108 @@ import {
   validatePassword,
   isValidCertificationKey,
 } from "@/lib/validation";
+import type { SubscriptionTier } from "@/types";
 
 type Mode = "choice" | "agency_login" | "agency_register";
+type RegisterStep = "business" | "plan" | "fiscal" | "legal" | "review";
+
+const PLAN_DETAILS: Record<
+  SubscriptionTier,
+  {
+    label: string;
+    icon: typeof Store;
+    price: string;
+    features: string[];
+    recommended?: boolean;
+  }
+> = {
+  Gratuito: {
+    label: "Básico (Gratuito)",
+    icon: Store,
+    price: "$0/mes",
+    features: [
+      "3 flyers publicados",
+      "Sin roles personalizados",
+      "1 cuenta de administrador",
+    ],
+  },
+  Comercial: {
+    label: "Comercial",
+    icon: Briefcase,
+    price: "$499/mes",
+    features: [
+      "20 flyers publicados",
+      "1 rol personalizado (Agentes de Ventas)",
+      "3-5 colaboradores",
+      "Soporte prioritario",
+    ],
+    recommended: true,
+  },
+  Corporativo: {
+    label: "Corporativo",
+    icon: Crown,
+    price: "$1,499/mes",
+    features: [
+      "150 flyers publicados",
+      "3 roles personalizados dinámicos",
+      "Colaboradores ilimitados",
+      "Matriz de permisos granulares",
+      "Soporte dedicado",
+    ],
+  },
+};
 
 export default function AgencyAuth() {
   const navigate = useNavigate();
-  const { user, signInWithEmail, signUpWithEmail, signInWithGoogle, refreshProfile } =
-    useAuth();
+  const {
+    user,
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithGoogle,
+    refreshProfile,
+  } = useAuth();
+
   const [mode, setMode] = useState<Mode>("choice");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [registerStep, setRegisterStep] = useState<RegisterStep>("business");
 
+  // Auth fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
+  // Agency registration fields
   const [form, setForm] = useState({
     business_name: "",
     rfc: "",
     address_text: "",
     certification_key: "",
-    accept_terms: false,
+  });
+
+  // Plan selection
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("Gratuito");
+
+  // Fiscal document
+  const [fiscalFile, setFiscalFile] = useState<File | null>(null);
+  const [fiscalUploadUrl, setFiscalUploadUrl] = useState<string | null>(null);
+  const [fiscalUploadProgress, setFiscalUploadProgress] = useState(false);
+  const fiscalInputRef = useRef<HTMLInputElement>(null);
+
+  // Legal acceptances
+  const [legal, setLegal] = useState({
+    accept_no_refunds: false,
+    accept_ai_data_usage: false,
+    accept_nda: false,
   });
 
   const updateField = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const updateLegal = (field: keyof typeof legal) =>
+    setLegal((prev) => ({ ...prev, [field]: !prev[field] }));
+
+  // ── Auth handlers ──────────────────────────────────────────
 
   const handleEmailAuth = async () => {
     setError("");
@@ -53,7 +141,7 @@ export default function AgencyAuth() {
 
     const pwValidation = validatePassword(password);
     if (!pwValidation.valid) {
-      setError(pwValidation.errors[0] ?? "Contrasena no valida");
+      setError(pwValidation.errors[0] ?? "Contraseña no válida");
       return;
     }
 
@@ -64,38 +152,165 @@ export default function AgencyAuth() {
       } else {
         if (fullName.trim().length < 2) {
           setError("Ingresa tu nombre");
+          setLoading(false);
           return;
         }
         await signUpWithEmail(email, password, fullName, "agency_register");
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error de autenticación";
+      const message =
+        err instanceof Error ? err.message : "Error de autenticación";
       setError(message || "Error de autenticación");
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Fiscal document upload ──────────────────────────────────
+
+  const handleFiscalFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      setError("Solo se aceptan archivos PDF");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("El archivo no debe exceder 5 MB");
+      return;
+    }
+
+    setError("");
+    setFiscalFile(file);
+    setFiscalUploadProgress(true);
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `pending/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("fiscal-documents")
+        .upload(filePath, file, { contentType: "application/pdf" });
+
+      if (uploadError) throw uploadError;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("fiscal-documents").getPublicUrl(filePath);
+
+      setFiscalUploadUrl(publicUrl);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Error al subir el archivo";
+      setError(message);
+      setFiscalFile(null);
+    } finally {
+      setFiscalUploadProgress(false);
+    }
+  };
+
+  const removeFiscalFile = () => {
+    setFiscalFile(null);
+    setFiscalUploadUrl(null);
+    if (fiscalInputRef.current) fiscalInputRef.current.value = "";
+  };
+
+  // ── Step validation ─────────────────────────────────────────
+
+  const validateBusinessStep = (): boolean => {
+    if (
+      !form.business_name ||
+      !form.rfc ||
+      !form.address_text ||
+      !form.certification_key
+    ) {
+      setError("Todos los campos son obligatorios");
+      return false;
+    }
+    if (!isValidRFC(form.rfc)) {
+      setError("RFC no válido (formato: XXXX000000XXX)");
+      return false;
+    }
+    if (!isValidCertificationKey(form.certification_key)) {
+      setError("Clave de certificación no válida");
+      return false;
+    }
+    setError("");
+    return true;
+  };
+
+  const validateFiscalStep = (): boolean => {
+    if (!fiscalUploadUrl) {
+      setError("Debes subir tu Constancia de Situación Fiscal");
+      return false;
+    }
+    setError("");
+    return true;
+  };
+
+  const validateLegalStep = (): boolean => {
+    if (!legal.accept_no_refunds || !legal.accept_ai_data_usage || !legal.accept_nda) {
+      setError("Debes aceptar los tres acuerdos legales para continuar");
+      return false;
+    }
+    setError("");
+    return true;
+  };
+
+  // ── Navigation between steps ────────────────────────────────
+
+  const nextStep = () => {
+    setError("");
+    const steps: RegisterStep[] = ["business", "plan", "fiscal", "legal", "review"];
+    const idx = steps.indexOf(registerStep);
+    if (idx < steps.length - 1) setRegisterStep(steps[idx + 1]);
+  };
+
+  const prevStep = () => {
+    setError("");
+    const steps: RegisterStep[] = ["business", "plan", "fiscal", "legal", "review"];
+    const idx = steps.indexOf(registerStep);
+    if (idx > 0) setRegisterStep(steps[idx - 1]);
+  };
+
+  const canProceed = (): boolean => {
+    switch (registerStep) {
+      case "business":
+        return validateBusinessStep();
+      case "plan":
+        return true;
+      case "fiscal":
+        return validateFiscalStep();
+      case "legal":
+        return validateLegalStep();
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = () => {
+    if (canProceed()) nextStep();
+  };
+
+  // ── Final submit ────────────────────────────────────────────
+
   const handleRegisterAgency = async () => {
     setError("");
 
-    if (!form.business_name || !form.rfc || !form.address_text || !form.certification_key) {
-      setError("Todos los campos son obligatorios");
+    // Final validation of all steps
+    if (!validateBusinessStep()) {
+      setRegisterStep("business");
       return;
     }
-
-    if (!isValidRFC(form.rfc)) {
-      setError("RFC no válido");
+    if (!validateFiscalStep()) {
+      setRegisterStep("fiscal");
       return;
     }
-
-    if (!isValidCertificationKey(form.certification_key)) {
-      setError("Clave de certificación no válida");
-      return;
-    }
-
-    if (!form.accept_terms) {
-      setError("Debes aceptar los términos y condiciones");
+    if (!validateLegalStep()) {
+      setRegisterStep("legal");
       return;
     }
 
@@ -105,22 +320,417 @@ export default function AgencyAuth() {
         p_business_name: form.business_name,
         p_rfc: form.rfc,
         p_address_text: form.address_text,
-        p_fiscal_pdf_url: "pending",
+        p_fiscal_pdf_url: fiscalUploadUrl,
         p_certification_key: form.certification_key,
+        p_subscription_tier: selectedPlan,
+        p_accept_no_refunds: legal.accept_no_refunds,
+        p_accept_ai_data_usage: legal.accept_ai_data_usage,
+        p_accept_nda: legal.accept_nda,
       });
 
       if (rpcError) throw rpcError;
       if (!data) throw new Error("No se pudo registrar la agencia");
 
       await refreshProfile();
-      navigate("/agency/dashboard");
+
+      // Redirect to post-registration setup (Stripe Connect + Billing)
+      navigate("/agency/post-register", {
+        replace: true,
+        state: { tenantId: data, plan: selectedPlan },
+      });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error al registrar";
+      const message =
+        err instanceof Error ? err.message : "Error al registrar";
       setError(message || "Error al registrar");
     } finally {
       setLoading(false);
     }
   };
+
+  // ── Step indicators ─────────────────────────────────────────
+
+  const STEPS: { key: RegisterStep; label: string }[] = [
+    { key: "business", label: "Datos" },
+    { key: "plan", label: "Plan" },
+    { key: "fiscal", label: "Fiscal" },
+    { key: "legal", label: "Legales" },
+    { key: "review", label: "Revisión" },
+  ];
+
+  const currentStepIdx = STEPS.findIndex((s) => s.key === registerStep);
+
+  const StepIndicator = () => (
+    <div className="flex items-center justify-between mb-6">
+      {STEPS.map((step, i) => (
+        <div key={step.key} className="flex items-center">
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+              i < currentStepIdx
+                ? "bg-success text-white"
+                : i === currentStepIdx
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-text-muted"
+            }`}
+          >
+            {i < currentStepIdx ? (
+              <CheckCircle className="h-4 w-4" />
+            ) : (
+              i + 1
+            )}
+          </div>
+          {i < STEPS.length - 1 && (
+            <div
+              className={`mx-1 h-0.5 w-6 sm:w-10 ${
+                i < currentStepIdx ? "bg-success" : "bg-gray-200"
+              }`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  // ── Step: Business Info ─────────────────────────────────────
+
+  const StepBusiness = () => (
+    <div className="space-y-4">
+      <Input
+        label="Nombre comercial"
+        placeholder="Ej: Viajes Increíbles S.A. de C.V."
+        value={form.business_name}
+        onChange={(e) => updateField("business_name", e.target.value)}
+      />
+      <Input
+        label="RFC"
+        placeholder="Ej: VIA123456789"
+        value={form.rfc}
+        onChange={(e) => updateField("rfc", e.target.value.toUpperCase())}
+        maxLength={13}
+      />
+      <Input
+        label="Dirección fiscal completa"
+        placeholder="Calle, número, colonia, ciudad, estado, CP"
+        value={form.address_text}
+        onChange={(e) => updateField("address_text", e.target.value)}
+      />
+      <Input
+        label="Clave de certificación turística"
+        placeholder="Número de certificación oficial"
+        value={form.certification_key}
+        onChange={(e) => updateField("certification_key", e.target.value)}
+      />
+    </div>
+  );
+
+  // ── Step: Plan Selection ────────────────────────────────────
+
+  const StepPlan = () => (
+    <div className="space-y-3">
+      {(Object.entries(PLAN_DETAILS) as [SubscriptionTier, (typeof PLAN_DETAILS)[SubscriptionTier]][]).map(
+        ([tier, plan]) => {
+          const Icon = plan.icon;
+          const isSelected = selectedPlan === tier;
+          return (
+            <button
+              key={tier}
+              onClick={() => setSelectedPlan(tier)}
+              className={`group relative w-full rounded-2xl border-2 p-4 text-left transition-all ${
+                isSelected
+                  ? "border-primary bg-primary/5 shadow-md"
+                  : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+              }`}
+            >
+              {plan.recommended && (
+                <span className="absolute -top-3 right-4 rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-white">
+                  Recomendado
+                </span>
+              )}
+              <div className="flex items-start gap-4">
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                    isSelected
+                      ? "bg-primary text-white"
+                      : "bg-gray-100 text-text-muted group-hover:bg-gray-200"
+                  }`}
+                >
+                  <Icon className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-text">{plan.label}</h3>
+                    <span className="text-sm font-bold text-primary">
+                      {plan.price}
+                    </span>
+                  </div>
+                  <ul className="mt-2 space-y-1">
+                    {plan.features.map((f) => (
+                      <li
+                        key={f}
+                        className="flex items-center gap-2 text-xs text-text-muted"
+                      >
+                        <CheckCircle className="h-3 w-3 shrink-0 text-success" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div
+                  className={`mt-1 h-5 w-5 shrink-0 rounded-full border-2 transition-colors ${
+                    isSelected
+                      ? "border-primary bg-primary"
+                      : "border-gray-300"
+                  }`}
+                >
+                  {isSelected && (
+                    <CheckCircle className="h-5 w-5 text-white" />
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        }
+      )}
+    </div>
+  );
+
+  // ── Step: Fiscal Document ───────────────────────────────────
+
+  const StepFiscal = () => (
+    <div className="space-y-4">
+      <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
+        <p className="font-medium">Constancia de Situación Fiscal</p>
+        <p className="mt-1 text-xs text-blue-600">
+          Documento digitalizado expedido por el SAT. Es indispensable para el
+          timbrado automatizado de facturas fiscales (CFDI) a través de
+          Facturama.
+        </p>
+      </div>
+
+      {fiscalFile ? (
+        <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-surface p-4">
+          <div className="flex items-center gap-3">
+            <FileText className="h-8 w-8 text-primary" />
+            <div>
+              <p className="text-sm font-medium text-text">{fiscalFile.name}</p>
+              <p className="text-xs text-text-muted">
+                {(fiscalFile.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={removeFiscalFile}
+            className="rounded-lg p-1 text-text-muted hover:bg-red-50 hover:text-red-500"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => fiscalInputRef.current?.click()}
+          className="w-full rounded-2xl border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-primary hover:bg-primary/5"
+        >
+          <Upload className="mx-auto h-10 w-10 text-text-muted" />
+          <p className="mt-3 text-sm font-medium text-text">
+            Subir Constancia de Situación Fiscal
+          </p>
+          <p className="mt-1 text-xs text-text-muted">
+            Archivo PDF, máximo 5 MB
+          </p>
+        </button>
+      )}
+
+      <input
+        ref={fiscalInputRef}
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        onChange={handleFiscalFileSelect}
+      />
+
+      {fiscalUploadProgress && (
+        <div className="flex items-center gap-2 text-sm text-primary">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          Subiendo archivo...
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Step: Legal Acceptances ─────────────────────────────────
+
+  const StepLegal = () => (
+    <div className="space-y-4">
+      {/* No Refunds */}
+      <label
+        className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-colors cursor-pointer ${
+          legal.accept_no_refunds
+            ? "border-primary bg-primary/5"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={legal.accept_no_refunds}
+          onChange={() => updateLegal("accept_no_refunds")}
+          className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <FileWarning className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-semibold text-text">
+              Cláusula de No Reembolsos
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-text-muted">
+            La plataforma opera bajo una política estricta de no reembolsos.
+            Cualquier pago realizado por servicios de suscripción o comisiones
+            de plataforma no será reembolsado bajo ninguna circunstancia, salvo
+            disposición legal aplicable.
+          </p>
+        </div>
+      </label>
+
+      {/* AI Data Usage */}
+      <label
+        className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-colors cursor-pointer ${
+          legal.accept_ai_data_usage
+            ? "border-primary bg-primary/5"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={legal.accept_ai_data_usage}
+          onChange={() => updateLegal("accept_ai_data_usage")}
+          className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-purple-500" />
+            <span className="text-sm font-semibold text-text">
+              Acuerdo de Uso de Datos para IA
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-text-muted">
+            Autorizo que la información de usuarios y leads sea recabada y
+            procesada para alimentar y optimizar el algoritmo predictivo de
+            recomendación y personalización de itinerarios con inteligencia
+            artificial de la plataforma.
+          </p>
+        </div>
+      </label>
+
+      {/* NDA */}
+      <label
+        className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-colors cursor-pointer ${
+          legal.accept_nda
+            ? "border-primary bg-primary/5"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={legal.accept_nda}
+          onChange={() => updateLegal("accept_nda")}
+          className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-text">
+              Convenio de Confidencialidad (NDA)
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-text-muted">
+            Como política corporativa para resguardar la arquitectura
+            multi-tenant y los secretos industriales (core de IA y algoritmos
+            antidesintermediación), acepto firmar este instrumento legal ya sea
+            físico o por firma digital antes de revelar cualquier endpoint o
+            métrica del sistema.
+          </p>
+        </div>
+      </label>
+    </div>
+  );
+
+  // ── Step: Review & Submit ───────────────────────────────────
+
+  const StepReview = () => {
+    const plan = PLAN_DETAILS[selectedPlan];
+    const Icon = plan.icon;
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl bg-surface p-4 space-y-3">
+          <h3 className="font-semibold text-text">Datos de la Agencia</h3>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <span className="text-text-muted">Nombre:</span>
+            <span className="text-text font-medium">{form.business_name}</span>
+            <span className="text-text-muted">RFC:</span>
+            <span className="text-text font-medium font-mono">{form.rfc}</span>
+            <span className="text-text-muted">Dirección:</span>
+            <span className="text-text font-medium">{form.address_text}</span>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-surface p-4">
+          <h3 className="font-semibold text-text">Plan Seleccionado</h3>
+          <div className="mt-2 flex items-center gap-3">
+            <Icon className="h-8 w-8 text-primary" />
+            <div>
+              <p className="font-medium text-text">{plan.label}</p>
+              <p className="text-sm text-primary font-bold">{plan.price}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-surface p-4">
+          <h3 className="font-semibold text-text">Documentación Fiscal</h3>
+          <div className="mt-2 flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-success" />
+            <span className="text-sm text-text">
+              Constancia de Situación Fiscal: {fiscalFile?.name}
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-surface p-4">
+          <h3 className="font-semibold text-text">Acuerdos Legales</h3>
+          <div className="mt-2 space-y-1">
+            {legal.accept_no_refunds && (
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="h-3 w-3 text-success" />
+                <span>Cláusula de No Reembolsos</span>
+              </div>
+            )}
+            {legal.accept_ai_data_usage && (
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="h-3 w-3 text-success" />
+                <span>Acuerdo de Uso de Datos para IA</span>
+              </div>
+            )}
+            {legal.accept_nda && (
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="h-3 w-3 text-success" />
+                <span>Convenio de Confidencialidad (NDA)</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {selectedPlan !== "Gratuito" && (
+          <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+            <p className="font-medium">Siguiente paso después del registro</p>
+            <p className="mt-1 text-xs text-amber-600">
+              Serás redirigido a configurar tu cuenta de cobro (Stripe Connect
+              Express) y datos de facturación de suscripción (Stripe Billing).
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ── Render: Choice screen ───────────────────────────────────
 
   if (mode === "choice") {
     return (
@@ -181,11 +791,17 @@ export default function AgencyAuth() {
     );
   }
 
+  // ── Render: Login / Register (auth + agency form) ───────────
+
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-xl flex-col items-center justify-center px-4 py-12">
       <div className="mb-6 w-full text-center">
         <button
-          onClick={() => setMode("choice")}
+          onClick={() => {
+            setMode("choice");
+            setRegisterStep("business");
+            setError("");
+          }}
           className="mb-4 text-sm text-text-muted hover:text-primary"
         >
           &larr; Volver
@@ -197,18 +813,19 @@ export default function AgencyAuth() {
           {mode === "agency_login"
             ? "Iniciar Sesión - Agencia"
             : user
-              ? "Datos de tu Agencia"
+              ? "Registro de Agencia"
               : "Crear Cuenta de Agencia"}
         </h1>
         <p className="mt-1 text-sm text-text-muted">
           {mode === "agency_login"
             ? "Accede con tu cuenta de agencia"
             : user
-              ? "Completa los datos de tu agencia de viajes"
+              ? "Completa los datos para registrar tu agencia"
               : "Primero crea tu cuenta y luego registra tu agencia"}
         </p>
       </div>
 
+      {/* Auth form (email/password) */}
       {!user && (
         <div className="w-full space-y-4">
           {mode === "agency_register" && (
@@ -269,7 +886,9 @@ export default function AgencyAuth() {
             {mode === "agency_login" ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
             <button
               onClick={() =>
-                setMode(mode === "agency_login" ? "agency_register" : "agency_login")
+                setMode(
+                  mode === "agency_login" ? "agency_register" : "agency_login"
+                )
               }
               className="font-medium text-primary hover:underline"
             >
@@ -279,8 +898,10 @@ export default function AgencyAuth() {
         </div>
       )}
 
+      {/* Multi-step registration form */}
       {user && mode === "agency_register" && (
-        <div className="w-full space-y-6">
+        <div className="w-full space-y-5">
+          {/* Connected account badge */}
           <div className="flex items-center justify-between rounded-xl bg-surface p-3">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
@@ -294,63 +915,14 @@ export default function AgencyAuth() {
             <CheckCircle className="h-5 w-5 text-success" />
           </div>
 
-          <div className="space-y-4">
-            <Input
-              label="Nombre comercial"
-              placeholder="Ej: Viajes Increíbles S.A. de C.V."
-              value={form.business_name}
-              onChange={(e) => updateField("business_name", e.target.value)}
-            />
-            <Input
-              label="RFC"
-              placeholder="Ej: VIA123456789"
-              value={form.rfc}
-              onChange={(e) => updateField("rfc", e.target.value.toUpperCase())}
-              maxLength={13}
-            />
-            <Input
-              label="Dirección física"
-              placeholder="Calle, número, colonia, ciudad, estado, CP"
-              value={form.address_text}
-              onChange={(e) => updateField("address_text", e.target.value)}
-            />
-            <Input
-              label="Clave de certificación turística"
-              placeholder="Número de certificación oficial"
-              value={form.certification_key}
-              onChange={(e) => updateField("certification_key", e.target.value)}
-            />
+          <StepIndicator />
 
-            <div className="rounded-xl border-2 border-dashed border-gray-200 p-6 text-center">
-              <Upload className="mx-auto h-8 w-8 text-text-muted" />
-              <p className="mt-2 text-sm font-medium text-text">
-                Constancia de Situación Fiscal (PDF)
-              </p>
-              <p className="mt-1 text-xs text-text-muted">
-                Se cargará mediante URL firmada (próximamente)
-              </p>
-            </div>
-
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={form.accept_terms}
-                onChange={(e) => updateField("accept_terms", e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-muted">
-                Acepto los{" "}
-                <a href="#" className="text-primary hover:underline">
-                  Términos y Condiciones
-                </a>{" "}
-                y el{" "}
-                <a href="#" className="text-primary hover:underline">
-                  Aviso de Privacidad
-                </a>{" "}
-                de LPAV.
-              </span>
-            </label>
-          </div>
+          {/* Step content */}
+          {registerStep === "business" && <StepBusiness />}
+          {registerStep === "plan" && <StepPlan />}
+          {registerStep === "fiscal" && <StepFiscal />}
+          {registerStep === "legal" && <StepLegal />}
+          {registerStep === "review" && <StepReview />}
 
           {error && (
             <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">
@@ -358,16 +930,40 @@ export default function AgencyAuth() {
             </p>
           )}
 
-          <Button
-            size="lg"
-            className="w-full"
-            loading={loading}
-            disabled={!form.accept_terms}
-            onClick={handleRegisterAgency}
-          >
-            <FileText className="h-5 w-5" />
-            Registrar Agencia
-          </Button>
+          {/* Navigation buttons */}
+          <div className="flex gap-3">
+            {currentStepIdx > 0 && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={prevStep}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Anterior
+              </Button>
+            )}
+
+            {registerStep !== "review" ? (
+              <Button
+                size="lg"
+                className="flex-1"
+                onClick={handleNext}
+              >
+                Siguiente
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                className="flex-1"
+                loading={loading}
+                onClick={handleRegisterAgency}
+              >
+                <FileText className="h-5 w-5" />
+                Registrar Agencia
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

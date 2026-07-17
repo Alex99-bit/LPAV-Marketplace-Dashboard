@@ -4,8 +4,8 @@ export const PLAN_LIMITS: Record<
   SubscriptionTier,
   { maxFlyers: number; maxCustomRoles: number; maxEmployees: string }
 > = {
-  Gratuito: { maxFlyers: 5, maxCustomRoles: 0, maxEmployees: "1 admin" },
-  Comercial: { maxFlyers: 25, maxCustomRoles: 1, maxEmployees: "3-5" },
+  Gratuito: { maxFlyers: 3, maxCustomRoles: 0, maxEmployees: "1 admin" },
+  Comercial: { maxFlyers: 20, maxCustomRoles: 1, maxEmployees: "3-5" },
   Corporativo: {
     maxFlyers: 150,
     maxCustomRoles: 3,
