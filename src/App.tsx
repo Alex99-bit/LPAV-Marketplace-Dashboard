@@ -7,6 +7,7 @@ import AgencyLayout from "@/components/agency/AgencyLayout";
 import AuthGuard from "@/components/auth/AuthGuard";
 import LoginPage from "@/pages/auth/LoginPage";
 import AgencyAuth from "@/pages/auth/AgencyAuth";
+import AgencyPostRegister from "@/pages/auth/AgencyPostRegister";
 import AcceptInvitation from "@/pages/auth/AcceptInvitation";
 import Home from "@/pages/Home";
 import PackageDetailPage from "@/pages/PackageDetailPage";
@@ -35,6 +36,14 @@ export default function App() {
             <Route path="/package/:id" element={<PackageDetailPage />} />
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth/agency" element={<AgencyAuth />} />
+            <Route
+              path="/agency/post-register"
+              element={
+                <AuthGuard requireAgency>
+                  <AgencyPostRegister />
+                </AuthGuard>
+              }
+            />
             <Route path="/auth/accept-invite" element={<AcceptInvitation />} />
             <Route
               path="/checkout"
