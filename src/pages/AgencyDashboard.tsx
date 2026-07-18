@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import {
   Package, TrendingUp, AlertCircle, MessageSquare, Users,
   DollarSign, CreditCard, Star, UserCheck, Calendar,
-  Clock, FileWarning, BarChart3, ShieldAlert
+  Clock, FileWarning, BarChart3, ShieldAlert,
+  Image, Settings, ArrowRight, CreditCard as StripeIcon,
+  CheckCircle, XCircle, HelpCircle
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatters";
 import { PLAN_LIMITS } from "@/lib/constants";
-import type { SaasSubscription } from "@/types";
+import type { SaasSubscription, SubscriptionTier, StripeAccount } from "@/types";
 import KpiCard from "@/components/agency/KpiCard";
 import RevenueChart from "@/components/agency/RevenueChart";
 import RecentActivity from "@/components/agency/RecentActivity";
@@ -33,6 +36,19 @@ interface DashboardData {
   revenueHistory: { month: string; revenue: number }[];
 }
 
+const QUICK_ACTIONS = [
+  { to: "/agency/flyers", label: "Crear Flyer", desc: "Publicar un nuevo paquete", icon: Image, color: "bg-indigo-50 text-indigo-600" },
+  { to: "/agency/crm", label: "Ver Leads", desc: "Gestionar tu CRM", icon: Users, color: "bg-cyan-50 text-cyan-600" },
+  { to: "/chat", label: "Chat", desc: "Mensajes con viajeros", icon: MessageSquare, color: "bg-purple-50 text-purple-600" },
+  { to: "/agency/settings", label: "Configuración", desc: "Ajustes de la agencia", icon: Settings, color: "bg-gray-100 text-gray-600" },
+];
+
+const PLAN_BADGES: Record<SubscriptionTier, { label: string; color: string }> = {
+  Gratuito: { label: "Plan Básico", color: "bg-gray-100 text-gray-700" },
+  Comercial: { label: "Plan Comercial", color: "bg-blue-100 text-blue-700" },
+  Corporativo: { label: "Plan Corporativo", color: "bg-amber-100 text-amber-700" },
+};
+
 export default function AgencyDashboard() {
   const { profile } = useAuth();
   const [data, setData] = useState<DashboardData>({
@@ -55,6 +71,9 @@ export default function AgencyDashboard() {
   });
   const [subscription, setSubscription] = useState<SaasSubscription | null>(null);
   const [tenantStatus, setTenantStatus] = useState("Activo");
+  const [businessName, setBusinessName] = useState("");
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("Gratuito");
+  const [stripeAccount, setStripeAccount] = useState<StripeAccount | null>(null);
 
   useEffect(() => {
     if (!profile?.tenant_id) return;
@@ -74,6 +93,7 @@ export default function AgencyDashboard() {
         teamRes,
         subRes,
         tenantRes,
+        stripeRes,
       ] = await Promise.all([
         supabase.from("travel_packages").select("package_id, publication_status").eq("tenant_id", tenantId),
         supabase.from("transactions_orders").select("total_amount, remaining_balance, payment_status, created_at").eq("tenant_id", tenantId),
@@ -82,7 +102,8 @@ export default function AgencyDashboard() {
         supabase.from("crm_leads").select("lead_id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "won"),
         supabase.from("agency_team_members").select("member_id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
         supabase.from("saas_subscriptions").select("*").eq("tenant_id", tenantId).single(),
-        supabase.from("agencies_tenants").select("status, subscription_tier").eq("tenant_id", tenantId).single(),
+        supabase.from("agencies_tenants").select("status, subscription_tier, business_name").eq("tenant_id", tenantId).single(),
+        supabase.from("stripe_accounts").select("*").eq("tenant_id", tenantId).single(),
       ]);
 
       const packages = packagesRes.data ?? [];
@@ -147,11 +168,19 @@ export default function AgencyDashboard() {
       });
 
       if (subRes.data) setSubscription(subRes.data as SaasSubscription);
-      if (tenantRes.data) setTenantStatus(tenantRes.data.status);
+      if (tenantRes.data) {
+        setTenantStatus(tenantRes.data.status);
+        setBusinessName(tenantRes.data.business_name ?? "");
+        setSubscriptionTier(tenantRes.data.subscription_tier ?? "Gratuito");
+      }
+      if (stripeRes.data) setStripeAccount(stripeRes.data as StripeAccount);
     })();
   }, [profile?.tenant_id, profile?.censorship_strikes]);
 
-  const planLimits = PLAN_LIMITS[(profile as unknown as { subscription_tier?: keyof typeof PLAN_LIMITS })?.subscription_tier ?? "Gratuito"] ?? PLAN_LIMITS.Gratuito;
+  const planLimits = PLAN_LIMITS[subscriptionTier] ?? PLAN_LIMITS.Gratuito;
+  const planBadge = PLAN_BADGES[subscriptionTier];
+  const isEmpty = data.activeFlyers === 0 && data.totalOrdersMonth === 0;
+  const firstName = profile?.full_name?.split(" ")[0] ?? "Agencia";
 
   const kpis = [
     { icon: DollarSign, label: "Ingresos del Mes", value: formatCurrency(data.monthlyRevenue), color: "bg-emerald-50 text-emerald-600" },
@@ -173,27 +202,146 @@ export default function AgencyDashboard() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text">Dashboard</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          {profile?.full_name ?? "Agencia"}
-        </p>
+      {/* Header */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text">
+            ¡Hola, {firstName}!
+          </h1>
+          <p className="mt-1 text-sm text-text-muted">
+            {businessName && <span className="font-medium">{businessName}</span>}
+            {businessName && " · "}
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${planBadge.color}`}>
+              {planBadge.label}
+            </span>
+          </p>
+        </div>
       </div>
 
+      {/* SaaS Status Banner */}
       <div className="mb-6">
         <SaasStatusBanner subscription={subscription} tenantStatus={tenantStatus} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {kpis.map((kpi) => (
-          <KpiCard key={kpi.label} {...kpi} />
-        ))}
+      {/* Stripe Connect Status */}
+      <div className="mb-6">
+        <StripeConnectBanner stripeAccount={stripeAccount} />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <RevenueChart data={data.revenueHistory} />
-        <RecentActivity />
+      {/* Quick Actions */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {QUICK_ACTIONS.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link
+              key={action.to}
+              to={action.to}
+              className="group flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-primary/30 hover:shadow-md"
+            >
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${action.color}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text">{action.label}</p>
+                <p className="text-xs text-text-muted">{action.desc}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+            </Link>
+          );
+        })}
       </div>
+
+      {/* Empty State */}
+      {isEmpty ? (
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Image className="h-8 w-8" />
+          </div>
+          <h2 className="text-xl font-bold text-text">Bienvenido a tu Dashboard</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-text-muted">
+            Empieza publicando tu primer flyer para que aparezca en el marketplace
+            y empieces a recibir leads de viajeros interesados.
+          </p>
+          <Link
+            to="/agency/flyers"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+          >
+            <Image className="h-4 w-4" />
+            Crear mi primer flyer
+          </Link>
+        </div>
+      ) : (
+        <>
+          {/* KPI Grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {kpis.map((kpi) => (
+              <KpiCard key={kpi.label} {...kpi} />
+            ))}
+          </div>
+
+          {/* Charts & Activity */}
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <RevenueChart data={data.revenueHistory} />
+            <RecentActivity />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StripeConnectBanner({ stripeAccount }: { stripeAccount: StripeAccount | null }) {
+  if (!stripeAccount) {
+    return (
+      <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <HelpCircle className="h-5 w-5 text-amber-500" />
+          <div>
+            <p className="text-sm font-medium text-amber-800">Stripe Connect no configurado</p>
+            <p className="text-xs text-amber-600">
+              Configura tu cuenta de cobro para recibir pagos de viajeros.
+            </p>
+          </div>
+        </div>
+        <Link to="/agency/settings">
+          <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
+            Configurar
+          </button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (stripeAccount.charges_enabled && stripeAccount.payouts_enabled) {
+    return (
+      <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
+        <CheckCircle className="h-5 w-5 text-emerald-500" />
+        <div>
+          <p className="text-sm font-medium text-emerald-800">Cuenta de cobro conectada</p>
+          <p className="text-xs text-emerald-600">
+            Puedes recibir pagos de viajeros a través de Stripe.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <XCircle className="h-5 w-5 text-amber-500" />
+        <div>
+          <p className="text-sm font-medium text-amber-800">Cuenta de cobro pendiente</p>
+          <p className="text-xs text-amber-600">
+            Tu cuenta de Stripe Connect está en proceso de activación.
+          </p>
+        </div>
+      </div>
+      <Link to="/agency/settings">
+        <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
+          Ver estado
+        </button>
+      </Link>
     </div>
   );
 }
