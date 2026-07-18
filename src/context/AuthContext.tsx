@@ -26,6 +26,7 @@ interface AuthState {
   refreshProfile: () => Promise<void>;
   isAgency: boolean;
   isSuperAdmin: boolean;
+  isTraveler: boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -117,13 +118,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event !== "INITIAL_SESSION") {
+        setLoading(true);
+      }
+
       setUser(session?.user ?? null);
 
       if (session?.user) {
         await fetchProfile(session.user.id);
       } else {
         setProfile(null);
+      }
+
+      if (event !== "INITIAL_SESSION") {
+        setLoading(false);
       }
     });
 
@@ -217,6 +226,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isSuperAdmin = profile?.role_name === "SuperAdmin";
 
+  const isTraveler = !!user && !isAgency && !isSuperAdmin && profile?.role_name !== "Agency_Pending";
+
   return (
     <AuthContext.Provider
       value={{
@@ -230,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshProfile,
         isAgency,
         isSuperAdmin,
+        isTraveler,
       }}
     >
       {children}

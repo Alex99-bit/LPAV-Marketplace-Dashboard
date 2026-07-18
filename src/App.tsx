@@ -48,7 +48,7 @@ export default function App() {
             <Route
               path="/checkout"
               element={
-                <AuthGuard>
+                <AuthGuard requireTraveler>
                   <Checkout />
                 </AuthGuard>
               }
@@ -56,7 +56,7 @@ export default function App() {
             <Route
               path="/orders"
               element={
-                <AuthGuard>
+                <AuthGuard requireTraveler>
                   <Orders />
                 </AuthGuard>
               }

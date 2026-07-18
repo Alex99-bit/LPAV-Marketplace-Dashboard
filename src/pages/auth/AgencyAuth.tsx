@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Building2,
@@ -83,6 +83,8 @@ export default function AgencyAuth() {
   const navigate = useNavigate();
   const {
     user,
+    isAgency,
+    loading: authLoading,
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
@@ -93,6 +95,17 @@ export default function AgencyAuth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [registerStep, setRegisterStep] = useState<RegisterStep>("business");
+
+  // Redirect based on role if already logged in
+  useEffect(() => {
+    if (authLoading) return;
+    if (user && isAgency) {
+      navigate("/agency/dashboard", { replace: true });
+    } else if (user && !isAgency && mode === "agency_login") {
+      // Non-agency user tried to login via agency portal
+      navigate("/", { replace: true });
+    }
+  }, [user, isAgency, authLoading, navigate, mode]);
 
   // Auth fields
   const [email, setEmail] = useState("");
@@ -149,6 +162,7 @@ export default function AgencyAuth() {
     try {
       if (mode === "agency_login") {
         await signInWithEmail(email, password);
+        // Redirect will be handled by useEffect based on role
       } else {
         if (fullName.trim().length < 2) {
           setError("Ingresa tu nombre");

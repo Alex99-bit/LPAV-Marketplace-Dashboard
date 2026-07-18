@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Plane, Building2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -9,19 +9,31 @@ import { isValidEmail, validatePassword } from "@/lib/validation";
 
 type Mode = "choice" | "traveler_login" | "traveler_register";
 
-export default function LoginModal() {
+export default function LoginPage() {
   const navigate = useNavigate();
-  const { user, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
+  const { user, isAgency, loading, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
   const [mode, setMode] = useState<Mode>("choice");
-  const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
-  if (user) {
-    navigate("/", { replace: true });
+  // Redirect based on role when user is already logged in
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      if (isAgency) {
+        navigate("/agency/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [user, isAgency, loading, navigate]);
+
+  // Don't render anything while checking auth or if user is logged in
+  if (loading || user) {
     return null;
   }
 
@@ -35,17 +47,18 @@ export default function LoginModal() {
 
     const pwValidation = validatePassword(password);
     if (!pwValidation.valid) {
-      setError(pwValidation.errors[0] ?? "Contrasena no valida");
+      setError(pwValidation.errors[0] ?? "Contraseña no válida");
       return;
     }
 
-    setLoading(true);
+    setAuthLoading(true);
     try {
       if (mode === "traveler_login") {
         await signInWithEmail(email, password);
       } else {
         if (fullName.trim().length < 2) {
           setError("Ingresa tu nombre");
+          setAuthLoading(false);
           return;
         }
         await signUpWithEmail(email, password, fullName, "traveler_register");
@@ -54,7 +67,7 @@ export default function LoginModal() {
       const message = err instanceof Error ? err.message : "Error de autenticación";
       setError(message || "Error de autenticación");
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
@@ -169,7 +182,7 @@ export default function LoginModal() {
         <Button
           size="lg"
           className="w-full"
-          loading={loading}
+          loading={authLoading}
           onClick={handleEmailAuth}
         >
           {mode === "traveler_login" ? "Iniciar Sesión" : "Crear Cuenta"}
@@ -186,7 +199,7 @@ export default function LoginModal() {
 
         <GoogleButton
           onClick={() => signInWithGoogle("traveler_login")}
-          loading={loading}
+          loading={authLoading}
         />
 
         <p className="text-center text-sm text-text-muted">

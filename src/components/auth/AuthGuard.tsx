@@ -8,12 +8,14 @@ interface AuthGuardProps {
   children: React.ReactNode;
   requireAgency?: boolean;
   requireSuperAdmin?: boolean;
+  requireTraveler?: boolean;
 }
 
 export default function AuthGuard({
   children,
   requireAgency = false,
   requireSuperAdmin = false,
+  requireTraveler = false,
 }: AuthGuardProps) {
   const { user, profile, loading, isAgency, isSuperAdmin } = useAuth();
   const location = useLocation();
@@ -49,10 +51,19 @@ export default function AuthGuard({
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
+  // SuperAdmin bypasses all role checks except requireSuperAdmin
+  if (isSuperAdmin) {
+    if (requireSuperAdmin) return <>{children}</>;
+    // SuperAdmin can access everything
+    return <>{children}</>;
+  }
+
+  // requireSuperAdmin: only SuperAdmin allowed
   if (requireSuperAdmin && !isSuperAdmin) {
     return <Navigate to="/" replace />;
   }
 
+  // requireAgency: only agency users allowed
   if (requireAgency && !isAgency) {
     if (profile?.role_name === "Agency_Pending") {
       return <Navigate to="/auth/agency" replace />;
@@ -60,7 +71,17 @@ export default function AuthGuard({
     return <Navigate to="/" replace />;
   }
 
-  if (requireAgency && tenantStatus === "Suspendido por Pago" && location.pathname !== "/agency/settings") {
+  // requireTraveler: agency users redirected to their dashboard
+  if (requireTraveler && isAgency) {
+    return <Navigate to="/agency/dashboard" replace />;
+  }
+
+  // Suspended agencies can only access settings
+  if (
+    requireAgency &&
+    tenantStatus === "Suspendido por Pago" &&
+    location.pathname !== "/agency/settings"
+  ) {
     return <Navigate to="/agency/settings" replace />;
   }
 
