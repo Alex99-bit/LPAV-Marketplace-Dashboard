@@ -7,6 +7,7 @@ import CompanyProfileForm from "@/components/agency/CompanyProfileForm";
 import FiscalDocuments from "@/components/agency/FiscalDocuments";
 import TeamManagement from "@/components/agency/TeamManagement";
 import PlanManagement from "@/components/agency/PlanManagement";
+import StripeConnectStatus from "@/components/agency/StripeConnectStatus";
 
 export default function AgencySettings() {
   const { profile } = useAuth();
@@ -46,6 +47,10 @@ export default function AgencySettings() {
 
       <div className="space-y-6">
         <CompanyProfileForm tenant={tenant} onSave={fetchData} />
+        <StripeConnectStatus
+          stripeAccountId={tenant.stripe_account_id}
+          tenantId={tenant.tenant_id}
+        />
         <FiscalDocuments tenant={tenant} />
         <TeamManagement tenantId={tenant.tenant_id} />
         <PlanManagement

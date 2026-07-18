@@ -297,15 +297,15 @@ function StripeConnectBanner({ stripeAccount }: { stripeAccount: StripeAccount |
         <div className="flex items-center gap-3">
           <HelpCircle className="h-5 w-5 text-amber-500" />
           <div>
-            <p className="text-sm font-medium text-amber-800">Stripe Connect no configurado</p>
+            <p className="text-sm font-medium text-amber-800">Cuenta bancaria pendiente</p>
             <p className="text-xs text-amber-600">
-              Configura tu cuenta de cobro para recibir pagos de viajeros.
+              Registra tu CLABE para recibir pagos de viajeros directo a tu banco.
             </p>
           </div>
         </div>
         <Link to="/agency/settings">
           <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
-            Configurar
+            Registrar
           </button>
         </Link>
       </div>
@@ -317,9 +317,9 @@ function StripeConnectBanner({ stripeAccount }: { stripeAccount: StripeAccount |
       <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
         <CheckCircle className="h-5 w-5 text-emerald-500" />
         <div>
-          <p className="text-sm font-medium text-emerald-800">Cuenta de cobro conectada</p>
+          <p className="text-sm font-medium text-emerald-800">Cuenta bancaria activa</p>
           <p className="text-xs text-emerald-600">
-            Puedes recibir pagos de viajeros a través de Stripe.
+            Los pagos de viajeros se depositan directamente en tu cuenta bancaria.
           </p>
         </div>
       </div>
@@ -331,9 +331,9 @@ function StripeConnectBanner({ stripeAccount }: { stripeAccount: StripeAccount |
       <div className="flex items-center gap-3">
         <XCircle className="h-5 w-5 text-amber-500" />
         <div>
-          <p className="text-sm font-medium text-amber-800">Cuenta de cobro pendiente</p>
+          <p className="text-sm font-medium text-amber-800">Cuenta bancaria en verificación</p>
           <p className="text-xs text-amber-600">
-            Tu cuenta de Stripe Connect está en proceso de activación.
+            Stripe está validando tus datos. Esto puede tomar unos minutos.
           </p>
         </div>
       </div>
