@@ -5,6 +5,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import Layout from "@/components/layout/Layout";
 import AgencyLayout from "@/components/agency/AgencyLayout";
 import AuthGuard from "@/components/auth/AuthGuard";
+import LocalhostGuard from "@/components/auth/LocalhostGuard";
 import LoginPage from "@/pages/auth/LoginPage";
 import AgencyAuth from "@/pages/auth/AgencyAuth";
 import AgencyPostRegister from "@/pages/auth/AgencyPostRegister";
@@ -92,9 +93,11 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <AuthGuard requireAgency>
-                <SuperAdminDashboard />
-              </AuthGuard>
+              <LocalhostGuard>
+                <AuthGuard requireSuperAdmin>
+                  <SuperAdminDashboard />
+                </AuthGuard>
+              </LocalhostGuard>
             }
           />
           </Routes>
