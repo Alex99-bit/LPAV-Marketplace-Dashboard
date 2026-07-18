@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import {
   CreditCard,
-  Building2,
+  Landmark,
   CheckCircle,
   ExternalLink,
   ArrowRight,
   SkipForward,
+  ChevronDown,
+  HelpCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +35,7 @@ export default function AgencyPostRegister() {
   const [stripeConnectDone, setStripeConnectDone] = useState(false);
   const [stripeBillingDone, setStripeBillingDone] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   // Check current Stripe status
   useEffect(() => {
@@ -126,7 +129,7 @@ export default function AgencyPostRegister() {
       </div>
 
       <div className="w-full space-y-4">
-        {/* Step 1: Stripe Connect (收款账户) */}
+        {/* Step 1: Cuenta bancaria para cobros */}
         <div
           className={`rounded-2xl border-2 p-5 transition-colors ${
             stripeConnectDone
@@ -145,33 +148,64 @@ export default function AgencyPostRegister() {
               {stripeConnectDone ? (
                 <CheckCircle className="h-5 w-5" />
               ) : (
-                <Building2 className="h-5 w-5" />
+                <Landmark className="h-5 w-5" />
               )}
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-text">
-                Cuenta de Cobro (Stripe Connect)
+                Cuenta Bancaria para Recibir Pagos
               </h3>
               <p className="text-xs text-text-muted">
-                Vincula tu cuenta bancaria para recibir pagos mediante Split
-                Payments
+                Registra tu CLABE (18 dígitos) para que te depositemos automáticamente
               </p>
             </div>
           </div>
 
           {!stripeConnectDone ? (
-            <Button
-              className="mt-4 w-full"
-              onClick={handleConnectStripe}
-              loading={stripeConnectLoading}
-            >
-              Conectar con Stripe
-              <ExternalLink className="h-4 w-4" />
-            </Button>
+            <>
+              <div className="mt-3 rounded-xl bg-blue-50 p-3 text-xs text-blue-700">
+                Solo necesitas tu <strong>CLABE bancaria</strong> y tu{" "}
+                <strong>INE</strong>. No necesitas crear cuenta en ningún servicio
+                externo — el pago llega directo a tu banco.
+              </div>
+              <Button
+                className="mt-3 w-full"
+                onClick={handleConnectStripe}
+                loading={stripeConnectLoading}
+              >
+                Registrar cuenta bancaria
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+              <button
+                onClick={() => setGuideOpen(!guideOpen)}
+                className="mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-text-muted transition-colors hover:bg-gray-50"
+              >
+                <HelpCircle className="h-3.5 w-3.5 shrink-0" />
+                <span className="flex-1">¿Qué es la CLABE y dónde la encuentro?</span>
+                <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${guideOpen ? "rotate-180" : ""}`} />
+              </button>
+              {guideOpen && (
+                <div className="mt-2 rounded-xl bg-blue-50 p-4 text-xs">
+                  <p className="font-semibold text-blue-800">¿Qué es la CLABE?</p>
+                  <p className="mt-1 text-blue-700">
+                    La Clave Bancaria Estandarizada es un número de <strong>18 dígitos</strong> que
+                    identifica tu cuenta bancaria en México.
+                  </p>
+                  <p className="mt-2 font-semibold text-blue-800">¿Dónde la encuentro?</p>
+                  <ul className="mt-1 space-y-1 text-blue-700">
+                    <li>- En tu estado de cuenta (banca en línea o app de tu banco)</li>
+                    <li>- En la app móvil de tu banco, sección "Mis cuentas"</li>
+                    <li>- Llamando a la línea de atención de tu banco</li>
+                  </ul>
+                  <p className="mt-2 font-semibold text-blue-800">Ejemplo:</p>
+                  <p className="mt-1 font-mono text-blue-700">012 345 678 901 234 567</p>
+                </div>
+              )}
+            </>
           ) : (
             <div className="mt-3 flex items-center gap-2 text-sm text-success">
               <CheckCircle className="h-4 w-4" />
-              Cuenta de cobro configurada
+              Cuenta bancaria registrada
             </div>
           )}
         </div>
@@ -233,8 +267,8 @@ export default function AgencyPostRegister() {
           <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
             <p className="font-medium">Plan Gratuito</p>
             <p className="mt-1 text-xs text-blue-600">
-              Puedes configurar tu cuenta de cobro ahora o hacerlo más adelante
-              desde Configuración &gt; Conexión de Pagos.
+              Puedes registrar tu cuenta bancaria ahora o hacerlo más adelante
+              desde Configuración.
             </p>
           </div>
         )}
