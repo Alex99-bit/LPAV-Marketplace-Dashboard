@@ -32,17 +32,17 @@ const ICONS: Record<ToastType, typeof CheckCircle> = {
 };
 
 const COLORS: Record<ToastType, string> = {
-  success: "bg-emerald-50 border-emerald-200 text-emerald-800",
-  error: "bg-red-50 border-red-200 text-red-800",
-  warning: "bg-amber-50 border-amber-200 text-amber-800",
-  info: "bg-blue-50 border-blue-200 text-blue-800",
+  success: "bg-success-surface border-accent/20 text-success-foreground",
+  error: "bg-danger-surface border-danger/20 text-danger-foreground",
+  warning: "bg-warning-surface border-warning/20 text-warning-foreground",
+  info: "bg-info-surface border-info/20 text-info-foreground",
 };
 
 const ICON_COLORS: Record<ToastType, string> = {
-  success: "text-emerald-500",
-  error: "text-red-500",
-  warning: "text-amber-500",
-  info: "text-blue-500",
+  success: "text-success",
+  error: "text-danger",
+  warning: "text-warning",
+  info: "text-info",
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {

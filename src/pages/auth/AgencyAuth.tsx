@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { PLAN_DETAILS } from "@/lib/constants";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import GoogleButton from "@/components/auth/GoogleButton";
@@ -31,50 +32,12 @@ import type { SubscriptionTier } from "@/types";
 type Mode = "choice" | "agency_login" | "agency_register";
 type RegisterStep = "business" | "plan" | "fiscal" | "legal" | "review";
 
-const PLAN_DETAILS: Record<
-  SubscriptionTier,
-  {
-    label: string;
-    icon: typeof Store;
-    price: string;
-    features: string[];
-    recommended?: boolean;
-  }
-> = {
-  Gratuito: {
-    label: "Básico (Gratuito)",
-    icon: Store,
-    price: "$0/mes",
-    features: [
-      "3 flyers publicados",
-      "Sin roles personalizados",
-      "1 cuenta de administrador",
-    ],
-  },
-  Comercial: {
-    label: "Comercial",
-    icon: Briefcase,
-    price: "$499/mes",
-    features: [
-      "20 flyers publicados",
-      "1 rol personalizado (Agentes de Ventas)",
-      "3-5 colaboradores",
-      "Soporte prioritario",
-    ],
-    recommended: true,
-  },
-  Corporativo: {
-    label: "Corporativo",
-    icon: Crown,
-    price: "$1,499/mes",
-    features: [
-      "150 flyers publicados",
-      "3 roles personalizados dinámicos",
-      "Colaboradores ilimitados",
-      "Matriz de permisos granulares",
-      "Soporte dedicado",
-    ],
-  },
+/* Iconos de plan: solo datos visuales. La info de precios/límites/features
+   vive en constants.ts como fuente única (PLAN_LIMITS + PLAN_DETAILS). */
+const PLAN_ICONS: Record<SubscriptionTier, typeof Store> = {
+  Gratuito: Store,
+  Comercial: Briefcase,
+  Corporativo: Crown,
 };
 
 export default function AgencyAuth() {
