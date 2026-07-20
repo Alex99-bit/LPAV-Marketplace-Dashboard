@@ -10,9 +10,14 @@ import type { PackageReport, AgencyTenant, Profile } from "@/types";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
-import Input from "@/components/ui/Input";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type Tab = "resumen" | "agencias" | "usuarios" | "moderacion";
+
+type PendingAction =
+  | { type: "agency-status"; tenantId: string; newStatus: string; label: string }
+  | { type: "ban-package"; reportId: string }
+  | null;
 
 interface Metrics {
   totalAgencies: number;
@@ -41,6 +46,7 @@ export default function SuperAdminDashboard() {
   const [reportPackages, setReportPackages] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -107,17 +113,45 @@ export default function SuperAdminDashboard() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleReview = async (reportId: string, decision: "approve" | "ban") => {
+    if (decision === "ban") {
+      setPendingAction({ type: "ban-package", reportId });
+      return;
+    }
     await supabase.functions.invoke("review-package", {
       body: { report_id: reportId, decision },
     });
     fetchData();
   };
 
-  const handleAgencyStatus = async (tenantId: string, newStatus: string) => {
+  const confirmBan = async () => {
+    if (!pendingAction || pendingAction.type !== "ban-package") return;
+    await supabase.functions.invoke("review-package", {
+      body: { report_id: pendingAction.reportId, decision: "ban" },
+    });
+    setPendingAction(null);
+    fetchData();
+  };
+
+  const handleAgencyStatus = (tenantId: string, newStatus: string) => {
+    const labelMap: Record<string, string> = {
+      Activo: "Aprobar agencia",
+      "Suspendido por Pago": "Suspender agencia",
+    };
+    setPendingAction({
+      type: "agency-status",
+      tenantId,
+      newStatus,
+      label: labelMap[newStatus] ?? `Cambiar estado a ${newStatus}`,
+    });
+  };
+
+  const confirmAgencyStatus = async () => {
+    if (!pendingAction || pendingAction.type !== "agency-status") return;
     await supabase
       .from("agencies_tenants")
-      .update({ status: newStatus })
-      .eq("tenant_id", tenantId);
+      .update({ status: pendingAction.newStatus })
+      .eq("tenant_id", pendingAction.tenantId);
+    setPendingAction(null);
     fetchData();
   };
 
@@ -239,6 +273,24 @@ export default function SuperAdminDashboard() {
           <ModeracionTab reports={reports} packages={reportPackages} onReview={handleReview} />
         )}
       </div>
+
+      <ConfirmDialog
+        open={pendingAction !== null}
+        onClose={() => setPendingAction(null)}
+        title={pendingAction?.type === "agency-status" ? "Cambiar estado de agencia" : "Banear paquete"}
+        description={
+          pendingAction?.type === "agency-status"
+            ? `¿Estás seguro de que quieres cambiar el estado de esta agencia?`
+            : "¿Estás seguro de que quieres banear este paquete? Esta acción lo retirará del catálogo."
+        }
+        confirmLabel={pendingAction?.type === "agency-status" ? "Confirmar" : "Banear"}
+        variant="danger"
+        onConfirm={
+          pendingAction?.type === "agency-status"
+            ? confirmAgencyStatus
+            : confirmBan
+        }
+      />
     </div>
   );
 }
@@ -507,6 +559,7 @@ function ModeracionTab({
                   </Button>
                   <Button
                     size="sm"
+                    variant="danger"
                     onClick={() => onReview(report.report_id, "ban")}
                   >
                     <XCircle className="h-3.5 w-3.5 mr-1" />

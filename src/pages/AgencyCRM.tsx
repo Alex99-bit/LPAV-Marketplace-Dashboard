@@ -9,6 +9,13 @@ import LeadDetailModal from "@/components/crm/LeadDetailModal";
 import LeadFilters from "@/components/crm/LeadFilters";
 import CRMMetricsDashboard from "@/components/crm/CRMMetricsDashboard";
 
+// TODO(F4-crm-pagination): límite fijo de 100 leads sin paginación server-side.
+// La búsqueda es en memoria y miente cuando hay >100 leads.
+// TODO(F2-realtime-filter): el canal realtime escucha event: "*" de toda la
+// tabla crm_leads sin filtrar por tenant_id → ruido y parpadeo.
+// TODO(F4-leads-assign): sin UI para asignar leads a agentes (el campo existe
+// en BD y el filtro por assigned_to está implementado en esta página).
+
 export default function AgencyCRM() {
   const { user } = useAuth();
   const [leads, setLeads] = useState<CRMLead[]>([]);
@@ -208,7 +215,7 @@ export default function AgencyCRM() {
           <p className="mt-1 text-xs text-text-muted">
             {searchQuery
               ? "Intenta con otro término de búsqueda."
-              : "Los leads se crean automaticamente cuando un viajero solicita informacion de un paquete."}
+              : "Los leads se crean automáticamente cuando un viajero solicita información de un paquete."}
           </p>
         </div>
       ) : (

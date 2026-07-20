@@ -16,6 +16,10 @@ const PLANS: { name: SubscriptionTier; features: string[] }[] = [
   { name: "Corporativo", features: ["150 flyers", "3 roles custom", "Empleados ilimitados", "Analíticas", "AI Agent"] },
 ];
 
+// TODO(F4-plan-sync): sincronizar features y límites de PLANS con PLAN_LIMITS
+// en constants.ts y AgencyAuth.tsx para tener una sola fuente de verdad.
+// Hoy los números difieren (5/25 vs 3/20 reales, precios solo en AgencyAuth).
+
 export default function PlanManagement({ subscription, currentTier }: PlanManagementProps) {
   const [loading, setLoading] = useState(false);
 
@@ -94,7 +98,7 @@ export default function PlanManagement({ subscription, currentTier }: PlanManage
                   onClick={() => handleUpgrade(plan.name)}
                   loading={loading}
                 >
-                  {PLANS.indexOf({ name: currentTier, features: [] }) < PLANS.indexOf(plan)
+                  {PLANS.findIndex((p) => p.name === currentTier) < PLANS.findIndex((p) => p.name === plan.name)
                     ? "Mejorar"
                     : "Cambiar"}
                   <ExternalLink className="h-3.5 w-3.5" />

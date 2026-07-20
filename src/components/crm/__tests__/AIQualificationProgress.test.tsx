@@ -5,7 +5,7 @@ import AIQualificationProgress from '../AIQualificationProgress';
 describe('AIQualificationProgress', () => {
   it('renders progress label', () => {
     render(<AIQualificationProgress fieldsExtracted={{}} />);
-    expect(screen.getByText('Cualificacion IA')).toBeInTheDocument();
+    expect(screen.getByText('Cualificación IA')).toBeInTheDocument();
   });
 
   it('shows 0% when no fields are extracted', () => {

@@ -276,7 +276,7 @@ export default function LeadDetailModal({
           {Boolean(progress.preferred_airline) && (
             <div className="flex items-center gap-2 text-sm text-text-muted">
               <Plane className="h-4 w-4" />
-              <span>Aerolinea: {String(progress.preferred_airline)}</span>
+              <span>Aerolínea: {String(progress.preferred_airline)}</span>
             </div>
           )}
         </div>
@@ -337,9 +337,9 @@ export default function LeadDetailModal({
                     <span className="text-xs font-medium text-text">
                       {activity.activity_type === "note" && "Nota"}
                       {activity.activity_type === "status_change" && "Cambio de estado"}
-                      {activity.activity_type === "assignment" && "Asignacion"}
+                      {activity.activity_type === "assignment" && "Asignación"}
                       {activity.activity_type === "created" && "Lead creado"}
-                      {activity.activity_type === "ai_extraction" && "Extraccion IA"}
+                      {activity.activity_type === "ai_extraction" && "Extracción IA"}
                     </span>
                     <span className="text-[10px] text-text-muted">
                       {formatRelativeTime(activity.created_at)}

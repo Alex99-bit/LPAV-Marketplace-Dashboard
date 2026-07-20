@@ -1,3 +1,5 @@
+import { Link } from "react-router";
+
 export default function Footer() {
   return (
     <footer className="border-t border-gray-100 bg-white">
@@ -13,24 +15,25 @@ export default function Footer() {
           <div>
             <h4 className="mb-3 text-sm font-semibold text-text">Explorar</h4>
             <ul className="space-y-2 text-sm text-text-muted">
-              <li><a href="/" className="hover:text-primary transition-colors">Paquetes</a></li>
-              <li><a href="/" className="hover:text-primary transition-colors">Destinos</a></li>
-              <li><a href="/" className="hover:text-primary transition-colors">Ofertas</a></li>
+              <li><Link to="/" className="hover:text-primary transition-colors">Paquetes</Link></li>
+              <li><Link to="/" className="hover:text-primary transition-colors">Destinos</Link></li>
+              <li><Link to="/" className="hover:text-primary transition-colors">Ofertas</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="mb-3 text-sm font-semibold text-text">Agencias</h4>
             <ul className="space-y-2 text-sm text-text-muted">
-              <li><a href="/agency/register" className="hover:text-primary transition-colors">Registra tu agencia</a></li>
-              <li><a href="/agency/dashboard" className="hover:text-primary transition-colors">Dashboard</a></li>
+              <li><Link to="/auth/agency" className="hover:text-primary transition-colors">Registra tu agencia</Link></li>
+              <li><Link to="/agency/dashboard" className="hover:text-primary transition-colors">Dashboard</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="mb-3 text-sm font-semibold text-text">Legal</h4>
             <ul className="space-y-2 text-sm text-text-muted">
-              <li><a href="#" className="hover:text-primary transition-colors">Términos y Condiciones</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Aviso de Privacidad</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Contacto</a></li>
+              {/* TODO(F7-legal): crear páginas de Términos, Privacidad y Contacto */}
+              <li><Link to="/" className="hover:text-primary transition-colors">Términos y Condiciones</Link></li>
+              <li><Link to="/" className="hover:text-primary transition-colors">Aviso de Privacidad</Link></li>
+              <li><Link to="/" className="hover:text-primary transition-colors">Contacto</Link></li>
             </ul>
           </div>
         </div>

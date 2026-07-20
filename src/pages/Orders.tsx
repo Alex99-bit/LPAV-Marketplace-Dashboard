@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { Package, Clock, CreditCard } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
+import { Package, Clock, CreditCard, ShieldCheck } from "lucide-react";
 import type { TransactionOrder, InstallmentSchedule } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/components/ui/Toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import Spinner from "@/components/ui/Spinner";
 import Badge from "@/components/ui/Badge";
@@ -19,42 +22,100 @@ const STATUS_CONFIG: Record<
   cancelled: { label: "Cancelado", variant: "danger" },
 };
 
+const MAX_CONFIRM_ATTEMPTS = 10;
+const CONFIRM_INTERVAL_MS = 3000;
+
 export default function Orders() {
   const { user } = useAuth();
+  const { clearCart } = useCart();
+  const { addToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sessionId = searchParams.get("session_id");
+
   const [orders, setOrders] = useState<TransactionOrder[]>([]);
   const [installments, setInstallments] = useState<Map<string, InstallmentSchedule[]>>(new Map());
   const [loading, setLoading] = useState(true);
+  // Tras volver de Stripe, el webhook puede tardar unos segundos en registrar la orden
+  const [confirmingPayment, setConfirmingPayment] = useState(Boolean(sessionId));
+  const cartClearedRef = useRef(false);
+
+  const fetchOrders = useCallback(async (): Promise<TransactionOrder[]> => {
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("transactions_orders")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error cargando órdenes:", error);
+      return [];
+    }
+    setOrders(data ?? []);
+
+    const orderIds = (data ?? []).map((o) => o.order_id);
+    if (orderIds.length > 0) {
+      const { data: instData } = await supabase
+        .from("installment_schedules")
+        .select("*")
+        .in("order_id", orderIds)
+        .order("installment_number", { ascending: true });
+
+      const map = new Map<string, InstallmentSchedule[]>();
+      for (const inst of instData ?? []) {
+        const existing = map.get(inst.order_id) ?? [];
+        existing.push(inst);
+        map.set(inst.order_id, existing);
+      }
+      setInstallments(map);
+    }
+    return data ?? [];
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      const { data } = await supabase
-        .from("transactions_orders")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      setOrders(data ?? []);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
 
-      const orderIds = (data ?? []).map((o) => o.order_id);
-      if (orderIds.length > 0) {
-        const { data: instData } = await supabase
-          .from("installment_schedules")
-          .select("*")
-          .in("order_id", orderIds)
-          .order("installment_number", { ascending: true });
+    // El pago en Stripe ya se completó: vaciamos el carrito de inmediato
+    if (sessionId && !cartClearedRef.current) {
+      cartClearedRef.current = true;
+      clearCart();
+    }
 
-        const map = new Map<string, InstallmentSchedule[]>();
-        for (const inst of instData ?? []) {
-          const existing = map.get(inst.order_id) ?? [];
-          existing.push(inst);
-          map.set(inst.order_id, existing);
-        }
-        setInstallments(map);
-      }
-
+    const load = async (attempt: number) => {
+      const data = await fetchOrders();
+      if (cancelled) return;
       setLoading(false);
-    })();
-  }, [user]);
+
+      if (!sessionId) return;
+
+      const confirmed = data.some(
+        (o) => o.stripe_checkout_session_id === sessionId,
+      );
+      if (confirmed) {
+        setConfirmingPayment(false);
+        setSearchParams({}, { replace: true });
+        addToast("success", "¡Pago confirmado!", "Tu orden ya está disponible.");
+      } else if (attempt < MAX_CONFIRM_ATTEMPTS) {
+        timer = setTimeout(() => load(attempt + 1), CONFIRM_INTERVAL_MS);
+      } else {
+        setConfirmingPayment(false);
+        setSearchParams({}, { replace: true });
+        addToast(
+          "warning",
+          "Estamos confirmando tu pago",
+          "Puede tardar unos minutos en reflejarse. Recarga esta página en un momento.",
+        );
+      }
+    };
+
+    load(0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, sessionId]);
 
   if (loading) {
     return (
@@ -68,7 +129,22 @@ export default function Orders() {
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <h1 className="mb-8 text-2xl font-bold text-text">Mis Órdenes</h1>
 
-      {orders.length === 0 ? (
+      {confirmingPayment && (
+        <div className="mb-6 flex items-center gap-4 rounded-xl border border-primary/20 bg-primary/5 p-5">
+          <Spinner size="md" />
+          <div>
+            <p className="flex items-center gap-1.5 font-medium text-text">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              Estamos confirmando tu pago
+            </p>
+            <p className="mt-0.5 text-sm text-text-muted">
+              Tu compra fue procesada. La orden aparecerá aquí en unos segundos.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {orders.length === 0 && !confirmingPayment ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <Package className="h-16 w-16 text-text-muted/30" />
           <h2 className="text-lg font-semibold text-text">Sin órdenes</h2>
@@ -76,7 +152,7 @@ export default function Orders() {
             Aún no has realizado ninguna compra.
           </p>
         </div>
-      ) : (
+      ) : orders.length === 0 ? null : (
         <div className="space-y-4">
           {orders.map((order) => {
             const config = STATUS_CONFIG[order.payment_status] ?? { label: order.payment_status, variant: "default" as const };

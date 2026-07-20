@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertTriangle, Plus, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import type { TravelIncident } from "@/types";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -30,6 +31,7 @@ const STATUS_CONFIG = {
 
 export default function IncidentCenter({ incidents, orders, onRefresh }: IncidentCenterProps) {
   const { profile } = useAuth();
+  const { addToast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     order_id: "",
@@ -40,24 +42,36 @@ export default function IncidentCenter({ incidents, orders, onRefresh }: Inciden
 
   const handleCreate = async () => {
     if (!profile?.id || !form.order_id) return;
-    await supabase.from("travel_incidents").insert({
+    const { error } = await supabase.from("travel_incidents").insert({
       order_id: form.order_id,
       reported_by: profile.id,
       severity: form.severity,
       title: form.title,
       description: form.description || null,
     });
+    if (error) {
+      addToast("error", "No se pudo crear el incidente", error.message);
+      return;
+    }
+    addToast("success", "Incidente reportado");
     setShowForm(false);
     setForm({ order_id: "", severity: "medium", title: "", description: "" });
     onRefresh();
   };
 
   const handleResolve = async (incidentId: string, resolution: string) => {
-    await supabase
+    const { error } = await supabase
       .from("travel_incidents")
       .update({ status: "resolved", resolution, resolved_at: new Date().toISOString() })
       .eq("incident_id", incidentId);
-    onRefresh();
+    if (error) {
+      addToast("error", "Error al resolver", error.message);
+    } else {
+      addToast("success", "Incidente resuelto");
+      onRefresh();
+    }
+    // TODO(F4-incidentes): permitir a la agencia escribir la resolución real en
+    // un diálogo. Hoy se guarda el literal "Resuelto por agencia".
   };
 
   return (

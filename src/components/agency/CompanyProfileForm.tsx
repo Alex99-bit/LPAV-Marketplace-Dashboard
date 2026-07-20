@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { AgencyTenant } from "@/types";
+import { useToast } from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
@@ -10,6 +11,7 @@ interface CompanyProfileFormProps {
 }
 
 export default function CompanyProfileForm({ tenant, onSave }: CompanyProfileFormProps) {
+  const { addToast } = useToast();
   const [form, setForm] = useState({
     business_name: tenant.business_name,
     contact_email: (tenant as unknown as { contact_email?: string }).contact_email ?? "",
@@ -22,12 +24,17 @@ export default function CompanyProfileForm({ tenant, onSave }: CompanyProfileFor
 
   const handleSave = async () => {
     setSaving(true);
-    await supabase
+    const { error } = await supabase
       .from("agencies_tenants")
       .update(form)
       .eq("tenant_id", tenant.tenant_id);
     setSaving(false);
-    onSave();
+    if (error) {
+      addToast("error", "Error al guardar", error.message);
+    } else {
+      addToast("success", "Perfil guardado");
+      onSave();
+    }
   };
 
   return (

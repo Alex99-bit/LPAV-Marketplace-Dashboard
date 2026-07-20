@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FileText, Download } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
@@ -13,6 +14,7 @@ export default function CfdiInvoices({ tenantId }: CfdiInvoicesProps) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ pdf_url: string; xml_url: string } | null>(null);
+  const { addToast } = useToast();
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -23,8 +25,10 @@ export default function CfdiInvoices({ tenantId }: CfdiInvoicesProps) {
       });
       if (error) throw error;
       setResult(data);
+      addToast("success", "CFDI generado", "Puedes descargar el PDF y XML abajo.");
     } catch (err) {
       console.error(err);
+      addToast("error", "No se pudo generar el CFDI", "Verifica los datos e inténtalo de nuevo.");
     } finally {
       setLoading(false);
     }

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { Plane, Building2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import Spinner from "@/components/ui/Spinner";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { isValidEmail, validatePassword } from "@/lib/validation";
 
@@ -11,6 +12,7 @@ type Mode = "choice" | "traveler_login" | "traveler_register";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAgency, loading, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
   const [mode, setMode] = useState<Mode>("choice");
   const [authLoading, setAuthLoading] = useState(false);
@@ -20,21 +22,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
+  // Destino original del viajero antes de que el AuthGuard lo mandara a login
+  const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+
   // Redirect based on role when user is already logged in
   useEffect(() => {
     if (loading) return;
     if (user) {
       if (isAgency) {
+        // Regla PRD §2.3: las agencias siempre van directo a su dashboard
         navigate("/agency/dashboard", { replace: true });
       } else {
-        navigate("/", { replace: true });
+        const dest = from?.pathname
+          ? `${from.pathname}${from.search ?? ""}`
+          : "/";
+        navigate(dest, { replace: true });
       }
     }
-  }, [user, isAgency, loading, navigate]);
+  }, [user, isAgency, loading, navigate, from]);
 
-  // Don't render anything while checking auth or if user is logged in
+  // Spinner mientras se verifica la sesión o se redirige tras login
   if (loading || user) {
-    return null;
+    return (
+      <div className="flex min-h-[80vh] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
   }
 
   const handleEmailAuth = async () => {

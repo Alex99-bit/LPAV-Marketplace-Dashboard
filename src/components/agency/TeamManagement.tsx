@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { UserPlus, Mail, MoreVertical } from "lucide-react";
+import { UserPlus, Mail, UserX } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { AgencyTeamMember } from "@/types";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface TeamManagementProps {
   tenantId: string;
@@ -15,6 +16,7 @@ export default function TeamManagement({ tenantId }: TeamManagementProps) {
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Agent");
+  const [deactivatingMember, setDeactivatingMember] = useState<AgencyTeamMember | null>(null);
 
   const fetchMembers = async () => {
     const { data } = await supabase
@@ -42,11 +44,13 @@ export default function TeamManagement({ tenantId }: TeamManagementProps) {
     fetchMembers();
   };
 
-  const handleDeactivate = async (memberId: string) => {
+  const handleDeactivate = async () => {
+    if (!deactivatingMember) return;
     await supabase
       .from("agency_team_members")
       .update({ status: "deactivated" })
-      .eq("member_id", memberId);
+      .eq("member_id", deactivatingMember.member_id);
+    setDeactivatingMember(null);
     fetchMembers();
   };
 
@@ -110,10 +114,11 @@ export default function TeamManagement({ tenantId }: TeamManagementProps) {
                 </Badge>
                 {member.status !== "deactivated" && (
                   <button
-                    onClick={() => handleDeactivate(member.member_id)}
+                    onClick={() => setDeactivatingMember(member)}
                     className="rounded-lg p-1.5 text-text-muted hover:bg-red-50 hover:text-red-500 transition-colors"
+                    aria-label={`Desactivar a ${member.full_name ?? member.email}`}
                   >
-                    <MoreVertical className="h-4 w-4" />
+                    <UserX className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -121,6 +126,20 @@ export default function TeamManagement({ tenantId }: TeamManagementProps) {
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        open={deactivatingMember !== null}
+        onClose={() => setDeactivatingMember(null)}
+        title="Desactivar miembro del equipo"
+        description={
+          deactivatingMember
+            ? `¿Estás seguro de que quieres desactivar a "${deactivatingMember.full_name ?? deactivatingMember.email}"? Perderá acceso al panel de la agencia.`
+            : undefined
+        }
+        confirmLabel="Desactivar"
+        variant="danger"
+        onConfirm={handleDeactivate}
+      />
     </div>
   );
 }

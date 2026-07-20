@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { formatCurrency } from "@/lib/formatters";
 import Spinner from "@/components/ui/Spinner";
 
 interface AnalyticsData {
@@ -52,6 +53,10 @@ export default function AgencyAnalytics() {
         pkgRevenue.set(pkg.title, existing);
       }
 
+      // MOCK(analytics-views): vistas de flyer aún no se registran (falta
+      // tracking de page views por paquete). Queda en 0 hasta Fase 4.
+      // MOCK(analytics-response): avgResponseTime sin fuente de datos real.
+      // Pendiente de calcular desde timestamps de mensajes en chat.
       setData({
         funnel: { views: 0, leads: leads.length, qualified, won },
         avgResponseTime: 0,
@@ -70,8 +75,9 @@ export default function AgencyAnalytics() {
     );
   }
 
+  // MOCK(analytics-views): paso "Vistas" del funnel oculto hasta que exista
+  // tracking de page views por paquete — siempre muestra 0 hoy.
   const funnelSteps = [
-    { label: "Vistas", value: data.funnel.views },
     { label: "Leads", value: data.funnel.leads },
     { label: "Cualificados", value: data.funnel.qualified },
     { label: "Ganados", value: data.funnel.won },
@@ -128,7 +134,7 @@ export default function AgencyAnalytics() {
               {data.revenueByPackage.slice(0, 5).map((pkg) => (
                 <div key={pkg.title} className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
                   <span className="text-sm text-text truncate">{pkg.title}</span>
-                  <span className="text-sm font-medium text-emerald-600">${pkg.revenue.toLocaleString()}</span>
+                  <span className="text-sm font-medium text-emerald-600">{formatCurrency(pkg.revenue)}</span>
                 </div>
               ))}
             </div>

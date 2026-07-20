@@ -1,26 +1,21 @@
-import { useNavigate, Link, useSearchParams } from "react-router";
-import { useEffect } from "react";
-import { Trash2, ShoppingCart, ArrowRight } from "lucide-react";
+import { Link } from "react-router";
+import { useState } from "react";
+import { Trash2, ShoppingCart, ArrowRight, AlertTriangle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency } from "@/lib/formatters";
 import { PLATFORM_COMMISSION_RATE, MIN_DEPOSIT_PERCENTAGE } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 
 export default function Checkout() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { items, removeItem, total, clearCart } = useCart();
-  useAuth();
-
-  useEffect(() => {
-    const sessionId = searchParams.get("session_id");
-    if (sessionId) {
-      clearCart();
-      navigate("/orders");
-    }
-  }, [searchParams, clearCart, navigate]);
+  const { items, removeItem, total } = useCart();
+  const { addToast } = useToast();
+  const [processing, setProcessing] = useState(false);
+  // TODO(F3-checkout-multiitem): soportar pago de varios paquetes (una sesión
+  // de Stripe por paquete con pantalla de confirmación previa). Por ahora se
+  // limita a 1 paquete por compra para no cobrar parcialmente al usuario.
+  const hasMultipleItems = items.length > 1;
 
   if (items.length === 0) {
     return (
@@ -37,25 +32,35 @@ export default function Checkout() {
     );
   }
 
+  // TODO(F3-multicurrency): el total mezcla divisas (MXN+USD+EUR). Separar
+  // totales por currency o convertir antes de mostrar el resumen.
   const depositAmount = total * MIN_DEPOSIT_PERCENTAGE;
   const platformFee = depositAmount * PLATFORM_COMMISSION_RATE;
   const totalToPay = depositAmount + platformFee;
 
   const handleCheckout = async () => {
-    for (const item of items) {
+    if (processing || hasMultipleItems || items.length === 0) return;
+    const item = items[0]!;
+    setProcessing(true);
+    try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { package_id: item.package_id },
       });
-      if (error) {
-        console.error(error);
-        continue;
-      }
+      if (error) throw error;
       if (data?.url) {
         window.location.href = data.url;
         return;
       }
+      throw new Error("No se recibió la URL de pago de Stripe");
+    } catch (err) {
+      console.error("Error iniciando el pago:", err);
+      addToast(
+        "error",
+        "No se pudo iniciar el pago",
+        "Inténtalo de nuevo en unos segundos.",
+      );
+      setProcessing(false);
     }
-    navigate("/orders");
   };
 
   return (
@@ -123,10 +128,21 @@ export default function Checkout() {
               </div>
             </div>
           </div>
+          {hasMultipleItems && (
+            <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Por ahora solo puedes pagar <strong>un paquete a la vez</strong>.
+                Deja uno en tu carrito para continuar.
+              </span>
+            </div>
+          )}
           <Button
             className="mt-6 w-full"
             size="lg"
             onClick={handleCheckout}
+            loading={processing}
+            disabled={hasMultipleItems}
           >
             Proceder al Pago
             <ArrowRight className="h-4 w-4" />

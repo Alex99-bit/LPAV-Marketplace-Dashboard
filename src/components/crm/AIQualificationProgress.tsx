@@ -19,7 +19,7 @@ const FIELD_LABELS: Record<string, string> = {
   preferred_travel_dates: "Fechas",
   travel_type: "Tipo de viaje",
   traveler_origin: "Origen",
-  preferred_airline: "Aerolinea",
+  preferred_airline: "Aerolínea",
   accommodation_type: "Alojamiento",
 };
 
@@ -36,7 +36,7 @@ export default function AIQualificationProgress({
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-text-muted">Cualificacion IA</span>
+        <span className="text-xs font-medium text-text-muted">Cualificación IA</span>
         <span className="text-xs font-semibold text-text">{progress}%</span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">

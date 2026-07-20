@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
   Package, TrendingUp, AlertCircle, MessageSquare, Users,
-  DollarSign, CreditCard, Star, UserCheck, Calendar,
-  Clock, FileWarning, BarChart3, ShieldAlert,
-  Image, Settings, ArrowRight, CreditCard as StripeIcon,
+  DollarSign, UserCheck, Calendar,
+  FileWarning, BarChart3, ShieldAlert,
+  Image, Settings, ArrowRight,
   CheckCircle, XCircle, HelpCircle
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -111,6 +111,8 @@ export default function AgencyDashboard() {
       const leads = leadsRes.data ?? [];
       const publishedCount = packages.filter((p) => p.publication_status === "published").length;
 
+      // TODO(F4-multicurrency): las sumas de orders mezclan MXN+USD+EUR.
+      // Agrupar totalRevenue/fees por currency y mostrar en tabs por moneda.
       const monthOrders = orders.filter((o) => new Date(o.created_at) >= new Date(monthStart));
       const monthlyRevenue = monthOrders.reduce((sum, o) => sum + o.total_amount, 0);
       const paidRevenue = monthOrders.filter((o) => o.payment_status === "paid").reduce((sum, o) => sum + o.total_amount, 0);
@@ -148,6 +150,11 @@ export default function AgencyDashboard() {
         pendingReports = rpRes.count ?? 0;
       }
 
+      // MOCK(dashboard-chats): activeChats queda en 0 hasta que el backend
+      // de Supabase Realtime registre y exponga las conversaciones activas.
+      // MOCK(dashboard-rating): avgRating en 0 hasta existir tabla de reseñas.
+      // MOCK(dashboard-overdue): overdueInstallments en 0 hasta que el backend
+      // calcule abonos vencidos reales vs fecha de corte.
       setData({
         monthlyRevenue,
         leadConversionRate: conversionRate,
@@ -186,17 +193,16 @@ export default function AgencyDashboard() {
     { icon: DollarSign, label: "Ingresos del Mes", value: formatCurrency(data.monthlyRevenue), color: "bg-emerald-50 text-emerald-600" },
     { icon: TrendingUp, label: "Tasa de Conversión", value: `${data.leadConversionRate}%`, color: "bg-blue-50 text-blue-600" },
     { icon: Package, label: "Flyers Activos", value: `${data.activeFlyers}/${planLimits.maxFlyers}`, color: "bg-indigo-50 text-indigo-600" },
-    { icon: MessageSquare, label: "Chats Pendientes", value: data.activeChats, color: "bg-purple-50 text-purple-600" },
     { icon: Users, label: "Leads del Mes", value: data.totalLeadsMonth, color: "bg-cyan-50 text-cyan-600" },
     { icon: UserCheck, label: "Leads esta Semana", value: data.newLeadsWeek, color: "bg-teal-50 text-teal-600" },
-    { icon: Clock, label: "Tiempo Resp. Prom.", value: data.avgResponseTime > 0 ? `${data.avgResponseTime}m` : "N/A", color: "bg-orange-50 text-orange-600" },
     { icon: FileWarning, label: "Reportes Pendientes", value: data.pendingReports, color: "bg-amber-50 text-amber-600" },
-    { icon: CreditCard, label: "Abonos Vencidos", value: data.overdueInstallments, color: "bg-red-50 text-red-600" },
     { icon: Calendar, label: "Órdenes del Mes", value: data.totalOrdersMonth, color: "bg-sky-50 text-sky-600" },
     { icon: DollarSign, label: "Ingreso Pagado", value: formatCurrency(data.paidRevenue), color: "bg-green-50 text-green-600" },
     { icon: AlertCircle, label: "Ingreso Pendiente", value: formatCurrency(data.pendingRevenue), color: "bg-yellow-50 text-yellow-600" },
-    { icon: Star, label: "Rating Promedio", value: data.avgRating > 0 ? data.avgRating.toFixed(1) : "N/A", color: "bg-amber-50 text-amber-600" },
     { icon: ShieldAlert, label: "Strikes Censura", value: data.censorshipStrikes, color: "bg-rose-50 text-rose-600" },
+    // MOCK(dashboard-team): Miembros del Equipo — el icono BarChart3 es
+    // placeholder visual. Migrar a Users en Fase 4 cuando el KPI tenga
+    // datos de team reales.
     { icon: BarChart3, label: "Miembros del Equipo", value: data.teamMembersCount, color: "bg-violet-50 text-violet-600" },
   ];
 
