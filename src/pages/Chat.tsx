@@ -4,12 +4,14 @@ import { MessageSquare, Send, AlertTriangle, Hand, Bot, ToggleLeft, ToggleRight 
 import type { ChatMessage } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { formatRelativeTime } from "@/lib/formatters";
 import Spinner from "@/components/ui/Spinner";
 import Button from "@/components/ui/Button";
 
 export default function Chat() {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const location = useLocation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -46,7 +48,12 @@ export default function Chat() {
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(50);
-      setMessages(data ?? []);
+      // Filtra mensajes de sistema: el viajero no debe ver jerga CRM interna
+      // ([SYSTEM] Nuevo lead creado…). El handler realtime ya los filtra (:72).
+      const userMessages = (data ?? []).filter(
+        (m) => !m.message_text.startsWith("[SYSTEM]"),
+      );
+      setMessages(userMessages);
       setLoading(false);
     };
 
@@ -156,7 +163,7 @@ export default function Chat() {
   const handleSend = async () => {
     if (!newMessage.trim() || !user) return;
     if (!conversationId) {
-      console.error("No conversation ID available");
+      addToast("warning", "No hay conversación activa", "Solicita información en un paquete para iniciar un chat.");
       return;
     }
     
@@ -225,8 +232,8 @@ export default function Chat() {
             <h1 className="text-lg font-semibold text-text">Chat</h1>
             <p className="text-xs text-text-muted">
               {isAgencyChat
-                ? "Comunicate con el viajero"
-                : "Comunicate directamente con la agencia"}
+                ? "Comunícate con el viajero"
+                : "Comunícate directamente con la agencia"}
             </p>
           </div>
         </div>
@@ -257,17 +264,30 @@ export default function Chat() {
         )}
       </div>
 
-      {aiActive && (
+      {aiActive && isAgencyChat && (
         <div className="mb-2 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
           <Bot className="h-3.5 w-3.5" />
-          <span>Asistente de IA activo - cualificando lead</span>
+          <span>Asistente de IA activo — cualificando lead</span>
         </div>
       )}
 
       <div className="flex-1 space-y-3 overflow-y-auto py-4">
         {messages.map((msg) => {
           const isOwn = msg.sender_id === user?.id;
-          return (
+  if (!conversationId) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
+        <MessageSquare className="h-16 w-16 text-text-muted/30" />
+        <h2 className="text-xl font-semibold text-text">Sin conversación activa</h2>
+        <p className="max-w-sm text-sm text-text-muted">
+          Explora paquetes y usa <strong>"Solicitar información"</strong> para
+          iniciar un chat con la agencia de viajes.
+        </p>
+      </div>
+    );
+  }
+
+  return (
             <div
               key={msg.message_id}
               className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
@@ -331,6 +351,7 @@ export default function Chat() {
           onClick={handleSend}
           disabled={!newMessage.trim() || sending || aiProcessing}
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white transition-colors hover:bg-primary-dark disabled:opacity-50"
+          aria-label="Enviar mensaje"
         >
           <Send className="h-4 w-4" />
         </button>

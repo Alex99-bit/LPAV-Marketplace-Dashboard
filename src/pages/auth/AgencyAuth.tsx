@@ -5,7 +5,6 @@ import {
   Upload,
   FileText,
   CheckCircle,
-  CreditCard,
   Shield,
   Brain,
   FileWarning,
@@ -15,7 +14,6 @@ import {
   ArrowRight,
   ArrowLeft,
   X,
-  ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -280,14 +278,14 @@ export default function AgencyAuth() {
     setError("");
     const steps: RegisterStep[] = ["business", "plan", "fiscal", "legal", "review"];
     const idx = steps.indexOf(registerStep);
-    if (idx < steps.length - 1) setRegisterStep(steps[idx + 1]);
+    if (idx < steps.length - 1) setRegisterStep(steps[idx + 1]!);
   };
 
   const prevStep = () => {
     setError("");
     const steps: RegisterStep[] = ["business", "plan", "fiscal", "legal", "review"];
     const idx = steps.indexOf(registerStep);
-    if (idx > 0) setRegisterStep(steps[idx - 1]);
+    if (idx > 0) setRegisterStep(steps[idx - 1]!);
   };
 
   const canProceed = (): boolean => {
@@ -929,14 +927,20 @@ export default function AgencyAuth() {
             <CheckCircle className="h-5 w-5 text-success" />
           </div>
 
-          <StepIndicator />
+          {/* TODO(F1-agencyauth): extraer StepIndicator, StepBusiness, StepPlan,
+              StepFiscal, StepLegal y StepReview a componentes de nivel módulo
+              para eliminar los re-mounts y el bug de pérdida de foco. Por ahora
+              se renderizan como llamadas a función ({StepBusiness()}) en vez de
+              JSX (<StepBusiness />) para evitar que React los trate como nuevas
+              identidades de componente en cada render. */}
+          {StepIndicator()}
 
           {/* Step content */}
-          {registerStep === "business" && <StepBusiness />}
-          {registerStep === "plan" && <StepPlan />}
-          {registerStep === "fiscal" && <StepFiscal />}
-          {registerStep === "legal" && <StepLegal />}
-          {registerStep === "review" && <StepReview />}
+          {registerStep === "business" && StepBusiness()}
+          {registerStep === "plan" && StepPlan()}
+          {registerStep === "fiscal" && StepFiscal()}
+          {registerStep === "legal" && StepLegal()}
+          {registerStep === "review" && StepReview()}
 
           {error && (
             <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">

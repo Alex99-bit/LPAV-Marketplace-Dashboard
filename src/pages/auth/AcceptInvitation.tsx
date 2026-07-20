@@ -39,7 +39,7 @@ export default function AcceptInvitation() {
     if (user && invitation) {
       if (user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
         setError(
-          `Esta invitacion es para ${invitation.email}. Cierra sesion y usa ese correo.`
+          `Esta invitación es para ${invitation.email}. Cierra sesión y usa ese correo.`
         );
         setStep("error");
       } else {
@@ -94,13 +94,13 @@ export default function AcceptInvitation() {
     }
 
     if (email.toLowerCase() !== invitation.email.toLowerCase()) {
-      setError(`Usa el mismo correo de la invitacion: ${invitation.email}`);
+      setError(`Usa el mismo correo de la invitación: ${invitation.email}`);
       return;
     }
 
     const pwValidation = validatePassword(password);
     if (!pwValidation.valid) {
-      setError(pwValidation.errors[0] ?? "Contrasena no valida");
+      setError(pwValidation.errors[0] ?? "Contraseña no valida");
       return;
     }
 
@@ -127,13 +127,13 @@ export default function AcceptInvitation() {
     }
 
     if (email.toLowerCase() !== invitation.email.toLowerCase()) {
-      setError(`Usa el mismo correo de la invitacion: ${invitation.email}`);
+      setError(`Usa el mismo correo de la invitación: ${invitation.email}`);
       return;
     }
 
     const pwValidation = validatePassword(password);
     if (!pwValidation.valid) {
-      setError(pwValidation.errors[0] ?? "Contrasena no valida");
+      setError(pwValidation.errors[0] ?? "Contraseña no valida");
       return;
     }
 
@@ -163,8 +163,8 @@ export default function AcceptInvitation() {
       await refreshProfile();
       setStep("done");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error al aceptar invitacion";
-      setError(message || "Error al aceptar invitacion");
+      const message = err instanceof Error ? err.message : "Error al aceptar invitación";
+      setError(message || "Error al aceptar invitación");
     } finally {
       setLoading(false);
     }
@@ -175,7 +175,7 @@ export default function AcceptInvitation() {
       <div className="flex min-h-[80vh] items-center justify-center">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="mt-4 text-sm text-text-muted">Verificando invitacion...</p>
+          <p className="mt-4 text-sm text-text-muted">Verificando invitación...</p>
         </div>
       </div>
     );
@@ -187,7 +187,7 @@ export default function AcceptInvitation() {
         <AlertCircle className="h-12 w-12 text-red-400" />
         <h1 className="mt-4 text-xl font-bold text-text">Invitacion no valida</h1>
         <p className="mt-2 text-center text-sm text-text-muted">
-          Esta invitacion puede haber expirado, ya fue usada o el enlace es incorrecto.
+          Esta invitación puede haber expirado, ya fue usada o el enlace es incorrecto.
         </p>
         <Button className="mt-6" onClick={() => navigate("/")}>
           Ir al inicio
@@ -202,7 +202,7 @@ export default function AcceptInvitation() {
         <CheckCircle className="h-12 w-12 text-primary" />
         <h1 className="mt-4 text-xl font-bold text-text">Bienvenido al equipo!</h1>
         <p className="mt-2 text-center text-sm text-text-muted">
-          Has sido anadido a la agencia exitosamente.
+          Has sido añadido a la agencia exitosamente.
         </p>
         <Button className="mt-6" onClick={() => navigate("/agency/dashboard")}>
           Ir al Dashboard
@@ -219,10 +219,10 @@ export default function AcceptInvitation() {
         </div>
         <h1 className="text-2xl font-bold text-text">Invitacion de Agencia</h1>
         <p className="mt-1 text-sm text-text-muted">
-          {step === "needs_auth_login" && "Inicia sesion o crea una cuenta para aceptar"}
+          {step === "needs_auth_login" && "Inicia sesión o crea una cuenta para aceptar"}
           {step === "needs_auth_register" && "Completa tu registro"}
           {step === "ready" && "Confirma tu ingreso al equipo"}
-          {step === "error" && "Hay un problema con la invitacion"}
+          {step === "error" && "Hay un problema con la invitación"}
         </p>
       </div>
 
@@ -273,9 +273,9 @@ export default function AcceptInvitation() {
           />
 
           <Input
-            label="Contrasena"
+            label="Contraseña"
             type="password"
-            placeholder="Minimo 6 caracteres"
+            placeholder="Mínimo 6 caracteres"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />

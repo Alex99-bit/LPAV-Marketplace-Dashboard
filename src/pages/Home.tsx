@@ -8,6 +8,13 @@ import CatalogGrid from "@/components/marketplace/CatalogGrid";
 import PriceFilter from "@/components/marketplace/PriceFilter";
 import RegionFilter from "@/components/marketplace/RegionFilter";
 
+// TODO(F3-home-pagination): la Home carga el catálogo completo sin paginación.
+// Implementar infinite scroll o páginas cuando el volumen de flyers crezca.
+// TODO(F3-home-debounce): el slider de precios dispara una query a Supabase por
+// cada píxel arrastrado. Envolver priceRange en debounce con useDebounce().
+// TODO(F2-errores-visibles): los errores de fetch solo van a console.error.
+// Mostrar estado de error en la UI con opción de reintentar.
+
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [packages, setPackages] = useState<TravelPackage[]>([]);

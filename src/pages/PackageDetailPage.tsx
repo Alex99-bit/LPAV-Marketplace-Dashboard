@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router";
+import { useParams, useNavigate, useLocation, Link } from "react-router";
 import { ArrowLeft, ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle } from "lucide-react";
 import type { TravelPackage, ItineraryData } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
@@ -7,6 +7,7 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { PUBLICATION_STATES } from "@/lib/constants";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
@@ -16,8 +17,10 @@ import ItineraryDisplay from "@/components/marketplace/ItineraryDisplay";
 export default function PackageDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addItem, items } = useCart();
   const { user } = useAuth();
+  const { addToast } = useToast();
 
   const [pkg, setPkg] = useState<TravelPackage | null>(null);
   const [agencyName, setAgencyName] = useState("");
@@ -27,6 +30,7 @@ export default function PackageDetailPage() {
   const [itineraryError, setItineraryError] = useState("");
   const [showItinerary, setShowItinerary] = useState(false);
   const [requestingInfo, setRequestingInfo] = useState(false);
+  const [requestInfoError, setRequestInfoError] = useState("");
 
   const isInCart = items.some((i) => i.package_id === id);
 
@@ -98,6 +102,7 @@ export default function PackageDetailPage() {
     if (!id) return;
 
     setRequestingInfo(true);
+    setRequestInfoError("");
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -120,12 +125,19 @@ export default function PackageDetailPage() {
 
       navigate("/chat", { state: { conversationId: json.conversation_id, leadId: json.lead_id } });
     } catch (err) {
-      setItineraryError(
+      setRequestInfoError(
         err instanceof Error ? err.message : "Error desconocido",
       );
     } finally {
       setRequestingInfo(false);
     }
+  };
+
+  const handleAddToCart = () => {
+    if (!pkg) return;
+    addItem(pkg);
+    addToast("success", "Agregado al carrito", `"${pkg.title}" está listo para reservar.`);
+    // TODO(F3-carrito-undo): añadir acción "Ir al carrito" dentro del toast
   };
 
   if (loading) {
@@ -214,7 +226,7 @@ export default function PackageDetailPage() {
               size="lg"
               className="w-full"
               disabled={isInCart || pkg.publication_status !== "published"}
-              onClick={() => addItem(pkg)}
+              onClick={handleAddToCart}
             >
               <ShoppingCart className="h-5 w-5" />
               {isInCart
@@ -231,7 +243,7 @@ export default function PackageDetailPage() {
               onClick={handleGenerateItinerary}
             >
               <Sparkles className="h-5 w-5" />
-              Generar Itinerario con IA ✨
+              Generar Itinerario con IA
             </Button>
             <Button
               variant="outline"
@@ -242,10 +254,13 @@ export default function PackageDetailPage() {
               disabled={pkg.publication_status !== "published"}
             >
               <MessageCircle className="h-5 w-5" />
-              Solicitar informacion
+              Solicitar información
             </Button>
             {itineraryError && (
               <p className="text-sm text-red-500">{itineraryError}</p>
+            )}
+            {requestInfoError && (
+              <p className="text-sm text-red-500">{requestInfoError}</p>
             )}
           </div>
 

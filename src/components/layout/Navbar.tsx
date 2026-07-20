@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Menu, X, ShoppingCart, User, LogOut, LayoutDashboard, Building2 } from "lucide-react";
+import { Menu, X, ShoppingCart, User, LogOut, LayoutDashboard, Building2, Package, MessageCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import Button from "@/components/ui/Button";
@@ -33,6 +33,24 @@ export default function Navbar() {
               <Building2 className="h-4 w-4" />
               Soy Agencia
             </Link>
+          )}
+          {user && !isAgency && (
+            <>
+              <Link
+                to="/orders"
+                className="flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-primary"
+              >
+                <Package className="h-4 w-4" />
+                Mis Órdenes
+              </Link>
+              <Link
+                to="/chat"
+                className="flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-primary"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chat
+              </Link>
+            </>
           )}
           {isAgency && (
             <>
@@ -121,6 +139,16 @@ export default function Navbar() {
             <Link to="/checkout" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
               Carrito ({itemCount})
             </Link>
+            {user && !isAgency && (
+              <>
+                <Link to="/orders" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
+                  Mis Órdenes
+                </Link>
+                <Link to="/chat" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
+                  Chat
+                </Link>
+              </>
+            )}
             {isAgency && (
               <>
                 <Link to="/agency/dashboard" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">

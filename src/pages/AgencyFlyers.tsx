@@ -3,12 +3,14 @@ import { Plus, Eye, Archive } from "lucide-react";
 import type { TravelPackage } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { PUBLICATION_STATES } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
 import Modal from "@/components/ui/Modal";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Switch from "@/components/ui/Switch";
@@ -17,10 +19,12 @@ import FlyerImageUpload from "@/components/agency/FlyerImageUpload";
 
 export default function AgencyFlyers() {
   const { profile } = useAuth();
+  const { addToast } = useToast();
   const [packages, setPackages] = useState<TravelPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [archivingPkg, setArchivingPkg] = useState<TravelPackage | null>(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -61,6 +65,9 @@ export default function AgencyFlyers() {
       region: form.region,
       price: Number(form.price),
       currency: form.currency,
+      // TODO(F4-flyer-imagen): nunca persistir placehold.co en BD. Hacer la
+      // imagen obligatoria en el wizard de creación o generar thumbnail real.
+      // El placeholder en producción es contenido falso en el marketplace.
       url_flyer_storage: imageUrl ?? "https://placehold.co/600x800/3B82F6/white?text=Flyer",
       url_thumbnail_storage: imageUrl ?? "https://placehold.co/300x400/3B82F6/white?text=Flyer",
       departure_date: new Date(form.departure_date).toISOString(),
@@ -73,6 +80,7 @@ export default function AgencyFlyers() {
 
     if (!error) {
       setShowForm(false);
+      // ...reset form
       setForm({
         title: "",
         region: "",
@@ -87,6 +95,9 @@ export default function AgencyFlyers() {
       setImagePath(null);
       setImageUrl(null);
       fetchPackages();
+      addToast("success", "Flyer creado");
+    } else {
+      addToast("error", "No se pudo crear el flyer", error.message);
     }
     setSaving(false);
   };
@@ -102,12 +113,15 @@ export default function AgencyFlyers() {
     fetchPackages();
   };
 
-  const handleArchive = async (pkg: TravelPackage) => {
+  const handleArchive = async () => {
+    if (!archivingPkg) return;
     await supabase
       .from("travel_packages")
       .update({ publication_status: "archived" })
-      .eq("package_id", pkg.package_id);
+      .eq("package_id", archivingPkg.package_id);
+    setArchivingPkg(null);
     fetchPackages();
+    addToast("info", "Flyer archivado", `"${archivingPkg.title}" ya no aparece en el catálogo.`);
   };
 
   const handleUploadComplete = (path: string, url: string) => {
@@ -192,9 +206,10 @@ export default function AgencyFlyers() {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleArchive(pkg)}
+                        onClick={() => setArchivingPkg(pkg)}
                         className="rounded-lg p-1.5 text-text-muted hover:bg-amber-50 hover:text-amber-600 transition-colors"
                         title="Archivar"
+                        aria-label={`Archivar ${pkg.title}`}
                       >
                         <Archive className="h-4 w-4" />
                       </button>
@@ -322,6 +337,20 @@ export default function AgencyFlyers() {
           </Button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={archivingPkg !== null}
+        onClose={() => setArchivingPkg(null)}
+        title="Archivar flyer"
+        description={
+          archivingPkg
+            ? `¿Estás seguro de que quieres archivar "${archivingPkg.title}"? El flyer dejará de estar visible en el catálogo público.`
+            : undefined
+        }
+        confirmLabel="Archivar"
+        variant="danger"
+        onConfirm={handleArchive}
+      />
     </div>
   );
 }

@@ -63,7 +63,7 @@ describe('LeadCard', () => {
 
   it('renders AI qualification progress', () => {
     render(<LeadCard lead={mockLead} onClick={onClick} />);
-    expect(screen.getByText('Cualificacion IA')).toBeInTheDocument();
+    expect(screen.getByText('Cualificación IA')).toBeInTheDocument();
   });
 
   it('calls onClick when clicked', () => {
@@ -93,6 +93,6 @@ describe('LeadCard', () => {
   it('does not render progress when ai_qualification_progress is empty', () => {
     const leadWithoutProgress = { ...mockLead, ai_qualification_progress: {} };
     render(<LeadCard lead={leadWithoutProgress} onClick={onClick} />);
-    expect(screen.queryByText('Cualificacion IA')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cualificación IA')).not.toBeInTheDocument();
   });
 });

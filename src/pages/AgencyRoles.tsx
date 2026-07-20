@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
 import Modal from "@/components/ui/Modal";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Input from "@/components/ui/Input";
 import Switch from "@/components/ui/Switch";
 import { validateRoleName } from "@/lib/validation";
@@ -20,6 +21,7 @@ export default function AgencyRoles() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [deletingRole, setDeletingRole] = useState<CustomRolePermission | null>(null);
 
   const [form, setForm] = useState({
     role_name: "",
@@ -90,11 +92,13 @@ export default function AgencyRoles() {
     setSaving(false);
   };
 
-  const handleDelete = async (roleId: string) => {
+  const handleDelete = async () => {
+    if (!deletingRole) return;
     await supabase
       .from("custom_roles_permissions")
       .delete()
-      .eq("role_id", roleId);
+      .eq("role_id", deletingRole.role_id);
+    setDeletingRole(null);
     fetchRoles();
   };
 
@@ -158,8 +162,9 @@ export default function AgencyRoles() {
               </div>
             </div>
             <button
-              onClick={() => handleDelete(role.role_id)}
+              onClick={() => setDeletingRole(role)}
               className="rounded-lg p-2 text-text-muted hover:bg-red-50 hover:text-red-500 transition-colors"
+              aria-label={`Eliminar rol ${role.role_name}`}
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -227,6 +232,20 @@ export default function AgencyRoles() {
           </Button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={deletingRole !== null}
+        onClose={() => setDeletingRole(null)}
+        title="Eliminar rol"
+        description={
+          deletingRole
+            ? `¿Estás seguro de que quieres eliminar el rol "${deletingRole.role_name}"? Los colaboradores que lo tengan asignado perderán sus permisos.`
+            : undefined
+        }
+        confirmLabel="Eliminar"
+        variant="danger"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
