@@ -83,7 +83,45 @@ export const BUDGET_RANGES = [
   { value: "Premium", label: "Lujo (más de $80,000 MXN)" },
 ] as const;
 
-export const PLATFORM_COMMISSION_RATE = 0.03;
+/* Plan features y precios — fuente única. PLAN_LIMITS (arriba) define
+   los límites numéricos; PLAN_DETAILS define el copy de cara al usuario
+   y los precios. AgenciaAuth y PlanManagement consumen ambas constantes. */
+export const PLAN_DETAILS: Record<
+  SubscriptionTier,
+  { label: string; price: string; features: string[]; recommended?: boolean }
+> = {
+  Gratuito: {
+    label: "Básico (Gratuito)",
+    price: "$0/mes",
+    features: [
+      `${PLAN_LIMITS.Gratuito.maxFlyers} flyers publicados`,
+      "Sin roles personalizados",
+      "1 cuenta de administrador",
+    ],
+  },
+  Comercial: {
+    label: "Comercial",
+    price: "$499/mes",
+    features: [
+      `${PLAN_LIMITS.Comercial.maxFlyers} flyers publicados`,
+      "1 rol personalizado (Agentes de Ventas)",
+      "3-5 colaboradores",
+      "Soporte prioritario",
+    ],
+    recommended: true,
+  },
+  Corporativo: {
+    label: "Corporativo",
+    price: "$1,499/mes",
+    features: [
+      `${PLAN_LIMITS.Corporativo.maxFlyers} flyers publicados`,
+      "3 roles personalizados dinámicos",
+      "Colaboradores ilimitados",
+      "Matriz de permisos granulares",
+      "Soporte dedicado",
+    ],
+  },
+};
 export const MIN_DEPOSIT_PERCENTAGE = 0.2;
 export const MAX_DEFERRED_MONTHS = 4;
 export const GRACE_PERIOD_DAYS = 14;

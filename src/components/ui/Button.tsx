@@ -15,7 +15,7 @@ const variants = {
   outline:
     "border-2 border-primary text-primary hover:bg-primary/5 focus:ring-primary/30",
   ghost: "text-primary hover:bg-primary/5 focus:ring-primary/20",
-  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500/40 shadow-sm",
+  danger: "bg-danger text-white hover:bg-red-700 focus:ring-danger/40 shadow-sm",
 };
 
 const sizes = {
