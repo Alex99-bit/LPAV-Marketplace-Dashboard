@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { Building2, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { mapAuthError, mapSupabaseError } from "@/lib/errors";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import GoogleButton from "@/components/auth/GoogleButton";
@@ -100,7 +101,7 @@ export default function AcceptInvitation() {
 
     const pwValidation = validatePassword(password);
     if (!pwValidation.valid) {
-      setError(pwValidation.errors[0] ?? "Contraseña no valida");
+      setError(pwValidation.errors[0] ?? "Contraseña no válida");
       return;
     }
 
@@ -109,8 +110,7 @@ export default function AcceptInvitation() {
       await signUpWithEmail(email, password, fullName, "agency_register");
       setStep("needs_auth_login");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error al crear cuenta";
-      setError(message || "Error al crear cuenta");
+      setError(mapAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -133,7 +133,7 @@ export default function AcceptInvitation() {
 
     const pwValidation = validatePassword(password);
     if (!pwValidation.valid) {
-      setError(pwValidation.errors[0] ?? "Contraseña no valida");
+      setError(pwValidation.errors[0] ?? "Contraseña no válida");
       return;
     }
 
@@ -141,8 +141,7 @@ export default function AcceptInvitation() {
     try {
       await signInWithEmail(email, password);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error de autenticacion";
-      setError(message || "Error de autenticacion");
+      setError(mapAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -163,8 +162,7 @@ export default function AcceptInvitation() {
       await refreshProfile();
       setStep("done");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error al aceptar invitación";
-      setError(message || "Error al aceptar invitación");
+      setError(mapSupabaseError(err));
     } finally {
       setLoading(false);
     }

@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import type { Notification } from "@/types";
+import { formatRelativeTime } from "@/lib/formatters";
 import { MessageSquare, CreditCard, AlertTriangle, CheckCircle, XCircle, Ban } from "lucide-react";
 
+// TODO(F1-icon-consolidation): ICON_MAP está duplicado con
+// NotificationBell.tsx. Extraer a una tabla compartida en constants.ts
+// o un helper que devuelva el componente según el tipo de notificación.
 const ICON_MAP = {
   new_message: MessageSquare,
   payment_received: CreditCard,
@@ -12,21 +16,6 @@ const ICON_MAP = {
   package_banned: XCircle,
   order_cancelled: Ban,
 };
-
-function formatRelativeTime(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Ahora";
-  if (diffMins < 60) return `Hace ${diffMins} min`;
-  if (diffHours < 24) return `Hace ${diffHours}h`;
-  if (diffDays < 7) return `Hace ${diffDays}d`;
-  return date.toLocaleDateString("es-MX");
-}
 
 export default function RecentActivity() {
   const { profile } = useAuth();

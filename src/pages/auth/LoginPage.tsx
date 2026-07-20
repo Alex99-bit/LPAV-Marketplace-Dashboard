@@ -6,6 +6,7 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 import GoogleButton from "@/components/auth/GoogleButton";
+import { mapAuthError } from "@/lib/errors";
 import { isValidEmail, validatePassword } from "@/lib/validation";
 
 type Mode = "choice" | "traveler_login" | "traveler_register";
@@ -77,8 +78,7 @@ export default function LoginPage() {
         await signUpWithEmail(email, password, fullName, "traveler_register");
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error de autenticación";
-      setError(message || "Error de autenticación");
+      setError(mapAuthError(err));
     } finally {
       setAuthLoading(false);
     }

@@ -96,7 +96,6 @@ export default function AgencyFinance() {
       <div className="space-y-6">
         <StripeConnectStatus
           stripeAccountId={data.stripeAccountId}
-          tenantId={profile?.tenant_id!}
         />
 
         <RevenueOverview

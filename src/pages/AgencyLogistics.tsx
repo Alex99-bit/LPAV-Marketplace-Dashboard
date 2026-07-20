@@ -97,7 +97,7 @@ export default function AgencyLogistics() {
           ))}
         </div>
 
-        <DocumentVault documents={selectedDocs} orderId={selectedOrderId ?? ""} />
+        <DocumentVault documents={selectedDocs} />
 
         <IncidentCenter incidents={incidents} orders={orderOptions} onRefresh={fetchData} />
       </div>

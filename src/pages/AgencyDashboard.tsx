@@ -74,6 +74,7 @@ export default function AgencyDashboard() {
   const [businessName, setBusinessName] = useState("");
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("Gratuito");
   const [stripeAccount, setStripeAccount] = useState<StripeAccount | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!profile?.tenant_id) return;
@@ -181,6 +182,7 @@ export default function AgencyDashboard() {
         setSubscriptionTier(tenantRes.data.subscription_tier ?? "Gratuito");
       }
       if (stripeRes.data) setStripeAccount(stripeRes.data as StripeAccount);
+      setLoading(false);
     })();
   }, [profile?.tenant_id, profile?.censorship_strikes]);
 
@@ -257,8 +259,8 @@ export default function AgencyDashboard() {
         })}
       </div>
 
-      {/* Empty State */}
-      {isEmpty ? (
+      {/* Empty State — solo se muestra tras cargar, no durante el loading */}
+      {!loading && isEmpty ? (
         <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Image className="h-8 w-8" />
@@ -276,6 +278,27 @@ export default function AgencyDashboard() {
             Crear mi primer flyer
           </Link>
         </div>
+      ) : loading ? (
+        <>
+          {/* Skeleton KPI grid mientras carga */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border bg-surface-raised p-4 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-gray-200" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-16 rounded bg-gray-200" />
+                    <div className="h-5 w-24 rounded bg-gray-300" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <div className="h-64 animate-pulse rounded-2xl bg-surface-raised" />
+            <div className="h-64 animate-pulse rounded-2xl bg-surface-raised" />
+          </div>
+        </>
       ) : (
         <>
           {/* KPI Grid */}

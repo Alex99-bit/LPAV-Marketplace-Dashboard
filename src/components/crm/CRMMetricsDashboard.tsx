@@ -113,7 +113,7 @@ export default function CRMMetricsDashboard({ embedded = false }: CRMMetricsDash
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className={`flex items-center justify-center ${embedded ? "min-h-[200px]" : "min-h-[60vh]"}`}>
         <Spinner size="lg" />
       </div>
     );

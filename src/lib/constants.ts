@@ -122,6 +122,7 @@ export const PLAN_DETAILS: Record<
     ],
   },
 };
+export const PLATFORM_COMMISSION_RATE = 0.03;
 export const MIN_DEPOSIT_PERCENTAGE = 0.2;
 export const MAX_DEFERRED_MONTHS = 4;
 export const GRACE_PERIOD_DAYS = 14;

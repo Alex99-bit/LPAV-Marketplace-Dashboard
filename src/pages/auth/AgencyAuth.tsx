@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { mapAuthError, mapSupabaseError } from "@/lib/errors";
 import { PLAN_DETAILS } from "@/lib/constants";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -133,9 +134,7 @@ export default function AgencyAuth() {
         await signUpWithEmail(email, password, fullName, "agency_register");
       }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Error de autenticación";
-      setError(message || "Error de autenticación");
+      setError(mapAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -178,9 +177,7 @@ export default function AgencyAuth() {
 
       setFiscalUploadUrl(publicUrl);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Error al subir el archivo";
-      setError(message);
+      setError(mapSupabaseError(err));
       setFiscalFile(null);
     } finally {
       setFiscalUploadProgress(false);
@@ -314,9 +311,7 @@ export default function AgencyAuth() {
         state: { tenantId: data, plan: selectedPlan },
       });
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Error al registrar";
-      setError(message || "Error al registrar");
+      setError(mapSupabaseError(err));
     } finally {
       setLoading(false);
     }
@@ -403,7 +398,7 @@ export default function AgencyAuth() {
     <div className="space-y-3">
       {(Object.entries(PLAN_DETAILS) as [SubscriptionTier, (typeof PLAN_DETAILS)[SubscriptionTier]][]).map(
         ([tier, plan]) => {
-          const Icon = plan.icon;
+          const Icon = PLAN_ICONS[tier];
           const isSelected = selectedPlan === tier;
           return (
             <button
@@ -632,7 +627,7 @@ export default function AgencyAuth() {
 
   const StepReview = () => {
     const plan = PLAN_DETAILS[selectedPlan];
-    const Icon = plan.icon;
+    const Icon = PLAN_ICONS[selectedPlan];
     return (
       <div className="space-y-4">
         <div className="rounded-xl bg-surface p-4 space-y-3">
@@ -890,12 +885,12 @@ export default function AgencyAuth() {
             <CheckCircle className="h-5 w-5 text-success" />
           </div>
 
-          {/* TODO(F1-agencyauth): extraer StepIndicator, StepBusiness, StepPlan,
-              StepFiscal, StepLegal y StepReview a componentes de nivel módulo
-              para eliminar los re-mounts y el bug de pérdida de foco. Por ahora
-              se renderizan como llamadas a función ({StepBusiness()}) en vez de
-              JSX (<StepBusiness />) para evitar que React los trate como nuevas
-              identidades de componente en cada render. */}
+          {/* TODO(F2-agencyauth-extraction): extraer StepIndicator, StepBusiness,
+              StepPlan, StepFiscal, StepLegal y StepReview a AgencyWizardSteps.tsx
+              con props tipadas. Depende de FormField (errores por campo) y Alert
+              (info boxes) — ver primitivos creados en Fase 1. Por ahora se
+              renderizan como llamadas a función ({StepBusiness()}) en vez de JSX
+              para evitar el bug de pérdida de foco. */}
           {StepIndicator()}
 
           {/* Step content */}
