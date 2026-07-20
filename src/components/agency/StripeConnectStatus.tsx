@@ -5,7 +5,6 @@ import Button from "@/components/ui/Button";
 
 interface StripeConnectStatusProps {
   stripeAccountId: string | null;
-  tenantId: string;
 }
 
 export default function StripeConnectStatus({ stripeAccountId }: StripeConnectStatusProps) {

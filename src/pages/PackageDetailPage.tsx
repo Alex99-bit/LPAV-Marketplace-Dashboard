@@ -85,10 +85,11 @@ export default function PackageDetailPage() {
 
       setItinerary(json as ItineraryData);
       setShowItinerary(true);
+      addToast("success", "Itinerario generado", "Revisa el plan día por día para este paquete.");
     } catch (err) {
-      setItineraryError(
-        err instanceof Error ? err.message : "Error desconocido",
-      );
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      setItineraryError(msg);
+      addToast("error", "No se pudo generar el itinerario", msg);
     } finally {
       setItineraryLoading(false);
     }
@@ -123,11 +124,12 @@ export default function PackageDetailPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Error creando solicitud");
 
+      addToast("success", "Solicitud enviada", "La agencia recibirá tu mensaje y te responderá pronto.");
       navigate("/chat", { state: { conversationId: json.conversation_id, leadId: json.lead_id } });
     } catch (err) {
-      setRequestInfoError(
-        err instanceof Error ? err.message : "Error desconocido",
-      );
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      setRequestInfoError(msg);
+      addToast("error", "No se pudo enviar la solicitud", msg);
     } finally {
       setRequestingInfo(false);
     }

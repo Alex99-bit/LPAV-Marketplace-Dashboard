@@ -10,10 +10,8 @@ import RegionFilter from "@/components/marketplace/RegionFilter";
 
 // TODO(F3-home-pagination): la Home carga el catálogo completo sin paginación.
 // Implementar infinite scroll o páginas cuando el volumen de flyers crezca.
-// TODO(F3-home-debounce): el slider de precios dispara una query a Supabase por
-// cada píxel arrastrado. Envolver priceRange en debounce con useDebounce().
-// TODO(F2-errores-visibles): los errores de fetch solo van a console.error.
-// Mostrar estado de error en la UI con opción de reintentar.
+// TODO(F2-errores-visibles): mostrar estado de error en la UI con opción de
+// reintentar en lugar de solo console.error.
 
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -24,6 +22,7 @@ export default function Home() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 200000]);
 
   const debouncedSearch = useDebounce(search, 300);
+  const debouncedPriceRange = useDebounce(priceRange, 300);
 
   const fetchPackages = useCallback(async () => {
     setLoading(true);
@@ -44,8 +43,8 @@ export default function Home() {
     }
 
     query = query
-      .gte("price", priceRange[0])
-      .lte("price", priceRange[1]);
+      .gte("price", debouncedPriceRange[0])
+      .lte("price", debouncedPriceRange[1]);
 
     const { data, error } = await query;
 
@@ -55,7 +54,7 @@ export default function Home() {
 
     setPackages(data ?? []);
     setLoading(false);
-  }, [debouncedSearch, region, priceRange]);
+  }, [debouncedSearch, region, debouncedPriceRange]);
 
   useEffect(() => {
     fetchPackages();
@@ -71,7 +70,6 @@ export default function Home() {
             else prev.delete("q");
             return prev;
           });
-          setSearch(q);
         }}
         onInspiration={() => {
           const suggestions = [

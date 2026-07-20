@@ -49,7 +49,6 @@ export default function AgencySettings() {
         <CompanyProfileForm tenant={tenant} onSave={fetchData} />
         <StripeConnectStatus
           stripeAccountId={tenant.stripe_account_id}
-          tenantId={tenant.tenant_id}
         />
         <FiscalDocuments tenant={tenant} />
         <TeamManagement tenantId={tenant.tenant_id} />

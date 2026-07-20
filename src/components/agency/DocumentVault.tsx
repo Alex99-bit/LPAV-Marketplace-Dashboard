@@ -3,7 +3,6 @@ import type { TravelerDocument } from "@/types";
 
 interface DocumentVaultProps {
   documents: TravelerDocument[];
-  orderId: string;
 }
 
 export default function DocumentVault({ documents }: DocumentVaultProps) {

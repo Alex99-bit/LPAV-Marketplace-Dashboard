@@ -11,13 +11,11 @@ import CRMMetricsDashboard from "@/components/crm/CRMMetricsDashboard";
 
 // TODO(F4-crm-pagination): límite fijo de 100 leads sin paginación server-side.
 // La búsqueda es en memoria y miente cuando hay >100 leads.
-// TODO(F2-realtime-filter): el canal realtime escucha event: "*" de toda la
-// tabla crm_leads sin filtrar por tenant_id → ruido y parpadeo.
 // TODO(F4-leads-assign): sin UI para asignar leads a agentes (el campo existe
 // en BD y el filtro por assigned_to está implementado en esta página).
 
 export default function AgencyCRM() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [leads, setLeads] = useState<CRMLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
@@ -89,13 +87,18 @@ export default function AgencyCRM() {
   }, [fetchLeads]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !profile?.tenant_id) return;
 
     const channel = supabase
       .channel("crm-leads-changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "crm_leads" },
+        {
+          event: "*",
+          schema: "public",
+          table: "crm_leads",
+          filter: `tenant_id=eq.${profile.tenant_id}`,
+        },
         () => {
           if (debounceRef.current) clearTimeout(debounceRef.current);
           debounceRef.current = setTimeout(() => {

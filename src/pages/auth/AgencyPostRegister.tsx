@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 import type { SubscriptionTier } from "@/types";
@@ -25,6 +26,7 @@ export default function AgencyPostRegister() {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, refreshProfile } = useAuth();
+  const { addToast } = useToast();
 
   const state = location.state as LocationState;
   const tenantId = state?.tenantId || profile?.tenant_id;
@@ -71,6 +73,7 @@ export default function AgencyPostRegister() {
       }
     } catch (err) {
       console.error("Error connecting Stripe:", err);
+      addToast("error", "No se pudo conectar Stripe", "Inténtalo de nuevo o sáltate este paso y configúralo en Configuración.");
     } finally {
       setStripeConnectLoading(false);
     }
@@ -89,6 +92,7 @@ export default function AgencyPostRegister() {
       }
     } catch (err) {
       console.error("Error setting up billing:", err);
+      addToast("error", "No se pudo configurar la suscripción", "Inténtalo de nuevo o sáltate este paso y configúralo después.");
     } finally {
       setStripeBillingLoading(false);
     }
