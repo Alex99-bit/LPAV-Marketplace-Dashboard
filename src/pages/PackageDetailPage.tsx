@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router";
-import { ArrowLeft, ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle } from "lucide-react";
+import { ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle } from "lucide-react";
 import type { TravelPackage, ItineraryData } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -13,6 +13,8 @@ import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
 import Modal from "@/components/ui/Modal";
 import ItineraryDisplay from "@/components/marketplace/ItineraryDisplay";
+import ReviewList from "@/components/marketplace/ReviewList";
+import ReviewForm from "@/components/marketplace/ReviewForm";
 
 export default function PackageDetailPage() {
   const { id } = useParams();
@@ -166,12 +168,14 @@ export default function PackageDetailPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-6 flex items-center gap-2 text-sm text-text-muted hover:text-primary"
-      >
-        <ArrowLeft className="h-4 w-4" /> Volver
-      </button>
+      {/* Breadcrumb */}
+      <nav className="mb-6 flex items-center gap-1.5 text-sm text-text-muted">
+        <Link to="/" className="hover:text-primary transition-colors">
+          Paquetes
+        </Link>
+        <span>/</span>
+        <span className="text-text truncate max-w-[300px]">{pkg.title}</span>
+      </nav>
 
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="relative overflow-hidden rounded-2xl bg-gray-100">
@@ -180,6 +184,11 @@ export default function PackageDetailPage() {
               src={pkg.url_flyer_storage}
               alt={pkg.title}
               className="h-full w-full object-cover"
+              onError={(e) => {
+                // TODO(F3-pkg-image-fallback): usar imagen placeholder
+                // del sistema en vez de ocultar el elemento.
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
             />
           </div>
           <div className="absolute top-3 right-3">
@@ -210,6 +219,12 @@ export default function PackageDetailPage() {
               {formatDate(pkg.departure_date)}
             </div>
           </div>
+
+          {pkg.description && (
+            <p className="text-sm text-text-muted leading-relaxed">
+              {pkg.description}
+            </p>
+          )}
 
           <div className="rounded-2xl bg-surface p-5">
             <div className="flex items-baseline justify-between">
@@ -271,7 +286,22 @@ export default function PackageDetailPage() {
               ✓ Incluye coordinador de viaje
             </Badge>
           )}
+
+          {/* TODO(F3-reviews-gate): gatear ReviewForm por orden pagada del
+              usuario sobre este paquete. Por ahora se muestra siempre para
+              viajeros autenticados. */}
+          {user && (
+            <ReviewForm
+              packageId={pkg.package_id}
+              orderId=""
+              onSubmit={() => {}}
+            />
+          )}
         </div>
+      </div>
+
+      <div className="mt-8">
+        <ReviewList packageId={pkg.package_id} />
       </div>
 
       <Modal

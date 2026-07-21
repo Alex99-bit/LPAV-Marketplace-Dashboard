@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Plane, Building2 } from "lucide-react";
+import { Plane, Building2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
@@ -9,7 +10,7 @@ import GoogleButton from "@/components/auth/GoogleButton";
 import { mapAuthError } from "@/lib/errors";
 import { isValidEmail, validatePassword } from "@/lib/validation";
 
-type Mode = "choice" | "traveler_login" | "traveler_register";
+type Mode = "choice" | "traveler_login" | "traveler_register" | "forgot_password";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   // Destino original del viajero antes de que el AuthGuard lo mandara a login
   const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
@@ -84,6 +87,26 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    setError("");
+    if (!isValidEmail(email)) {
+      setError("Correo electrónico no válido");
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/login`,
+      });
+      if (error) throw error;
+      setResetSent(true);
+    } catch (err) {
+      setError(mapAuthError(err));
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   if (mode === "choice") {
     return (
       <div className="mx-auto flex min-h-[80vh] max-w-lg flex-col items-center justify-center px-4">
@@ -138,6 +161,52 @@ export default function LoginPage() {
     );
   }
 
+  // Forgot password flow — independiente del login/registro
+  if (mode === "forgot_password") {
+    return (
+      <div className="mx-auto flex min-h-[80vh] max-w-md flex-col items-center justify-center px-4">
+        <div className="mb-6 w-full text-center">
+          <button
+            onClick={() => { setMode("traveler_login"); setResetSent(false); }}
+            className="mb-4 text-sm text-text-muted hover:text-primary"
+          >
+            &larr; Volver al inicio de sesión
+          </button>
+          <h1 className="text-2xl font-bold text-text">Recuperar contraseña</h1>
+          <p className="mt-1 text-sm text-text-muted">
+            {resetSent
+              ? "Revisa tu correo electrónico para restablecer tu contraseña."
+              : "Ingresa tu correo y te enviaremos un enlace de recuperación."}
+          </p>
+        </div>
+        {!resetSent && (
+          <div className="w-full space-y-4">
+            <Input
+              label="Correo electrónico"
+              type="email"
+              placeholder="tu@correo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {error && (
+              <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">
+                {error}
+              </p>
+            )}
+            <Button
+              size="lg"
+              className="w-full"
+              loading={authLoading}
+              onClick={handleForgotPassword}
+            >
+              Enviar enlace de recuperación
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-md flex-col items-center justify-center px-4">
       <div className="mb-6 w-full text-center">
@@ -178,13 +247,32 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <Input
-          label="Contraseña"
-          type="password"
-          placeholder="Mínimo 6 caracteres"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="relative">
+          <Input
+            label="Contraseña"
+            type={showPassword ? "text" : "password"}
+            placeholder="Mínimo 6 caracteres"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-[38px] rounded-lg p-1 text-text-muted hover:text-text"
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+
+        {mode === "traveler_login" && (
+          <button
+            onClick={() => { setMode("forgot_password"); setError(""); setResetSent(false); }}
+            className="text-xs text-text-muted hover:text-primary"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        )}
 
         {error && (
           <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">

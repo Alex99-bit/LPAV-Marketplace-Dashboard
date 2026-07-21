@@ -28,13 +28,18 @@ interface CartState {
 
 const CartContext = createContext<CartState | null>(null);
 
-// TODO(F3-carrito-scope): el carrito persiste en localStorage entre cuentas
-// distintas en el mismo navegador. Segmentar por user.id al hacer login.
 // TODO(F3-multicurrency): el total suma price crudo de MXN+USD+EUR — separar
 // totales por divisa o convertir antes de mostrar el resumen.
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useLocalStorage<CartItem[]>("lpav_cart", []);
+interface CartProviderProps {
+  children: ReactNode;
+  userId?: string;
+}
+
+export function CartProvider({ children, userId }: CartProviderProps) {
+  // Guest mode usa una key genérica; al loguearse se segmenta por user.id.
+  const storageKey = userId ? `lpav_cart_${userId}` : "lpav_cart";
+  const [items, setItems] = useLocalStorage<CartItem[]>(storageKey, []);
 
   const addItem = useCallback(
     (pkg: TravelPackage) => {

@@ -1,12 +1,20 @@
-import { Sparkles } from "lucide-react";
+import { useRef } from "react";
+import { Sparkles, Search } from "lucide-react";
 import Button from "@/components/ui/Button";
 
 interface HeroProps {
-  onSearch: (query: string) => void;
+  searchValue: string;
+  onSearchChange: (query: string) => void;
   onInspiration: () => void;
 }
 
-export default function Hero({ onSearch, onInspiration }: HeroProps) {
+export default function Hero({
+  searchValue,
+  onSearchChange,
+  onInspiration,
+}: HeroProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-white to-primary-light/10">
       <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28">
@@ -20,14 +28,22 @@ export default function Hero({ onSearch, onInspiration }: HeroProps) {
         </p>
 
         <div className="mx-auto mt-8 flex max-w-lg flex-col gap-3 sm:flex-row">
-          <input
-            type="text"
-            placeholder="¿A dónde quieres viajar?"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onSearch(e.currentTarget.value);
-            }}
-            className="flex-1 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm shadow-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-          />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="¿A dónde quieres viajar?"
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && inputRef.current) {
+                  inputRef.current.blur();
+                }
+              }}
+              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm shadow-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+            />
+          </div>
           <Button
             onClick={onInspiration}
             variant="secondary"
@@ -35,7 +51,7 @@ export default function Hero({ onSearch, onInspiration }: HeroProps) {
             className="whitespace-nowrap"
           >
             <Sparkles className="h-4 w-4" />
-            Inspiración ✨
+            Inspiración
           </Button>
         </div>
       </div>
