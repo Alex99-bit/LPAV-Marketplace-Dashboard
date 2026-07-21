@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { ShoppingCart, User, LogOut, LayoutDashboard, Building2, Package, MessageCircle, Sun, Moon } from "lucide-react";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Package, MessageCircle, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -29,26 +29,19 @@ export default function Navbar() {
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold text-primary dark:text-primary-light">LPAV</span>
-        </Link>
-
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="text-xl font-bold text-primary dark:text-primary-light">LPAV</span>
+          </Link>
           <Link
             to="/"
-            className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            className="hidden text-sm font-medium text-text-muted transition-colors hover:text-primary md:inline"
           >
             Explorar
           </Link>
-          {!user && (
-            <Link
-              to="/auth/agency"
-              className="flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-primary"
-            >
-              <Building2 className="h-4 w-4" />
-              Soy Agencia
-            </Link>
-          )}
+        </div>
+
+        <div className="hidden items-center gap-6 md:flex">
           {user && !isAgency && (
             <>
               <Link
@@ -170,12 +163,6 @@ export default function Navbar() {
             <Link to="/" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
               Explorar
             </Link>
-            {!user && (
-              <Link to="/auth/agency" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
-                <Building2 className="h-4 w-4" />
-                Soy Agencia
-              </Link>
-            )}
             <Link to="/checkout" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
               Carrito ({itemCount})
             </Link>
