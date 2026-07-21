@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ListFilter, Package } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import type { TransactionOrder, TravelerDocument, TravelIncident } from "@/types";
@@ -82,21 +83,21 @@ export default function AgencyLogistics() {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setSelectedOrderId(null)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
               !selectedOrderId ? "bg-primary text-white" : "bg-gray-100 text-text-muted hover:bg-gray-200"
             }`}
           >
-            Todos
+            <ListFilter className="h-3 w-3" /> Todos
           </button>
           {orderOptions.map((o) => (
             <button
               key={o.order_id}
               onClick={() => setSelectedOrderId(o.order_id)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 selectedOrderId === o.order_id ? "bg-primary text-white" : "bg-gray-100 text-text-muted hover:bg-gray-200"
               }`}
             >
-              {o.title}
+              <Package className="h-3 w-3" /> {o.title}
             </button>
           ))}
         </div>

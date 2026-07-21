@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Plane, Building2, Eye, EyeOff } from "lucide-react";
+import { Plane, Building2, Eye, EyeOff, ArrowLeft, LogIn, UserPlus, Mail, HelpCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import Input from "@/components/ui/Input";
@@ -166,11 +166,12 @@ export default function LoginPage() {
     return (
       <div className="mx-auto flex min-h-[80vh] max-w-md flex-col items-center justify-center px-4">
         <div className="mb-6 w-full text-center">
-          <button
-            onClick={() => { setMode("traveler_login"); setResetSent(false); }}
-            className="mb-4 text-sm text-text-muted hover:text-primary"
-          >
-            &larr; Volver al inicio de sesión
+            <button
+              onClick={() => { setMode("traveler_login"); setResetSent(false); }}
+              className="mb-4 inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver al inicio de sesión
           </button>
           <h1 className="text-2xl font-bold text-text">Recuperar contraseña</h1>
           <p className="mt-1 text-sm text-text-muted">
@@ -199,6 +200,7 @@ export default function LoginPage() {
               loading={authLoading}
               onClick={handleForgotPassword}
             >
+              <Mail className="h-4 w-4" />
               Enviar enlace de recuperación
             </Button>
           </div>
@@ -210,12 +212,13 @@ export default function LoginPage() {
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-md flex-col items-center justify-center px-4">
       <div className="mb-6 w-full text-center">
-        <button
-          onClick={() => setMode("choice")}
-          className="mb-4 text-sm text-text-muted hover:text-primary"
-        >
-          &larr; Volver
-        </button>
+          <button
+            onClick={() => setMode("choice")}
+            className="mb-4 inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </button>
         <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mx-auto">
           <Plane className="h-6 w-6" />
         </div>
@@ -268,8 +271,9 @@ export default function LoginPage() {
         {mode === "traveler_login" && (
           <button
             onClick={() => { setMode("forgot_password"); setError(""); setResetSent(false); }}
-            className="text-xs text-text-muted hover:text-primary"
+            className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary"
           >
+            <HelpCircle className="h-3.5 w-3.5" />
             ¿Olvidaste tu contraseña?
           </button>
         )}
@@ -286,7 +290,11 @@ export default function LoginPage() {
           loading={authLoading}
           onClick={handleEmailAuth}
         >
-          {mode === "traveler_login" ? "Iniciar Sesión" : "Crear Cuenta"}
+          {mode === "traveler_login" ? (
+            <><LogIn className="h-4 w-4" /> Iniciar Sesión</>
+          ) : (
+            <><UserPlus className="h-4 w-4" /> Crear Cuenta</>
+          )}
         </Button>
 
         <div className="relative my-2">
@@ -313,9 +321,13 @@ export default function LoginPage() {
                   : "traveler_login"
               )
             }
-            className="font-medium text-primary hover:underline"
+            className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
           >
-            {mode === "traveler_login" ? "Regístrate" : "Inicia sesión"}
+            {mode === "traveler_login" ? (
+              <><UserPlus className="h-3.5 w-3.5" /> Regístrate</>
+            ) : (
+              <><LogIn className="h-3.5 w-3.5" /> Inicia sesión</>
+            )}
           </button>
         </p>
       </div>

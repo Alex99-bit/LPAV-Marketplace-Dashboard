@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { useState } from "react";
-import { Trash2, ShoppingCart, ArrowRight, AlertTriangle } from "lucide-react";
+import { Trash2, ShoppingCart, ArrowRight, AlertTriangle, Search } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/lib/supabaseClient";
@@ -26,7 +26,7 @@ export default function Checkout() {
           Explora nuestros paquetes y añade uno a tu carrito.
         </p>
         <Link to="/">
-          <Button>Explorar Paquetes</Button>
+          <Button><Search className="h-4 w-4" /> Explorar Paquetes</Button>
         </Link>
       </div>
     );

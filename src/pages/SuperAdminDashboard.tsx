@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Building2, Users, Package, DollarSign, TrendingUp,
   Shield, AlertTriangle, CheckCircle, XCircle, Search,
-  BarChart3, CreditCard, MessageSquare, Eye
+  BarChart3, CreditCard, MessageSquare, Eye, RefreshCw, LogOut
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency } from "@/lib/formatters";
@@ -203,8 +203,8 @@ export default function SuperAdminDashboard() {
               <p className="text-xs text-text-muted">Solo localhost · Acceso restringido</p>
             </div>
           </div>
-          <a href="/" className="text-sm text-text-muted hover:text-primary transition-colors">
-            Salir
+          <a href="/" className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors">
+            <LogOut className="h-3.5 w-3.5" /> Salir
           </a>
         </div>
       </div>
@@ -404,17 +404,17 @@ function AgenciasTab({
                       <div className="flex gap-1">
                         {agency.status === "En Revisión" && (
                           <Button size="sm" onClick={() => onStatusChange(agency.tenant_id, "Activo")}>
-                            Aprobar
+                            <CheckCircle className="h-3.5 w-3.5" /> Aprobar
                           </Button>
                         )}
                         {agency.status === "Activo" && (
-                          <Button size="sm" variant="outline" onClick={() => onStatusChange(agency.tenant_id, "Suspendido por Pago")}>
-                            Suspender
+                          <Button size="sm" variant="danger" onClick={() => onStatusChange(agency.tenant_id, "Suspendido por Pago")}>
+                            <XCircle className="h-3.5 w-3.5" /> Suspender
                           </Button>
                         )}
                         {agency.status === "Suspendido por Pago" && (
                           <Button size="sm" onClick={() => onStatusChange(agency.tenant_id, "Activo")}>
-                            Reactivar
+                            <RefreshCw className="h-3.5 w-3.5" /> Reactivar
                           </Button>
                         )}
                       </div>

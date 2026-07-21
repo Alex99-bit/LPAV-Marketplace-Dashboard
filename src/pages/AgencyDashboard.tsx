@@ -5,7 +5,7 @@ import {
   DollarSign, UserCheck, Calendar,
   FileWarning, ShieldAlert,
   Image, Settings, ArrowRight,
-  CheckCircle, XCircle, HelpCircle
+  CheckCircle, XCircle, HelpCircle, Landmark, Eye
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -351,8 +351,8 @@ function StripeConnectBanner({ stripeAccount }: { stripeAccount: StripeAccount |
           </div>
         </div>
         <Link to="/agency/settings">
-          <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
-            Registrar
+          <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors inline-flex items-center gap-1">
+            <Landmark className="h-3 w-3" /> Registrar
           </button>
         </Link>
       </div>
@@ -385,8 +385,8 @@ function StripeConnectBanner({ stripeAccount }: { stripeAccount: StripeAccount |
         </div>
       </div>
       <Link to="/agency/settings">
-        <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
-          Ver estado
+        <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors inline-flex items-center gap-1">
+          <Eye className="h-3 w-3" /> Ver estado
         </button>
       </Link>
     </div>

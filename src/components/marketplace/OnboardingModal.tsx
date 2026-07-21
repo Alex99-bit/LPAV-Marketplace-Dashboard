@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowLeft, ArrowRight, CheckCircle, X, Star, DollarSign } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { INTEREST_TAGS, REGIONS, BUDGET_RANGES } from "@/lib/constants";
@@ -127,6 +128,7 @@ export default function OnboardingModal({ open, onClose, onComplete }: Onboardin
                   : "bg-gray-50 border border-gray-100 text-text hover:bg-gray-100"
               }`}
             >
+              <DollarSign className="mr-2 inline h-4 w-4" />
               {range.label}
             </button>
           ))}
@@ -147,6 +149,7 @@ export default function OnboardingModal({ open, onClose, onComplete }: Onboardin
                   : "bg-gray-50 border border-gray-100 text-text hover:bg-gray-100"
               }`}
             >
+              <Star className="mr-2 inline h-4 w-4" />
               {s}
             </button>
           ))}
@@ -168,17 +171,23 @@ export default function OnboardingModal({ open, onClose, onComplete }: Onboardin
             variant="outline"
             onClick={() => (step > 0 ? setStep(step - 1) : onClose())}
           >
-            {step > 0 ? "Anterior" : "Cancelar"}
+            {step > 0 ? (
+              <><ArrowLeft className="h-4 w-4" /> Anterior</>
+            ) : (
+              <><X className="h-4 w-4" /> Cancelar</>
+            )}
           </Button>
           {step < stepViews.length - 1 ? (
-            <Button onClick={() => setStep(step + 1)}>Siguiente</Button>
+            <Button onClick={() => setStep(step + 1)}>
+              Siguiente <ArrowRight className="h-4 w-4" />
+            </Button>
           ) : (
             <Button
               onClick={handleSubmit}
               loading={saving}
               disabled={interests.length === 0}
             >
-              Completar
+              <CheckCircle className="h-4 w-4" /> Completar
             </Button>
           )}
         </div>

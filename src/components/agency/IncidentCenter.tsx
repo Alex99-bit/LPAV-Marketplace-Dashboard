@@ -116,7 +116,7 @@ export default function IncidentCenter({ incidents, orders, onRefresh }: Inciden
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
           <Button onClick={handleCreate} disabled={!form.title || !form.order_id}>
-            Reportar Incidente
+            <AlertTriangle className="h-4 w-4" /> Reportar Incidente
           </Button>
         </div>
       )}

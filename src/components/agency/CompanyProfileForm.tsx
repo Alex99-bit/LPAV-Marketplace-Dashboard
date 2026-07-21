@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Save } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import type { AgencyTenant } from "@/types";
 import { useToast } from "@/components/ui/Toast";
@@ -92,7 +93,7 @@ export default function CompanyProfileForm({ tenant, onSave }: CompanyProfileFor
           placeholder="Selecciona zona horaria"
         />
         <Button onClick={handleSave} loading={saving}>
-          Guardar Cambios
+          <Save className="h-4 w-4" /> Guardar Cambios
         </Button>
       </div>
     </div>
