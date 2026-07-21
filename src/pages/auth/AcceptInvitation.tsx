@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Building2, CheckCircle, AlertCircle } from "lucide-react";
+import { Building2, CheckCircle, AlertCircle, Home, LayoutDashboard, LogIn, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { mapAuthError, mapSupabaseError } from "@/lib/errors";
@@ -188,6 +188,7 @@ export default function AcceptInvitation() {
           Esta invitación puede haber expirado, ya fue usada o el enlace es incorrecto.
         </p>
         <Button className="mt-6" onClick={() => navigate("/")}>
+          <Home className="h-4 w-4" />
           Ir al inicio
         </Button>
       </div>
@@ -203,6 +204,7 @@ export default function AcceptInvitation() {
           Has sido añadido a la agencia exitosamente.
         </p>
         <Button className="mt-6" onClick={() => navigate("/agency/dashboard")}>
+          <LayoutDashboard className="h-4 w-4" />
           Ir al Dashboard
         </Button>
       </div>
@@ -237,18 +239,20 @@ export default function AcceptInvitation() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setStep("needs_auth_login")}
-              className={`rounded-xl border-2 px-4 py-2 text-sm font-medium transition-all ${
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-4 py-2 text-sm font-medium transition-all ${
                 step === "needs_auth_login" ? "border-primary bg-primary/5 text-primary" : "border-gray-200 text-text"
               }`}
             >
+              <LogIn className="h-4 w-4" />
               Iniciar Sesion
             </button>
             <button
               onClick={() => setStep("needs_auth_register")}
-              className={`rounded-xl border-2 px-4 py-2 text-sm font-medium transition-all ${
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-4 py-2 text-sm font-medium transition-all ${
                 step === "needs_auth_register" ? "border-primary bg-primary/5 text-primary" : "border-gray-200 text-text"
               }`}
             >
+              <UserPlus className="h-4 w-4" />
               Crear Cuenta
             </button>
           </div>
@@ -290,7 +294,11 @@ export default function AcceptInvitation() {
             loading={loading}
             onClick={step === "needs_auth_register" ? handleCreateAccount : handleLogin}
           >
-            {step === "needs_auth_register" ? "Crear Cuenta" : "Iniciar Sesion"}
+            {step === "needs_auth_register" ? (
+              <><UserPlus className="h-4 w-4" /> Crear Cuenta</>
+            ) : (
+              <><LogIn className="h-4 w-4" /> Iniciar Sesion</>
+            )}
           </Button>
 
           <div className="relative my-2">
@@ -335,7 +343,7 @@ export default function AcceptInvitation() {
             {error}
           </p>
           <Button variant="outline" onClick={() => navigate("/")}>
-            Ir al inicio
+            <Home className="h-3.5 w-3.5" /> Ir al inicio
           </Button>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Home } from "lucide-react";
 import Button from "@/components/ui/Button";
 
 export default function NotFound() {
@@ -12,7 +13,7 @@ export default function NotFound() {
         La página que buscas no existe o fue movida a otra ubicación.
       </p>
       <Link to="/">
-        <Button>Volver al inicio</Button>
+        <Button><Home className="h-4 w-4" /> Volver al inicio</Button>
       </Link>
     </div>
   );

@@ -13,6 +13,8 @@ import {
   Briefcase,
   ArrowRight,
   ArrowLeft,
+  LogIn,
+  UserPlus,
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -753,9 +755,10 @@ export default function AgencyAuth() {
 
         <button
           onClick={() => navigate("/auth/login")}
-          className="mt-6 text-sm text-text-muted hover:text-primary"
+          className="mt-6 inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary"
         >
-          &larr; Volver al inicio
+          <ArrowLeft className="h-4 w-4" />
+          Volver al inicio
         </button>
       </div>
     );
@@ -772,9 +775,10 @@ export default function AgencyAuth() {
             setRegisterStep("business");
             setError("");
           }}
-          className="mb-4 text-sm text-text-muted hover:text-primary"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary"
         >
-          &larr; Volver
+          <ArrowLeft className="h-4 w-4" />
+          Volver
         </button>
         <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mx-auto">
           <Building2 className="h-6 w-6" />
@@ -835,7 +839,11 @@ export default function AgencyAuth() {
             loading={loading}
             onClick={handleEmailAuth}
           >
-            {mode === "agency_login" ? "Iniciar Sesión" : "Crear Cuenta"}
+            {mode === "agency_login" ? (
+              <><LogIn className="h-4 w-4" /> Iniciar Sesión</>
+            ) : (
+              <><UserPlus className="h-4 w-4" /> Crear Cuenta</>
+            )}
           </Button>
 
           <div className="relative my-2">
@@ -860,9 +868,13 @@ export default function AgencyAuth() {
                   mode === "agency_login" ? "agency_register" : "agency_login"
                 )
               }
-              className="font-medium text-primary hover:underline"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
             >
-              {mode === "agency_login" ? "Registra tu agencia" : "Inicia sesión"}
+              {mode === "agency_login" ? (
+                <><Building2 className="h-3.5 w-3.5" /> Registra tu agencia</>
+              ) : (
+                <><LogIn className="h-3.5 w-3.5" /> Inicia sesión</>
+              )}
             </button>
           </p>
         </div>

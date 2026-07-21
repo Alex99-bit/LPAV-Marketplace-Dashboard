@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Plus, Shield, Trash2 } from "lucide-react";
+import { Plus, Shield, Trash2, LayoutDashboard } from "lucide-react";
 import type { CustomRolePermission } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -121,7 +121,7 @@ export default function AgencyRoles() {
         </div>
         <div className="flex gap-3">
           <Link to="/agency/dashboard">
-            <Button variant="outline" size="sm">Dashboard</Button>
+            <Button variant="outline" size="sm"><LayoutDashboard className="h-4 w-4" /> Dashboard</Button>
           </Link>
           <Button
             size="sm"

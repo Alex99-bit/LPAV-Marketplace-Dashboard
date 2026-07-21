@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, CreditCard } from "lucide-react";
 import type { SaasSubscription } from "@/types";
 
 interface SaasStatusBannerProps {
@@ -21,8 +21,8 @@ export default function SaasStatusBanner({ subscription, tenantStatus }: SaasSta
           </div>
         </div>
         <Link to="/agency/settings">
-          <button className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors">
-            Ir a Facturación
+          <button className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors inline-flex items-center gap-1">
+            <CreditCard className="h-3 w-3" /> Ir a Facturación
           </button>
         </Link>
       </div>
@@ -44,8 +44,8 @@ export default function SaasStatusBanner({ subscription, tenantStatus }: SaasSta
           </div>
         </div>
         <Link to="/agency/settings">
-          <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
-            Actualizar Pago
+          <button className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors inline-flex items-center gap-1">
+            <CreditCard className="h-3 w-3" /> Actualizar Pago
           </button>
         </Link>
       </div>

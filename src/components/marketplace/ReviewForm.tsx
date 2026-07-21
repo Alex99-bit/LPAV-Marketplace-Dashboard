@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { Star, Send } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/ui/Button";
@@ -68,7 +68,7 @@ export default function ReviewForm({ packageId, orderId, onSubmit }: ReviewFormP
         />
       </div>
       <Button onClick={handleSubmit} loading={saving}>
-        Publicar Reseña
+        <Send className="h-4 w-4" /> Publicar Reseña
       </Button>
     </div>
   );

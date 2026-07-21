@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router";
-import { ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle } from "lucide-react";
+import { ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle, ArrowLeft } from "lucide-react";
 import type { TravelPackage, ItineraryData } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -158,7 +158,7 @@ export default function PackageDetailPage() {
         <span className="text-5xl">😕</span>
         <p className="text-text-muted">Paquete no encontrado</p>
         <Link to="/">
-          <Button variant="outline">Volver al catálogo</Button>
+          <Button variant="outline"><ArrowLeft className="h-4 w-4" /> Volver al catálogo</Button>
         </Link>
       </div>
     );

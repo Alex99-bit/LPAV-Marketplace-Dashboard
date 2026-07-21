@@ -1,5 +1,6 @@
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import { X, CheckCircle } from "lucide-react";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -41,6 +42,7 @@ export default function ConfirmDialog({
           onClick={onClose}
           disabled={loading}
         >
+          <X className="h-3.5 w-3.5" />
           {cancelLabel}
         </Button>
         <Button
@@ -49,6 +51,7 @@ export default function ConfirmDialog({
           loading={loading}
           onClick={onConfirm}
         >
+          <CheckCircle className="h-3.5 w-3.5" />
           {confirmLabel}
         </Button>
       </div>

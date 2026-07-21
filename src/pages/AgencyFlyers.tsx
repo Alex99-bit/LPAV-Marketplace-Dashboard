@@ -364,7 +364,7 @@ export default function AgencyFlyers() {
             onClick={handleCreate}
             disabled={!form.title || !form.region || !form.price || !form.departure_date}
           >
-            Crear Flyer
+            <Plus className="h-4 w-4" /> Crear Flyer
           </Button>
         </div>
       </Modal>

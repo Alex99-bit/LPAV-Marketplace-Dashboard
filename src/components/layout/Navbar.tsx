@@ -191,16 +191,16 @@ export default function Navbar() {
                 <div className="border-t border-gray-100 pt-3">
                   <p className="px-3 text-xs text-text-muted">{user.email}</p>
                 </div>
-                <button onClick={() => { toggleTheme(); setMenuOpen(false); }} className="rounded-lg px-3 py-2 text-left text-sm font-medium text-text hover:bg-surface">
-                  {dark ? "☀️ Modo claro" : "🌙 Modo oscuro"}
+                <button onClick={() => { toggleTheme(); setMenuOpen(false); }} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-text hover:bg-surface">
+                  {dark ? <><Sun className="h-4 w-4" /> Modo claro</> : <><Moon className="h-4 w-4" /> Modo oscuro</>}
                 </button>
-                <button onClick={() => { signOut(); setMenuOpen(false); }} className="rounded-lg px-3 py-2 text-left text-sm font-medium text-red-500 hover:bg-red-50">
-                  Cerrar Sesión
+                <button onClick={() => { signOut(); setMenuOpen(false); }} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-500 hover:bg-red-50">
+                  <LogOut className="h-4 w-4" /> Cerrar Sesión
                 </button>
               </>
             ) : (
               <Link to="/auth/login" onClick={() => setMenuOpen(false)}>
-                <Button className="w-full">Iniciar Sesión</Button>
+                <Button className="w-full"><User className="h-4 w-4" /> Iniciar Sesión</Button>
               </Link>
             )}
           </div>
