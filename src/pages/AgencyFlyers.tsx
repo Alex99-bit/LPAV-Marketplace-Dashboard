@@ -197,10 +197,10 @@ export default function AgencyFlyers() {
                       <button
                         onClick={() => handlePublish(pkg)}
                         className="rounded-lg p-1.5 text-text-muted hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                        title={
+                        aria-label={
                           pkg.publication_status === "published"
-                            ? "Despublicar"
-                            : "Publicar"
+                            ? `Despublicar ${pkg.title}`
+                            : `Publicar ${pkg.title}`
                         }
                       >
                         <Eye className="h-4 w-4" />

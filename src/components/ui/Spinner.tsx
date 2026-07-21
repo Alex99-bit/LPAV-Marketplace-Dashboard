@@ -11,11 +11,12 @@ const sizes = {
 
 export default function Spinner({ size = "md", className = "" }: SpinnerProps) {
   return (
-    <div className={`flex items-center justify-center ${className}`}>
+    <div className={`flex items-center justify-center ${className}`} role="status" aria-label="Cargando">
       <svg
         className={`animate-spin text-primary ${sizes[size]}`}
         viewBox="0 0 24 24"
         fill="none"
+        aria-hidden="true"
       >
         <circle
           className="opacity-25"
