@@ -98,6 +98,7 @@ export default function App() {
             <Route path="/agency/logistics" element={<AgencyLogistics />} />
             <Route path="/agency/settings" element={<AgencySettings />} />
             <Route path="/agency/analytics" element={<AgencyAnalytics />} />
+            <Route path="/agency/chat" element={<Chat />} />
           </Route>
 
           <Route

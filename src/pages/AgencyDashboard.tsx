@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import {
   Package, TrendingUp, AlertCircle, MessageSquare, Users,
   DollarSign, UserCheck, Calendar,
-  FileWarning, BarChart3, ShieldAlert,
+  FileWarning, ShieldAlert,
   Image, Settings, ArrowRight,
   CheckCircle, XCircle, HelpCircle
 } from "lucide-react";
@@ -16,6 +16,7 @@ import KpiCard from "@/components/agency/KpiCard";
 import RevenueChart from "@/components/agency/RevenueChart";
 import RecentActivity from "@/components/agency/RecentActivity";
 import SaasStatusBanner from "@/components/agency/SaasStatusBanner";
+import Alert from "@/components/ui/Alert";
 
 interface DashboardData {
   monthlyRevenue: number;
@@ -39,7 +40,7 @@ interface DashboardData {
 const QUICK_ACTIONS = [
   { to: "/agency/flyers", label: "Crear Flyer", desc: "Publicar un nuevo paquete", icon: Image, color: "bg-indigo-50 text-indigo-600" },
   { to: "/agency/crm", label: "Ver Leads", desc: "Gestionar tu CRM", icon: Users, color: "bg-cyan-50 text-cyan-600" },
-  { to: "/chat", label: "Chat", desc: "Mensajes con viajeros", icon: MessageSquare, color: "bg-purple-50 text-purple-600" },
+  { to: "/agency/chat", label: "Chat", desc: "Mensajes con viajeros", icon: MessageSquare, color: "bg-purple-50 text-purple-600" },
   { to: "/agency/settings", label: "Configuración", desc: "Ajustes de la agencia", icon: Settings, color: "bg-gray-100 text-gray-600" },
 ];
 
@@ -202,10 +203,7 @@ export default function AgencyDashboard() {
     { icon: DollarSign, label: "Ingreso Pagado", value: formatCurrency(data.paidRevenue), color: "bg-green-50 text-green-600" },
     { icon: AlertCircle, label: "Ingreso Pendiente", value: formatCurrency(data.pendingRevenue), color: "bg-yellow-50 text-yellow-600" },
     { icon: ShieldAlert, label: "Strikes Censura", value: data.censorshipStrikes, color: "bg-rose-50 text-rose-600" },
-    // MOCK(dashboard-team): Miembros del Equipo — el icono BarChart3 es
-    // placeholder visual. Migrar a Users en Fase 4 cuando el KPI tenga
-    // datos de team reales.
-    { icon: BarChart3, label: "Miembros del Equipo", value: data.teamMembersCount, color: "bg-violet-50 text-violet-600" },
+    { icon: Users, label: "Miembros del Equipo", value: data.teamMembersCount, color: "bg-violet-50 text-violet-600" },
   ];
 
   return (
@@ -235,6 +233,26 @@ export default function AgencyDashboard() {
       <div className="mb-6">
         <StripeConnectBanner stripeAccount={stripeAccount} />
       </div>
+
+      {/* Requiere atención — solo visible cuando hay incidencias */}
+      {(data.pendingReports > 0 || data.censorshipStrikes >= 3) && (
+        <div className="mb-6 space-y-3">
+          {data.pendingReports > 0 && (
+            <Alert
+              variant="warning"
+              title={`${data.pendingReports} reporte${data.pendingReports !== 1 ? "s" : ""} pendiente${data.pendingReports !== 1 ? "s" : ""}`}
+              description="Uno de tus flyers fue reportado por un viajero. Nuestro equipo de moderación lo revisará pronto."
+            />
+          )}
+          {data.censorshipStrikes >= 3 && (
+            <Alert
+              variant="danger"
+              title={`${data.censorshipStrikes} de ${5} strikes de censura acumulados`}
+              description="Si acumulas 5 strikes, el chat será bloqueado temporalmente. Evita compartir datos de contacto en los mensajes."
+            />
+          )}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

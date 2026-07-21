@@ -4,6 +4,7 @@ import type { AgencyTenant } from "@/types";
 import { useToast } from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 
 interface CompanyProfileFormProps {
   tenant: AgencyTenant;
@@ -70,6 +71,25 @@ export default function CompanyProfileForm({ tenant, onSave }: CompanyProfileFor
           placeholder="Describe tu agencia..."
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
+        <Select
+          label="Zona horaria"
+          value={form.timezone}
+          onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+          options={[
+            { value: "America/Mexico_City", label: "Ciudad de México (UTC-6)" },
+            { value: "America/Cancun", label: "Cancún (UTC-5)" },
+            { value: "America/Tijuana", label: "Tijuana (UTC-8)" },
+            { value: "America/Monterrey", label: "Monterrey (UTC-6)" },
+            { value: "America/Guatemala", label: "Centroamérica (UTC-6)" },
+            { value: "America/Bogota", label: "Bogotá (UTC-5)" },
+            { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires (UTC-3)" },
+            { value: "America/Santiago", label: "Santiago (UTC-4)" },
+            { value: "Europe/Madrid", label: "Madrid (UTC+1)" },
+            { value: "Europe/Paris", label: "París (UTC+1)" },
+            { value: "America/New_York", label: "Nueva York (UTC-5)" },
+          ]}
+          placeholder="Selecciona zona horaria"
         />
         <Button onClick={handleSave} loading={saving}>
           Guardar Cambios

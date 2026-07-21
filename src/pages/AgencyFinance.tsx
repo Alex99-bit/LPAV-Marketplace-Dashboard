@@ -2,16 +2,27 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import Spinner from "@/components/ui/Spinner";
+import Tabs from "@/components/ui/Tabs";
 import StripeConnectStatus from "@/components/agency/StripeConnectStatus";
 import RevenueOverview from "@/components/agency/RevenueOverview";
 import ProfitabilityTable from "@/components/agency/ProfitabilityTable";
 import CfdiInvoices from "@/components/agency/CfdiInvoices";
 
-interface FinanceData {
-  stripeAccountId: string | null;
+interface CurrencyGroup {
   totalRevenue: number;
   platformFees: number;
   netReceived: number;
+}
+
+interface FinanceData {
+  stripeAccountId: string | null;
+  // Totales legacy (mix de divisas — mantenido por compatibilidad con RevenueOverview)
+  totalRevenue: number;
+  platformFees: number;
+  netReceived: number;
+  // Totales agrupados por divisa
+  byCurrency: Record<string, CurrencyGroup>;
+  currencies: string[];
   profitability: {
     package_id: string;
     title: string;
@@ -25,11 +36,14 @@ interface FinanceData {
 export default function AgencyFinance() {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [activeCurrency, setActiveCurrency] = useState("");
   const [data, setData] = useState<FinanceData>({
     stripeAccountId: null,
     totalRevenue: 0,
     platformFees: 0,
     netReceived: 0,
+    byCurrency: {},
+    currencies: [],
     profitability: [],
   });
 
@@ -48,6 +62,20 @@ export default function AgencyFinance() {
       ]);
 
       const orders = ordersRes.data ?? [];
+
+      // Agrupar ingresos por divisa (fix del bug que sumaba MXN+USD+EUR)
+      const byCurrency: Record<string, CurrencyGroup> = {};
+      for (const order of orders) {
+        const cur = order.currency || "MXN";
+        const group = byCurrency[cur] ?? { totalRevenue: 0, platformFees: 0, netReceived: 0 };
+        group.totalRevenue += order.total_amount;
+        group.platformFees += order.platform_commission_fee;
+        group.netReceived = group.totalRevenue - group.platformFees;
+        byCurrency[cur] = group;
+      }
+      const currencies = Object.keys(byCurrency);
+
+      // Totales legacy (suma cruda, mantenido para RevenueOverview sin tabs)
       const totalRevenue = orders.reduce((sum, o) => sum + o.total_amount, 0);
       const platformFees = orders.reduce((sum, o) => sum + o.platform_commission_fee, 0);
 
@@ -75,8 +103,13 @@ export default function AgencyFinance() {
         totalRevenue,
         platformFees,
         netReceived: totalRevenue - platformFees,
+        byCurrency,
+        currencies,
         profitability,
       });
+      if (currencies.length > 0 && !activeCurrency) {
+        setActiveCurrency(currencies[0]!);
+      }
       setLoading(false);
     })();
   }, [profile?.tenant_id]);
@@ -89,6 +122,8 @@ export default function AgencyFinance() {
     );
   }
 
+  const activeGroup = activeCurrency ? data.byCurrency[activeCurrency] : null;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <h1 className="mb-8 text-2xl font-bold text-text">Finanzas</h1>
@@ -98,13 +133,28 @@ export default function AgencyFinance() {
           stripeAccountId={data.stripeAccountId}
         />
 
+        {data.currencies.length > 1 && (
+          <Tabs
+            tabs={[
+              ...data.currencies.map((c) => ({ key: c, label: c })),
+              { key: "all", label: "Todas" },
+            ]}
+            activeTab={activeCurrency || "all"}
+            onChange={(key) => setActiveCurrency(key === "all" ? "" : key)}
+          />
+        )}
+
         <RevenueOverview
-          totalRevenue={data.totalRevenue}
-          platformFees={data.platformFees}
-          netReceived={data.netReceived}
+          totalRevenue={activeGroup?.totalRevenue ?? data.totalRevenue}
+          platformFees={activeGroup?.platformFees ?? data.platformFees}
+          netReceived={activeGroup?.netReceived ?? data.netReceived}
         />
 
-        <ProfitabilityTable data={data.profitability} />
+        <ProfitabilityTable
+          data={data.profitability.filter(
+            (p) => !activeCurrency || p.currency === activeCurrency,
+          )}
+        />
 
         <CfdiInvoices tenantId={profile?.tenant_id!} />
       </div>
