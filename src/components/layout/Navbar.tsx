@@ -71,7 +71,7 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link to="/checkout" className="relative rounded-lg p-2 text-text-muted hover:bg-surface hover:text-primary transition-colors">
+          <Link to="/checkout" className="relative rounded-lg p-2 text-text-muted hover:bg-surface hover:text-primary transition-colors" aria-label={`Carrito (${itemCount} artículo${itemCount !== 1 ? "s" : ""})`}>
             <ShoppingCart className="h-5 w-5" />
             {itemCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
@@ -119,6 +119,8 @@ export default function Navbar() {
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="rounded-lg p-2 text-text hover:bg-surface md:hidden"
+          aria-expanded={menuOpen}
+          aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
         >
           {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>

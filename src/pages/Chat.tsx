@@ -302,7 +302,7 @@ export default function Chat() {
                 <p className="text-sm">{msg.message_text}</p>
                 <p
                   className={`mt-1 text-right text-[10px] ${
-                    isOwn ? "text-white/70" : "text-text-muted"
+                    isOwn ? "text-white/80" : "text-text-muted"
                   }`}
                 >
                   {formatRelativeTime(msg.created_at)}
