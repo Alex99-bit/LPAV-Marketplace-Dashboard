@@ -1,9 +1,10 @@
 import { NavLink } from "react-router";
 import {
   LayoutDashboard, Image, Users, MessageSquare,
-  DollarSign, Truck, Settings, BarChart3, Shield, LogOut, X
+  DollarSign, Truck, Settings, BarChart3, Shield, LogOut, X, Sun, Moon
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
 // TODO(F4-responsive): rediseño completo de la sidebar con drawer, gestos
@@ -28,6 +29,7 @@ interface AgencySidebarProps {
 
 export default function AgencySidebar({ isMobileOpen = false, onMobileClose }: AgencySidebarProps) {
   const { profile, signOut } = useAuth();
+  const { dark, toggle: toggleTheme } = useTheme();
 
   const handleNavClick = () => {
     onMobileClose?.();
@@ -35,18 +37,25 @@ export default function AgencySidebar({ isMobileOpen = false, onMobileClose }: A
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-gray-100 bg-white transition-transform duration-300 lg:translate-x-0 ${
+      className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-border bg-surface-raised transition-transform duration-300 dark:border-gray-800 dark:bg-gray-900 lg:translate-x-0 ${
         isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
     >
-      <div className="flex h-16 items-center justify-between border-b border-gray-100 px-6">
+      <div className="flex h-16 items-center justify-between border-b border-border px-6 dark:border-gray-800">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white text-sm font-bold">
             L
           </div>
           <span className="text-lg font-bold text-text">LPAV</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={toggleTheme}
+            className="rounded-lg p-1.5 text-text-muted hover:bg-surface transition-colors"
+            aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           <NotificationBell />
           <button
             onClick={onMobileClose}
@@ -71,7 +80,7 @@ export default function AgencySidebar({ isMobileOpen = false, onMobileClose }: A
                     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-primary/10 text-primary"
-                        : "text-text-muted hover:bg-gray-50 hover:text-text"
+                        : "text-text-muted hover:bg-gray-50 hover:text-text dark:hover:bg-gray-800 dark:hover:text-gray-200"
                     }`
                   }
                 >
@@ -84,7 +93,7 @@ export default function AgencySidebar({ isMobileOpen = false, onMobileClose }: A
         </ul>
       </nav>
 
-      <div className="border-t border-gray-100 p-4">
+      <div className="border-t border-border p-4 dark:border-gray-800">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-sm font-medium text-text">
             {profile?.full_name?.charAt(0)?.toUpperCase() ?? "A"}

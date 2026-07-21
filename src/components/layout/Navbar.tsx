@@ -1,21 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Menu, X, ShoppingCart, User, LogOut, LayoutDashboard, Building2, Package, MessageCircle } from "lucide-react";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Building2, Package, MessageCircle, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { useTheme } from "@/context/ThemeContext";
 import Button from "@/components/ui/Button";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { user, profile, signOut, isAgency } = useAuth();
   const { itemCount } = useCart();
+  const { dark, toggle: toggleTheme } = useTheme();
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 border-b border-white/20 bg-white/80 backdrop-blur-lg">
+    <header
+      className={`fixed top-0 left-0 right-0 z-40 border-b transition-all duration-300 ${
+        scrolled
+          ? "border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm dark:border-gray-800 dark:bg-gray-900/95"
+          : "border-white/20 bg-white/80 backdrop-blur-lg dark:border-gray-800 dark:bg-gray-900/80"
+      }`}
+    >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold text-primary">LPAV</span>
+          <span className="text-xl font-bold text-primary dark:text-primary-light">LPAV</span>
         </Link>
 
         <div className="hidden items-center gap-6 md:flex">
@@ -71,6 +86,13 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
+          <button
+            onClick={toggleTheme}
+            className="rounded-lg p-2 text-text-muted hover:bg-surface hover:text-text transition-colors"
+            aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}
+          >
+            {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
           <Link to="/checkout" className="relative rounded-lg p-2 text-text-muted hover:bg-surface hover:text-primary transition-colors" aria-label={`Carrito (${itemCount} artículo${itemCount !== 1 ? "s" : ""})`}>
             <ShoppingCart className="h-5 w-5" />
             {itemCount > 0 && (
@@ -122,12 +144,28 @@ export default function Navbar() {
           aria-expanded={menuOpen}
           aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
         >
-          {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <span className="relative block h-5 w-5">
+            <span
+              className={`absolute block h-0.5 w-5 bg-current transform transition-all duration-300 ${
+                menuOpen ? "rotate-45 top-2" : "top-0"
+              }`}
+            />
+            <span
+              className={`absolute block h-0.5 w-5 bg-current transform transition-all duration-300 ${
+                menuOpen ? "opacity-0" : "top-2"
+              }`}
+            />
+            <span
+              className={`absolute block h-0.5 w-5 bg-current transform transition-all duration-300 ${
+                menuOpen ? "-rotate-45 top-2" : "top-4"
+              }`}
+            />
+          </span>
         </button>
       </nav>
 
       {menuOpen && (
-        <div className="border-t border-gray-100 bg-white px-4 py-4 md:hidden">
+        <div className="border-t border-gray-100 bg-white px-4 py-4 md:hidden dark:border-gray-800 dark:bg-gray-900">
           <div className="flex flex-col gap-3">
             <Link to="/" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
               Explorar
@@ -166,6 +204,9 @@ export default function Navbar() {
                 <div className="border-t border-gray-100 pt-3">
                   <p className="px-3 text-xs text-text-muted">{user.email}</p>
                 </div>
+                <button onClick={() => { toggleTheme(); setMenuOpen(false); }} className="rounded-lg px-3 py-2 text-left text-sm font-medium text-text hover:bg-surface">
+                  {dark ? "☀️ Modo claro" : "🌙 Modo oscuro"}
+                </button>
                 <button onClick={() => { signOut(); setMenuOpen(false); }} className="rounded-lg px-3 py-2 text-left text-sm font-medium text-red-500 hover:bg-red-50">
                   Cerrar Sesión
                 </button>

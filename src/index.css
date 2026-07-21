@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Primary: azul institucional (confianza) — DOC MAESTRO §2.1 */
   --color-primary: #3B82F6;
@@ -98,4 +100,11 @@ body {
   background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body,
+body.dark,
+.dark {
+  background-color: #0f172a;
+  color: #e2e8f0;
 }
