@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Package, Clock, CreditCard, ShieldCheck } from "lucide-react";
+import { Clock, CreditCard, ShieldCheck, ShoppingCart } from "lucide-react";
 import type { TransactionOrder, InstallmentSchedule } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -10,6 +10,11 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import Spinner from "@/components/ui/Spinner";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
+
+// TODO(F3-orders-package): la tabla transactions_orders no tiene package_id.
+// Una vez que el backend relacione órdenes con paquetes, hacer join a
+// travel_packages para mostrar título, thumbnail y link al detalle.
 
 const STATUS_CONFIG: Record<
   string,
@@ -145,13 +150,12 @@ export default function Orders() {
       )}
 
       {orders.length === 0 && !confirmingPayment ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <Package className="h-16 w-16 text-text-muted/30" />
-          <h2 className="text-lg font-semibold text-text">Sin órdenes</h2>
-          <p className="text-sm text-text-muted">
-            Aún no has realizado ninguna compra.
-          </p>
-        </div>
+        <EmptyState
+          icon={ShoppingCart}
+          title="Sin órdenes"
+          description="Aún no has realizado ninguna compra. Explora el catálogo y encuentra tu próximo viaje."
+          action={{ label: "Explorar paquetes", onClick: () => window.location.href = "/" }}
+        />
       ) : orders.length === 0 ? null : (
         <div className="space-y-4">
           {orders.map((order) => {
@@ -160,20 +164,20 @@ export default function Orders() {
             return (
               <div
                 key={order.order_id}
-                className="rounded-xl border border-gray-100 bg-white p-5"
+                className="rounded-xl border border-border bg-surface-raised p-5"
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-xs text-text-muted">
-                      Orden #{order.order_id.slice(0, 8)}
+                      Orden #{order.order_id.slice(0, 8).toUpperCase()} · {formatDate(order.created_at)}
                     </p>
-                    <p className="mt-1 font-medium text-text">
+                    <p className="mt-1 text-lg font-bold text-text">
                       {formatCurrency(order.total_amount, order.currency)}
                     </p>
                   </div>
                   <Badge variant={config.variant}>{config.label}</Badge>
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                <div className="mt-3 grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
                   <div>
                     <p className="text-text-muted">Pagado</p>
                     <p className="font-medium text-text">
@@ -189,7 +193,7 @@ export default function Orders() {
                       {formatCurrency(order.remaining_balance, order.currency)}
                     </p>
                   </div>
-                  <div>
+                  <div className="col-span-2 sm:col-span-1">
                     <p className="text-text-muted">Comisión</p>
                     <p className="font-medium text-text">
                       {formatCurrency(
@@ -200,10 +204,14 @@ export default function Orders() {
                   </div>
                 </div>
                 {order.next_payment_due && (
-                  <p className="mt-3 flex items-center gap-1 text-xs text-text-muted">
-                    <Clock className="h-3.5 w-3.5" />
-                    Próximo pago: {formatDate(order.next_payment_due)}
-                  </p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="flex items-center gap-1 text-xs text-text-muted">
+                      <Clock className="h-3.5 w-3.5" />
+                      Próximo pago: {formatDate(order.next_payment_due)}
+                    </p>
+                    {/* TODO(F3-orders-cta): si payment_status === "moroso",
+                        mostrar CTA "Contactar soporte" o "Regularizar pago" */}
+                  </div>
                 )}
 
                 {orderInstallments.length > 0 && (

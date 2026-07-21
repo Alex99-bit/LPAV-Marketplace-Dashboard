@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router";
 import type { TravelPackage } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/context/AuthContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import Hero from "@/components/marketplace/Hero";
 import CatalogGrid from "@/components/marketplace/CatalogGrid";
 import PriceFilter from "@/components/marketplace/PriceFilter";
 import RegionFilter from "@/components/marketplace/RegionFilter";
+import OnboardingModal from "@/components/marketplace/OnboardingModal";
 
 // TODO(F3-home-pagination): la Home carga el catálogo completo sin paginación.
 // Implementar infinite scroll o páginas cuando el volumen de flyers crezca.
@@ -14,15 +15,34 @@ import RegionFilter from "@/components/marketplace/RegionFilter";
 // reintentar en lugar de solo console.error.
 
 export default function Home() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, isAgency } = useAuth();
   const [packages, setPackages] = useState<TravelPackage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState(searchParams.get("q") || "");
-  const [region, setRegion] = useState(searchParams.get("region") || "");
+  const [search, setSearch] = useState("");
+  const [region, setRegion] = useState("");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 200000]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
   const debouncedPriceRange = useDebounce(priceRange, 300);
+
+  // Revisa si el viajero ya completó el onboarding (PRD §4.2 — obligatorio
+  // antes de habilitar itinerarios con IA).
+  useEffect(() => {
+    if (!user || isAgency || onboardingChecked) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_recommendation_profiles")
+        .select("onboarding_completed")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setOnboardingChecked(true);
+      if (!data?.onboarding_completed) {
+        setShowOnboarding(true);
+      }
+    })();
+  }, [user, isAgency, onboardingChecked]);
 
   const fetchPackages = useCallback(async () => {
     setLoading(true);
@@ -63,14 +83,8 @@ export default function Home() {
   return (
     <div>
       <Hero
-        onSearch={(q) => {
-          setSearch(q);
-          setSearchParams((prev) => {
-            if (q) prev.set("q", q);
-            else prev.delete("q");
-            return prev;
-          });
-        }}
+        searchValue={search}
+        onSearchChange={setSearch}
         onInspiration={() => {
           const suggestions = [
             "Playa",
@@ -110,6 +124,12 @@ export default function Home() {
 
         <CatalogGrid packages={packages} loading={loading} />
       </section>
+
+      <OnboardingModal
+        open={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onComplete={() => setShowOnboarding(false)}
+      />
     </div>
   );
 }

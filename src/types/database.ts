@@ -73,6 +73,7 @@ export interface TravelPackage {
   has_coordinator: boolean;
   publication_status: PublicationStatus;
   departure_date: string;
+  description?: string;
   created_at: string;
 }
 

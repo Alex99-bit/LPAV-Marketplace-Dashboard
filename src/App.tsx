@@ -2,6 +2,8 @@ import { Routes, Route } from "react-router";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/components/ui/Toast";
+import { useAuth } from "@/context/AuthContext";
+import type { ReactNode } from "react";
 import Layout from "@/components/layout/Layout";
 import AgencyLayout from "@/components/agency/AgencyLayout";
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -26,10 +28,18 @@ import Orders from "@/pages/Orders";
 import Chat from "@/pages/Chat";
 import NotFound from "@/pages/NotFound";
 
+/* Wrapper para que CartProvider reciba el userId sin importar AuthContext.
+   Evita dependencia circular y permite que los tests mockeen AuthContext
+   por separado. */
+function CartBridge({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  return <CartProvider userId={user?.id}>{children}</CartProvider>;
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <CartProvider>
+      <CartBridge>
         <ToastProvider>
           <Routes>
           <Route element={<Layout />}>
@@ -102,7 +112,7 @@ export default function App() {
           />
           </Routes>
         </ToastProvider>
-      </CartProvider>
+      </CartBridge>
     </AuthProvider>
   );
 }
