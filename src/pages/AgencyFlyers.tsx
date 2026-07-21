@@ -251,13 +251,15 @@ export default function AgencyFlyers() {
             placeholder="Selecciona una región"
           />
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Precio"
-              type="number"
-              placeholder="15000"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-            />
+              <Input
+                label="Precio"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="15000"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+              />
             <Select
               label="Divisa"
               options={CURRENCIES}
@@ -268,17 +270,46 @@ export default function AgencyFlyers() {
           <Input
             label="Fecha de salida"
             type="date"
+            min={new Date().toISOString().split("T")[0]}
             value={form.departure_date}
             onChange={(e) =>
               setForm({ ...form, departure_date: e.target.value })
             }
           />
-          <Input
-            label="Descripción"
-            placeholder="Describe el viaje..."
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
+          <div className="w-full">
+            <label className="mb-1.5 block text-sm font-medium text-text" htmlFor="flyer-desc">
+              Descripción
+            </label>
+            <textarea
+              id="flyer-desc"
+              placeholder="Describe el viaje, itinerario y lo que incluye..."
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={4}
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-text transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none resize-y"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="% Anticipo"
+              type="number"
+              min="20"
+              max="100"
+              value={form.deposit_percent}
+              onChange={(e) => setForm({ ...form, deposit_percent: e.target.value })}
+            />
+            <Input
+              label="Meses máx. a financiar"
+              type="number"
+              min="0"
+              max="4"
+              value={form.max_installments}
+              onChange={(e) => setForm({ ...form, max_installments: e.target.value })}
+            />
+          </div>
+          {/* TODO(F4-maxflyers): validar contra el límite del plan antes de
+              insertar. Si la agencia ya tiene maxFlyers publicados, mostrar
+              mensaje de upsell con link a PlanManagement. */}
           <Switch
             label="Coordinador de viaje"
             checked={form.has_coordinator}

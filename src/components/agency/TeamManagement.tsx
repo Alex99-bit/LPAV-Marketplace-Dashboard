@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { UserPlus, Mail, UserX } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import type { AgencyTeamMember } from "@/types";
+import type { AgencyTeamMember, CustomRolePermission } from "@/types";
+import { isValidEmail } from "@/lib/validation";
+import { useToast } from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
+import Select from "@/components/ui/Select";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface TeamManagementProps {
@@ -13,10 +16,13 @@ interface TeamManagementProps {
 
 export default function TeamManagement({ tenantId }: TeamManagementProps) {
   const [members, setMembers] = useState<AgencyTeamMember[]>([]);
+  const [roles, setRoles] = useState<CustomRolePermission[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("Agent");
+  const [inviteRole, setInviteRole] = useState("");
   const [deactivatingMember, setDeactivatingMember] = useState<AgencyTeamMember | null>(null);
+  const [inviteError, setInviteError] = useState("");
+  const { addToast } = useToast();
 
   const fetchMembers = async () => {
     const { data } = await supabase
@@ -27,18 +33,50 @@ export default function TeamManagement({ tenantId }: TeamManagementProps) {
     setMembers(data ?? []);
   };
 
+  const fetchRoles = async () => {
+    const { data } = await supabase
+      .from("custom_roles_permissions")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: true });
+    setRoles(data ?? []);
+    if (data && data.length > 0 && !inviteRole) {
+      setInviteRole(data[0]!.role_id);
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
+    fetchRoles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
   const handleInvite = async () => {
+    setInviteError("");
     if (!inviteEmail) return;
-    await supabase.from("agency_team_members").insert({
+    if (!isValidEmail(inviteEmail)) {
+      setInviteError("Correo electrónico no válido");
+      return;
+    }
+    if (!inviteRole) {
+      setInviteError("Selecciona un rol");
+      return;
+    }
+    const selectedRole = roles.find((r) => r.role_id === inviteRole);
+    const { error } = await supabase.from("agency_team_members").insert({
       tenant_id: tenantId,
       email: inviteEmail,
-      role_name: inviteRole,
+      role_name: selectedRole?.role_name ?? "",
+      role_id: inviteRole,
       status: "invited",
     });
+    if (error) {
+      addToast("error", "No se pudo enviar la invitación", error.message);
+      return;
+    }
+    addToast("success", "Invitación enviada", `Se invitó a ${inviteEmail}.`);
+    // TODO(F4-team-email): implementar envío de email real vía edge function
+    // cuando el backend de notificaciones esté listo.
     setInviteEmail("");
     setShowInvite(false);
     fetchMembers();
@@ -71,14 +109,22 @@ export default function TeamManagement({ tenantId }: TeamManagementProps) {
             placeholder="agente@agencia.com"
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
+            error={inviteError}
           />
-          <Input
-            label="Rol"
-            placeholder="Agent"
-            value={inviteRole}
-            onChange={(e) => setInviteRole(e.target.value)}
-          />
-          <Button onClick={handleInvite} disabled={!inviteEmail}>
+          {roles.length > 0 ? (
+            <Select
+              label="Rol"
+              options={roles.map((r) => ({ value: r.role_id, label: r.role_name }))}
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
+              placeholder="Selecciona un rol"
+            />
+          ) : (
+            <p className="text-sm text-text-muted">
+              No hay roles disponibles. Crea uno en Roles y Permisos.
+            </p>
+          )}
+          <Button onClick={handleInvite} disabled={!inviteEmail || !inviteRole}>
             <Mail className="h-4 w-4" /> Enviar Invitación
           </Button>
         </div>

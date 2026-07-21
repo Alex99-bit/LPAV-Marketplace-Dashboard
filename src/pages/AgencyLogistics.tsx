@@ -68,6 +68,10 @@ export default function AgencyLogistics() {
     ? documents.filter((d) => d.order_id === selectedOrderId)
     : documents;
 
+  const selectedIncidents = selectedOrderId
+    ? incidents.filter((i) => i.order_id === selectedOrderId)
+    : incidents;
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <h1 className="mb-8 text-2xl font-bold text-text">Logística</h1>
@@ -99,7 +103,7 @@ export default function AgencyLogistics() {
 
         <DocumentVault documents={selectedDocs} />
 
-        <IncidentCenter incidents={incidents} orders={orderOptions} onRefresh={fetchData} />
+        <IncidentCenter incidents={selectedIncidents} orders={orderOptions} onRefresh={fetchData} />
       </div>
     </div>
   );

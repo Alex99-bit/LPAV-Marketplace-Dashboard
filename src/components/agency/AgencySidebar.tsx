@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { to: "/agency/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/agency/flyers", label: "Flyers", icon: Image },
   { to: "/agency/crm", label: "CRM", icon: Users },
-  { to: "/chat", label: "Chat", icon: MessageSquare },
+  { to: "/agency/chat", label: "Chat", icon: MessageSquare },
   { to: "/agency/finance", label: "Finanzas", icon: DollarSign, requirePerm: "can_manage_finance" },
   { to: "/agency/logistics", label: "Logística", icon: Truck, requirePerm: "can_manage_chat" },
   { to: "/agency/analytics", label: "Analíticas", icon: BarChart3 },
