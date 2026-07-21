@@ -207,7 +207,7 @@ export default function AgencyDashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 dark:text-gray-200">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -340,11 +340,11 @@ export default function AgencyDashboard() {
 function StripeConnectBanner({ stripeAccount }: { stripeAccount: StripeAccount | null }) {
   if (!stripeAccount) {
     return (
-      <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between">
+      <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between dark:bg-amber-900/30 dark:border-amber-800">
         <div className="flex items-center gap-3">
-          <HelpCircle className="h-5 w-5 text-amber-500" />
+          <HelpCircle className="h-5 w-5 text-amber-500 dark:text-amber-400" />
           <div>
-            <p className="text-sm font-medium text-amber-800">Cuenta bancaria pendiente</p>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Cuenta bancaria pendiente</p>
             <p className="text-xs text-amber-600">
               Registra tu CLABE para recibir pagos de viajeros directo a tu banco.
             </p>

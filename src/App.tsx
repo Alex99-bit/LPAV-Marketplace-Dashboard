@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { useAuth } from "@/context/AuthContext";
 import type { ReactNode } from "react";
@@ -38,9 +39,10 @@ function CartBridge({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CartBridge>
-        <ToastProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <CartBridge>
+          <ToastProvider>
           <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
@@ -115,5 +117,6 @@ export default function App() {
         </ToastProvider>
       </CartBridge>
     </AuthProvider>
+  </ThemeProvider>
   );
 }
