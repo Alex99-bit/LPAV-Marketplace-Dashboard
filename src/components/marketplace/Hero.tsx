@@ -16,7 +16,7 @@ export default function Hero({
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-white to-primary-light/10">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-white to-primary-light/10 dark:bg-none dark:bg-gray-900">
       <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28">
         <h1 className="text-4xl font-bold tracking-tight text-text sm:text-5xl">
           Descubre tu próximo{" "}
@@ -41,7 +41,7 @@ export default function Hero({
                   inputRef.current.blur();
                 }
               }}
-              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm shadow-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-text shadow-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
             />
           </div>
           <Button

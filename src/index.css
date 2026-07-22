@@ -107,4 +107,10 @@ body.dark,
 .dark {
   background-color: #0f172a;
   color: #e2e8f0;
+  --color-text: #e2e8f0;
+  --color-text-muted: #94a3b8;
+  --color-surface: #1e293b;
+  --color-surface-raised: #334155;
+  --color-border: #334155;
+  --color-border-light: #1e293b;
 }
