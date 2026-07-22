@@ -23,6 +23,7 @@ import { mapAuthError, mapSupabaseError } from "@/lib/errors";
 import { PLAN_DETAILS } from "@/lib/constants";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
 import GoogleButton from "@/components/auth/GoogleButton";
 import {
   isValidEmail,
@@ -81,17 +82,23 @@ export default function AgencyAuth() {
     business_name: "",
     rfc: "",
     address_text: "",
+    certification_type: "",
     certification_key: "",
   });
 
   // Plan selection
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("Gratuito");
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("Comercial");
 
   // Fiscal document
   const [fiscalFile, setFiscalFile] = useState<File | null>(null);
   const [fiscalUploadUrl, setFiscalUploadUrl] = useState<string | null>(null);
   const [fiscalUploadProgress, setFiscalUploadProgress] = useState(false);
   const fiscalInputRef = useRef<HTMLInputElement>(null);
+
+  // Logo upload
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Legal acceptances
   const [legal, setLegal] = useState({
@@ -140,6 +147,50 @@ export default function AgencyAuth() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Logo upload ──────────────────────────────────
+
+  const handleLogoFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "image/png") {
+      setError("Solo se aceptan imágenes PNG");
+      return;
+    }
+
+    setError("");
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.naturalWidth < 1024 || img.naturalHeight < 1024) {
+          setError(
+            "La imagen debe tener al menos 1024 x 1024 píxeles. Actual: " +
+              img.naturalWidth +
+              " x " +
+              img.naturalHeight
+          );
+          setLogoFile(null);
+          setLogoPreview(null);
+          return;
+        }
+        setLogoFile(file);
+        setLogoPreview(ev.target?.result as string);
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    if (logoInputRef.current) logoInputRef.current.value = "";
   };
 
   // ── Fiscal document upload ──────────────────────────────────
@@ -305,6 +356,25 @@ export default function AgencyAuth() {
       if (rpcError) throw rpcError;
       if (!data) throw new Error("No se pudo registrar la agencia");
 
+      if (logoFile) {
+        const logoExt = "png";
+        const logoPath = `${data}/logo-${crypto.randomUUID()}.${logoExt}`;
+        const { error: logoUploadError } = await supabase.storage
+          .from("agency-logos")
+          .upload(logoPath, logoFile, { contentType: "image/png" });
+        if (logoUploadError) {
+          console.warn("Logo upload failed:", logoUploadError);
+        } else {
+          const {
+            data: { publicUrl: logoUrl },
+          } = supabase.storage.from("agency-logos").getPublicUrl(logoPath);
+          await supabase.rpc("update_agency_logo", {
+            p_tenant_id: data,
+            p_logo_url: logoUrl,
+          });
+        }
+      }
+
       await refreshProfile();
 
       // Redirect to post-registration setup (Stripe Connect + Billing)
@@ -372,6 +442,45 @@ export default function AgencyAuth() {
         value={form.business_name}
         onChange={(e) => updateField("business_name", e.target.value)}
       />
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-text">
+          Logotipo de la Agencia
+        </label>
+        {logoPreview ? (
+          <div className="relative inline-block">
+            <img
+              src={logoPreview}
+              alt="Logo preview"
+              className="h-24 w-24 rounded-xl border border-gray-200 object-cover"
+            />
+            <button
+              onClick={removeLogo}
+              className="absolute -top-1.5 -right-1.5 rounded-full bg-red-500 p-0.5 text-white hover:bg-red-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => logoInputRef.current?.click()}
+            className="w-full rounded-2xl border-2 border-dashed border-gray-300 p-4 text-center transition-colors hover:border-primary hover:bg-primary/5"
+          >
+            <Upload className="mx-auto h-6 w-6 text-text-muted" />
+            <p className="mt-1 text-xs text-text-muted">
+              PNG, mínimo 1024 x 1024 píxeles
+            </p>
+          </button>
+        )}
+        <input
+          ref={logoInputRef}
+          type="file"
+          accept="image/png"
+          className="hidden"
+          onChange={handleLogoFileSelect}
+        />
+      </div>
+
       <Input
         label="RFC"
         placeholder="Ej: VIA123456789"
@@ -379,11 +488,35 @@ export default function AgencyAuth() {
         onChange={(e) => updateField("rfc", e.target.value.toUpperCase())}
         maxLength={13}
       />
+      {form.rfc.length > 0 &&
+        (/^(?:[A-Z&Ñ]{3}[0-9]{6}[A-Z0-9]{3}|[A-Z&Ñ]{4}[0-9]{6}[A-Z0-9]{3})$/.test(
+          form.rfc
+        ) ? (
+          <p className="text-xs text-green-600">Formato de RFC válido</p>
+        ) : (
+          <p className="text-xs text-red-500">
+            Formato de RFC inválido. Debe ser 12-13 caracteres para México.
+          </p>
+        ))}
       <Input
         label="Dirección fiscal completa"
         placeholder="Calle, número, colonia, ciudad, estado, CP"
         value={form.address_text}
         onChange={(e) => updateField("address_text", e.target.value)}
+      />
+      <Select
+        label="Tipo de certificación"
+        placeholder="Selecciona el tipo"
+        options={[
+          { value: "RNT", label: "RNT" },
+          { value: "IATA", label: "IATA" },
+          { value: "CLIA", label: "CLIA" },
+          { value: "AMAV", label: "AMAV" },
+          { value: "SECTUR", label: "SECTUR" },
+          { value: "Otro", label: "Otro" },
+        ]}
+        value={form.certification_type}
+        onChange={(e) => updateField("certification_type", e.target.value)}
       />
       <Input
         label="Clave de certificación turística"
@@ -397,71 +530,28 @@ export default function AgencyAuth() {
   // ── Step: Plan Selection ────────────────────────────────────
 
   const StepPlan = () => (
-    <div className="space-y-3">
-      {(Object.entries(PLAN_DETAILS) as [SubscriptionTier, (typeof PLAN_DETAILS)[SubscriptionTier]][]).map(
-        ([tier, plan]) => {
-          const Icon = PLAN_ICONS[tier];
-          const isSelected = selectedPlan === tier;
-          return (
-            <button
-              key={tier}
-              onClick={() => setSelectedPlan(tier)}
-              className={`group relative w-full rounded-2xl border-2 p-4 text-left transition-all ${
-                isSelected
-                  ? "border-primary bg-primary/5 shadow-md"
-                  : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
-              }`}
-            >
-              {plan.recommended && (
-                <span className="absolute -top-3 right-4 rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-white">
-                  Recomendado
-                </span>
-              )}
-              <div className="flex items-start gap-4">
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ${
-                    isSelected
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 text-text-muted group-hover:bg-gray-200"
-                  }`}
-                >
-                  <Icon className="h-6 w-6" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-text">{plan.label}</h3>
-                    <span className="text-sm font-bold text-primary">
-                      {plan.price}
-                    </span>
-                  </div>
-                  <ul className="mt-2 space-y-1">
-                    {plan.features.map((f) => (
-                      <li
-                        key={f}
-                        className="flex items-center gap-2 text-xs text-text-muted"
-                      >
-                        <CheckCircle className="h-3 w-3 shrink-0 text-success" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div
-                  className={`mt-1 h-5 w-5 shrink-0 rounded-full border-2 transition-colors ${
-                    isSelected
-                      ? "border-primary bg-primary"
-                      : "border-gray-300"
-                  }`}
-                >
-                  {isSelected && (
-                    <CheckCircle className="h-5 w-5 text-white" />
-                  )}
-                </div>
-              </div>
-            </button>
-          );
-        }
-      )}
+    <div className="rounded-2xl border-2 border-primary bg-primary/5 p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
+          <Briefcase className="h-6 w-6" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-semibold text-text">
+            Plan Comercial — Sin costo de suscripción
+          </h3>
+          <ul className="mt-3 space-y-1">
+            {PLAN_DETAILS.Comercial.features.map((f) => (
+              <li
+                key={f}
+                className="flex items-center gap-2 text-xs text-text-muted"
+              >
+                <CheckCircle className="h-3 w-3 shrink-0 text-success" />
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 

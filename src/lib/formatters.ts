@@ -63,3 +63,11 @@ export function formatRelativeTime(utcDate: string): string {
 export function getCurrencySymbol(currency: Currency): string {
   return CURRENCY_SYMBOLS[currency] ?? "$";
 }
+
+export function formatPoints(points: number): string {
+  return new Intl.NumberFormat("es-MX").format(points);
+}
+
+export function formatPointsAsCurrency(points: number): string {
+  return formatCurrency(points, "MXN");
+}

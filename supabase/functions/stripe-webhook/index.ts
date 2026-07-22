@@ -21,26 +21,54 @@ Deno.serve(async (req: Request) => {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = session.metadata!;
+      const userId = metadata.user_id;
+
+      const packageTotal = metadata.package_total
+        ? parseFloat(metadata.package_total)
+        : session.amount_total! / 100;
+      const pointsEarned = Math.floor(packageTotal / 100);
 
       const { data: order } = await supabase
         .from("transactions_orders")
         .insert({
           tenant_id: metadata.tenant_id,
           stripe_checkout_session_id: session.id,
-          user_id: metadata.user_id,
+          user_id: userId,
           total_amount: session.amount_total! / 100,
           remaining_balance: (session.amount_total! / 100) * (1 / 0.2 - 1),
           currency: (session.currency || "mxn").toUpperCase() as "MXN",
-          platform_commission_fee: (session.amount_total! * 0.03) / 100,
+          platform_commission_fee: (session.amount_total! * 0.1508) / 100,
           payment_status: "partial_paid",
           next_payment_due: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          points_earned: pointsEarned,
         })
         .select()
         .single();
 
       if (order) {
+        if (pointsEarned > 0) {
+          await supabase.rpc("credit_points", {
+            p_user_id: userId,
+            p_points: pointsEarned,
+            p_type: "earn",
+            p_description: `Compra: ${metadata.package_id || ""}`,
+            p_reference_order_id: order.id,
+          });
+        }
+
+        const pointsRedeemed = parseInt(metadata.points_redeemed || "0", 10);
+        if (pointsRedeemed > 0) {
+          await supabase.rpc("debit_points", {
+            p_user_id: userId,
+            p_points: pointsRedeemed,
+            p_type: "redeem",
+            p_description: `Redención en compra: ${metadata.package_id || ""}`,
+            p_reference_order_id: order.id,
+          });
+        }
+
         await supabase.from("notifications").insert({
-          user_id: metadata.user_id,
+          user_id: userId,
           type: "payment_received",
           title: "Pago confirmado",
           message: "Tu anticipo ha sido procesado exitosamente.",
@@ -50,7 +78,34 @@ Deno.serve(async (req: Request) => {
     }
 
     case "charge.dispute.created": {
+      // DORMANT: modelo SaaS inactivo
       const dispute = event.data.object as Stripe.Dispute;
+
+      if (dispute.payment_intent) {
+        const sessions = await stripe.checkout.sessions.list({
+          payment_intent: dispute.payment_intent as string,
+          limit: 1,
+        });
+
+        if (sessions.data.length > 0) {
+          const { data: order } = await supabase
+            .from("transactions_orders")
+            .select("*")
+            .eq("stripe_checkout_session_id", sessions.data[0].id)
+            .single();
+
+          if (order && order.points_earned > 0) {
+            await supabase.rpc("debit_points", {
+              p_user_id: order.user_id,
+              p_points: order.points_earned,
+              p_type: "reversal",
+              p_description: `Disputa: ${dispute.id}`,
+              p_reference_order_id: order.id,
+            });
+          }
+        }
+      }
+
       await supabase.from("notifications").insert({
         user_id: "system",
         type: "payment_received",
@@ -62,6 +117,7 @@ Deno.serve(async (req: Request) => {
     }
 
     case "customer.subscription.updated": {
+      // DORMANT: modelo SaaS inactivo
       const sub = event.data.object as Stripe.Subscription;
       await supabase
         .from("saas_subscriptions")
@@ -74,6 +130,7 @@ Deno.serve(async (req: Request) => {
     }
 
     case "customer.subscription.deleted": {
+      // DORMANT: modelo SaaS inactivo
       const sub = event.data.object as Stripe.Subscription;
       await supabase
         .from("saas_subscriptions")
@@ -102,6 +159,7 @@ Deno.serve(async (req: Request) => {
     }
 
     case "invoice.payment_failed": {
+      // DORMANT: modelo SaaS inactivo
       const invoice = event.data.object as Stripe.Invoice;
       const { data: sub } = await supabase
         .from("saas_subscriptions")

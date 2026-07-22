@@ -26,6 +26,7 @@ import AgencyAnalytics from "@/pages/AgencyAnalytics";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 import Checkout from "@/pages/Checkout";
 import Orders from "@/pages/Orders";
+import WalletHistory from "@/components/wallet/WalletHistory";
 import Chat from "@/pages/Chat";
 import NotFound from "@/pages/NotFound";
 
@@ -74,6 +75,7 @@ export default function App() {
                 </AuthGuard>
               }
             />
+            <Route path="/wallet" element={<Layout><WalletHistory /></Layout>} />
             <Route
               path="/chat"
               element={

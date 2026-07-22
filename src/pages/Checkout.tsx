@@ -1,21 +1,46 @@
 import { Link } from "react-router";
-import { useState } from "react";
-import { Trash2, ShoppingCart, ArrowRight, AlertTriangle, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Trash2, ShoppingCart, ArrowRight, AlertTriangle, Search, Wallet } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/lib/supabaseClient";
-import { formatCurrency } from "@/lib/formatters";
-import { PLATFORM_COMMISSION_RATE, MIN_DEPOSIT_PERCENTAGE } from "@/lib/constants";
+import { formatCurrency, formatPoints } from "@/lib/formatters";
+import {
+  PLATFORM_COMMISSION_RATE,
+  MIN_DEPOSIT_PERCENTAGE,
+  EFFECTIVE_COMMISSION_RATE,
+  MIN_REDEEM_POINTS,
+  MAX_POINTS_PERCENT_PER_PURCHASE,
+  POINTS_PER_100_MXN,
+  POINT_VALUE_MXN,
+} from "@/lib/constants";
 import Button from "@/components/ui/Button";
 
 export default function Checkout() {
   const { items, removeItem, total } = useCart();
+  const { user } = useAuth();
   const { addToast } = useToast();
   const [processing, setProcessing] = useState(false);
-  // TODO(F3-checkout-multiitem): soportar pago de varios paquetes (una sesión
-  // de Stripe por paquete con pantalla de confirmación previa). Por ahora se
-  // limita a 1 paquete por compra para no cobrar parcialmente al usuario.
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const hasMultipleItems = items.length > 1;
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_wallets")
+      .select("points_balance")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          setWalletBalance(0);
+          return;
+        }
+        setWalletBalance(data.points_balance);
+      });
+  }, [user]);
 
   if (items.length === 0) {
     return (
@@ -32,11 +57,29 @@ export default function Checkout() {
     );
   }
 
-  // TODO(F3-multicurrency): el total mezcla divisas (MXN+USD+EUR). Separar
-  // totales por currency o convertir antes de mostrar el resumen.
-  const depositAmount = total * MIN_DEPOSIT_PERCENTAGE;
-  const platformFee = depositAmount * PLATFORM_COMMISSION_RATE;
-  const totalToPay = depositAmount + platformFee;
+  const subtotalAfterPoints = Math.max(0, total - pointsToRedeem * POINT_VALUE_MXN);
+  const depositAmount = Math.round(subtotalAfterPoints * MIN_DEPOSIT_PERCENTAGE * 100) / 100;
+  const commissionAmount = Math.round(depositAmount * EFFECTIVE_COMMISSION_RATE * 100) / 100;
+  const totalToPay = depositAmount;
+  const pointsEarned = Math.floor(total / 100) * POINTS_PER_100_MXN;
+  const maxRedeemable = Math.floor(total * MAX_POINTS_PERCENT_PER_PURCHASE);
+  const pointsMxnValue = pointsToRedeem * POINT_VALUE_MXN;
+
+  const pointsValidation = (() => {
+    if (walletBalance < MIN_REDEEM_POINTS) {
+      return "Necesitas mínimo 200 puntos para canjear. Sigue comprando para acumular más.";
+    }
+    if (pointsToRedeem > walletBalance) {
+      return "No tienes suficientes puntos.";
+    }
+    if (pointsToRedeem > 0 && pointsToRedeem < MIN_REDEEM_POINTS) {
+      return "El mínimo para canjear es 200 puntos.";
+    }
+    if (pointsToRedeem > maxRedeemable) {
+      return "Máximo 20% del total de la compra.";
+    }
+    return null;
+  })();
 
   const handleCheckout = async () => {
     if (processing || hasMultipleItems || items.length === 0) return;
@@ -44,7 +87,11 @@ export default function Checkout() {
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { package_id: item.package_id },
+        body: {
+          package_id: item.package_id,
+          deposit_percent: MIN_DEPOSIT_PERCENTAGE,
+          points_to_redeem: pointsToRedeem,
+        },
       });
       if (error) throw error;
       if (data?.url) {
@@ -103,6 +150,14 @@ export default function Checkout() {
               <span className="text-text-muted">Subtotal</span>
               <span className="font-medium text-text">{formatCurrency(total)}</span>
             </div>
+            {pointsToRedeem > 0 && (
+              <div className="flex justify-between">
+                <span className="text-text-muted">Puntos canjeados</span>
+                <span className="font-medium text-green-600">
+                  -{formatCurrency(pointsMxnValue)}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-text-muted">
                 Anticipo ({(MIN_DEPOSIT_PERCENTAGE * 100)}%)
@@ -113,10 +168,10 @@ export default function Checkout() {
             </div>
             <div className="flex justify-between">
               <span className="text-text-muted">
-                Comisión plataforma ({(PLATFORM_COMMISSION_RATE * 100)}%)
+                Comisión plataforma ({(EFFECTIVE_COMMISSION_RATE * 100)}%)
               </span>
               <span className="font-medium text-text">
-                {formatCurrency(platformFee)}
+                {formatCurrency(commissionAmount)}
               </span>
             </div>
             <div className="border-t border-gray-100 pt-3">
@@ -127,7 +182,48 @@ export default function Checkout() {
                 </span>
               </div>
             </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">Puntos a ganar</span>
+              <span className="font-medium text-primary">
+                +{formatPoints(pointsEarned)} pts
+              </span>
+            </div>
           </div>
+
+          {user && (
+            <div className="mt-5 border-t border-gray-100 pt-5">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
+                <Wallet className="h-4 w-4" /> Avimo Puntos
+              </h2>
+              <p className="mt-1 text-xs text-text-muted">
+                Tienes {formatPoints(walletBalance)} puntos ({formatCurrency(walletBalance * POINT_VALUE_MXN, "MXN")})
+              </p>
+              <div className="mt-3">
+                <input
+                  type="number"
+                  min={0}
+                  max={Math.min(walletBalance, maxRedeemable)}
+                  value={pointsToRedeem || ""}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setPointsToRedeem(isNaN(val) || val < 0 ? 0 : val);
+                  }}
+                  disabled={walletBalance < MIN_REDEEM_POINTS}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-text placeholder:text-text-muted/50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-text-muted"
+                  placeholder="0"
+                />
+                {pointsValidation && (
+                  <p className="mt-1.5 text-xs text-amber-600">{pointsValidation}</p>
+                )}
+                {pointsToRedeem > 0 && !pointsValidation && (
+                  <p className="mt-1.5 text-xs text-green-600">
+                    = {formatCurrency(pointsMxnValue, "MXN")}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {hasMultipleItems && (
             <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

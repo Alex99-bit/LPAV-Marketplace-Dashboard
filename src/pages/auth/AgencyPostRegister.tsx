@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import {
-  CreditCard,
   Landmark,
   CheckCircle,
   ExternalLink,
@@ -33,9 +32,7 @@ export default function AgencyPostRegister() {
   const plan = state?.plan || "Gratuito";
 
   const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
-  const [stripeBillingLoading, setStripeBillingLoading] = useState(false);
   const [stripeConnectDone, setStripeConnectDone] = useState(false);
-  const [stripeBillingDone, setStripeBillingDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [guideOpen, setGuideOpen] = useState(false);
 
@@ -54,7 +51,6 @@ export default function AgencyPostRegister() {
         .single();
 
       if (data?.stripe_account_id) setStripeConnectDone(true);
-      if (data?.stripe_subscription_id) setStripeBillingDone(true);
       setLoading(false);
     };
 
@@ -79,25 +75,6 @@ export default function AgencyPostRegister() {
     }
   };
 
-  const handleSetupBilling = async () => {
-    setStripeBillingLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        "manage-subscription",
-        { body: { action: "create", plan_tier: plan } }
-      );
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      console.error("Error setting up billing:", err);
-      addToast("error", "No se pudo configurar la suscripción", "Inténtalo de nuevo o sáltate este paso y configúralo después.");
-    } finally {
-      setStripeBillingLoading(false);
-    }
-  };
-
   const handleSkip = async () => {
     await refreshProfile();
     navigate("/agency/dashboard", { replace: true });
@@ -116,8 +93,6 @@ export default function AgencyPostRegister() {
     );
   }
 
-  const isFreePlan = plan === "Gratuito";
-  const bothDone = stripeConnectDone && (isFreePlan || stripeBillingDone);
 
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-xl flex-col items-center justify-center px-4 py-12">
@@ -214,72 +189,10 @@ export default function AgencyPostRegister() {
           )}
         </div>
 
-        {/* Step 2: Stripe Billing (solo planes de pago) */}
-        {!isFreePlan && (
-          <div
-            className={`rounded-2xl border-2 p-5 transition-colors ${
-              stripeBillingDone
-                ? "border-success bg-success/5"
-                : "border-gray-200 bg-white"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                  stripeBillingDone
-                    ? "bg-success text-white"
-                    : "bg-primary/10 text-primary"
-                }`}
-              >
-                {stripeBillingDone ? (
-                  <CheckCircle className="h-5 w-5" />
-                ) : (
-                  <CreditCard className="h-5 w-5" />
-                )}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-text">
-                  Facturación de Suscripción
-                </h3>
-                <p className="text-xs text-text-muted">
-                  Configura el cobro recurrente del plan{" "}
-                  <span className="font-medium text-primary">{plan}</span>
-                </p>
-              </div>
-            </div>
-
-            {!stripeBillingDone ? (
-              <Button
-                className="mt-4 w-full"
-                onClick={handleSetupBilling}
-                loading={stripeBillingLoading}
-              >
-                Configurar Suscripción
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            ) : (
-              <div className="mt-3 flex items-center gap-2 text-sm text-success">
-                <CheckCircle className="h-4 w-4" />
-                Suscripción configurada
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Info note for free plan */}
-        {isFreePlan && !stripeConnectDone && (
-          <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
-            <p className="font-medium">Plan Gratuito</p>
-            <p className="mt-1 text-xs text-blue-600">
-              Puedes registrar tu cuenta bancaria ahora o hacerlo más adelante
-              desde Configuración.
-            </p>
-          </div>
-        )}
 
         {/* Action buttons */}
         <div className="flex gap-3 pt-2">
-          {!isFreePlan && !bothDone && (
+          {!stripeConnectDone && (
             <Button
               variant="outline"
               className="flex-1"

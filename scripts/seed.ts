@@ -69,7 +69,7 @@ const AGENCIES = [
     rfc: "TOU987654321",
     address_text: "Blvd. Kukulcán Km 12, Cancún, Q.Roo, 77500",
     certification_key: "CERT-TUR-2026-002",
-    subscription_tier: "Gratuito" as const,
+    subscription_tier: "Comercial" as const,
     status: "Activo" as const,
   },
 ];
@@ -427,7 +427,79 @@ async function seed() {
   }
   console.log();
 
-  // 11. Create package reports
+  // 11. Create wallets and points
+  console.log("💳 Creando carteras y transacciones de puntos...");
+
+  for (const userId of travelerIds) {
+    const { data: wallet } = await supabase
+      .from("user_wallets")
+      .upsert({ user_id: userId, points_balance: 0 }, { onConflict: "user_id" })
+      .select()
+      .single();
+
+    if (!wallet) continue;
+
+    await supabase.from("wallet_transactions").insert({
+      wallet_id: wallet.wallet_id,
+      user_id: userId,
+      type: "bonus",
+      points: 5,
+      description: "Bono de bienvenida",
+    });
+
+    await supabase
+      .from("user_wallets")
+      .update({ points_balance: 5, max_balance_reached: 5 })
+      .eq("wallet_id", wallet.wallet_id);
+
+    console.log(`  Cartera creada para ${userId.slice(0, 8)}...: 5 pts`);
+  }
+
+  const firstTraveler = travelerIds[0];
+  if (firstTraveler) {
+    const { data: wallet1 } = await supabase
+      .from("user_wallets")
+      .select("wallet_id")
+      .eq("user_id", firstTraveler)
+      .single();
+
+    if (wallet1) {
+      await supabase.from("wallet_transactions").insert([
+        {
+          wallet_id: wallet1.wallet_id,
+          user_id: firstTraveler,
+          type: "earn",
+          points: 100,
+          description: "Compra: Viaje a Cancún",
+        },
+        {
+          wallet_id: wallet1.wallet_id,
+          user_id: firstTraveler,
+          type: "earn",
+          points: 50,
+          description: "Compra: Tour Riviera Maya",
+        },
+        {
+          wallet_id: wallet1.wallet_id,
+          user_id: firstTraveler,
+          type: "referral",
+          points: 2,
+          description: "Referido: amigo@email.com",
+        },
+      ]);
+
+      await supabase
+        .from("user_wallets")
+        .update({ points_balance: 157, max_balance_reached: 157 })
+        .eq("wallet_id", wallet1.wallet_id);
+
+      console.log(`  Viajero ${firstTraveler.slice(0, 8)}...: 157 pts total (100 earn + 50 earn + 5 bonus + 2 referral)`);
+    }
+  }
+
+  console.log("  Carteras y puntos creados.\n");
+
+  // 12. Create package reports
   console.log("⚠️  Creando reportes...");
   if (packageIds.length > 0) {
     await supabase.from("package_reports").insert([
@@ -448,7 +520,7 @@ async function seed() {
   }
   console.log();
 
-  // 12. Create notifications
+  // 13. Create notifications
   console.log("🔔 Creando notificaciones...");
   const adminId = userIds["agencia1@viajes.com"];
   if (adminId) {
@@ -479,7 +551,7 @@ async function seed() {
   }
   console.log();
 
-  // 13. Create custom roles
+  // 14. Create custom roles
   console.log("🛡️  Creando roles personalizados...");
   if (tenantIds[0]) {
     await supabase.from("custom_roles_permissions").insert({
@@ -513,6 +585,8 @@ async function seed() {
     const tid = tenantIds[i];
     console.log(`  ${AGENCIES[i].business_name.padEnd(35)} ${AGENCIES[i].subscription_tier.padEnd(12)} ${tid ? tid.slice(0, 8) + "..." : "ERROR"}`);
   }
+  console.log();
+  console.log(`  Carteras de puntos: ${travelerIds.length}`);
   console.log();
   console.log("🔗 Rutas útiles:");
   console.log("─".repeat(50));

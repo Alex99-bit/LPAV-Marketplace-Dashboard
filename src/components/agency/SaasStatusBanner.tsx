@@ -2,6 +2,8 @@ import { Link } from "react-router";
 import { AlertCircle, CheckCircle, Clock, CreditCard } from "lucide-react";
 import type { SaasSubscription } from "@/types";
 
+// DORMANT: la mayoría de casos ya no aplican sin suscripciones SaaS activas. Solo se muestra en casos heredados.
+
 interface SaasStatusBannerProps {
   subscription: SaasSubscription | null;
   tenantStatus: string;
@@ -29,6 +31,8 @@ export default function SaasStatusBanner({ subscription, tenantStatus }: SaasSta
     );
   }
 
+  if (!subscription) return null;
+
   if (subscription?.grace_period_end) {
     const graceEnd = new Date(subscription.grace_period_end);
     const daysLeft = Math.ceil((graceEnd.getTime() - Date.now()) / 86400000);
@@ -54,13 +58,13 @@ export default function SaasStatusBanner({ subscription, tenantStatus }: SaasSta
 
   if (subscription) {
     return (
-      <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
-        <CheckCircle className="h-5 w-5 text-emerald-500" />
+      <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 flex items-center gap-3">
+        <CheckCircle className="h-5 w-5 text-gray-400" />
         <div>
-          <p className="text-sm font-medium text-emerald-800">
+          <p className="text-sm font-medium text-gray-700">
             Plan {subscription.plan_tier} — Activo
           </p>
-          <p className="text-xs text-emerald-600">
+          <p className="text-xs text-gray-500">
             {subscription.billing_cycle === "monthly" ? "Mensual" : "Anual"}
             {subscription.current_period_end &&
               ` · Renueva el ${new Date(subscription.current_period_end).toLocaleDateString("es-MX")}`}
