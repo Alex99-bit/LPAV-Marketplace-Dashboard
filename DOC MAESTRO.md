@@ -24,7 +24,11 @@ El ciclo de vida, la facturación recurrente y las cuotas operativas de las agen
 | **Pre-calificación de Leads** | Tradicional (Ingreso directo de formularios al CRM). | Acceso a bots guiados basados en reglas lógicas. | Acceso a bots guiados basados en reglas lógicas. |
 | **Agente de IA de Seguimiento** | No disponible. | **Habilitado:** Agente de IA para seguimiento de leads en chat in-app. | **Habilitado:** Agente de IA para seguimiento de leads en chat in-app. |
 
+**Regla de Asignación de Plan:** Todas las agencias de nueva creación ingresan por defecto e indefectiblemente al **Plan Comercial**, sin opción a elegir otro nivel. La facturación recurrente de Stripe Billing asociada al Plan Comercial se encuentra actualmente **desactivada**, por lo que las agencias no pagan cuota de suscripción mensual o anual. Las columnas de los planes Gratuito y Corporativo se conservan documentadas exclusivamente como referencia para una posible reactivación futura del modelo de suscripciones SaaS. En tanto el modelo de suscripción permanezca inactivo, Stripe Billing no ejecutará cobros recurrentes de ningún tipo.
+
 ### **1.2 Regla de Negocio ante Fallos de Pago B2B (Periodo de Gracia)**
+
+> **Estado Actual:** Esta regla de negocio aplica únicamente cuando el modelo de suscripciones SaaS por Stripe Billing esté activo. Actualmente la plataforma opera sin cobros de suscripción, por lo que esta sección se encuentra en estado **inactivo/dormido** y no se ejecuta en producción. Se conserva documentada para reactivación futura del modelo de suscripciones.
 
 * Si el cobro recurrente de la suscripción SaaS de una agencia falla, Stripe Billing ejecutará automáticamente un máximo de 3 reintentos de cargo.  
 * En cada intento fallido, el sistema enviará de inmediato una notificación automatizada por correo electrónico al administrador de la agencia indicando que el cargo no pudo ser procesado.  
@@ -65,7 +69,22 @@ El componente orientado al cliente se desarrollará como una **Single Page Appli
 ### **2.4 Portal Privado de Agencia ("Soy Agencia" \- B2B)**
 
 * **Acceso Restringido Estricto:** Bloqueado detrás de un middleware de autenticación frontend (ProtectedRoutes) que valida de forma obligatoria los roles de nivel de agencia (Agency\_Admin o roles colaboradores creados internamente)\[cite: 1, 3\]. Cada agencia dispone de un espacio de trabajo aislado.  
-* **Módulo de Registro Corporativo:** Formulario estructurado para capturar datos legales y operativos: Nombre comercial, RFC, dirección física completa, carga de logotipo, Constancia de Situación Fiscal (PDF), Tipo/Clave de certificación turística oficial y aceptación de términos y condiciones de la plataforma\[cite: 1, 2\].  
+* **Módulo de Registro Corporativo:** Formulario estructurado para capturar los datos legales y operativos descritos a continuación en la sección 2.4.1. El registro no se completa hasta que todos los campos obligatorios hayan sido validados y aprobados por el sistema.
+
+##### 2.4.1 Requisitos Fiscales, Financieros y Legales para el Registro de Agencia
+
+Para registrar una nueva agencia en Avimo, el proceso requiere el cumplimiento de diversos requisitos fiscales, financieros y legales diseñados para garantizar la seguridad y profesionalismo dentro de la plataforma. A continuación, se detallan los elementos necesarios para completar el Registro Corporativo:
+
+**1. Información Fiscal y Legal (Mercado México)**
+
+Es obligatorio proporcionar los datos legales de la empresa a través del formulario de registro, incluyendo:
+
+* **Nombre Comercial y Logotipo:** Nombre comercial registrado de la agencia. Se requiere un logotipo en alta resolución (mínimo 1024x1024 px, formato PNG con fondo transparente). Ambos serán visibles públicamente en el marketplace.
+* **RFC (Registro Federal de Contribuyentes):** Con formato válido para México: 12 caracteres para persona moral (3 letras + 6 dígitos + 3 caracteres alfanuméricos) o 13 caracteres para persona física (4 letras + 6 dígitos + 3 caracteres alfanuméricos). Se aplica validación en frontend mediante expresión regular antes del envío y validación en backend contra el servicio de verificación de RFC del SAT a través de la API de Facturama.
+* **Dirección Física Completa:** Calle, número exterior, número interior (opcional), colonia, código postal, municipio/alcaldía, estado. Este dato es obligatorio para la creación de cuentas Express/Custom en Stripe Connect.
+* **Constancia de Situación Fiscal (CSF) en formato PDF — Requisito Obligatorio:** Debe cargarse en formato PDF legible y vigente (no mayor a 3 meses de antigüedad). Es requisito indispensable para habilitar el timbrado automatizado de facturas electrónicas (CFDI) a través de la API de Facturama. Sin CSF validada, el tenant no podrá emitir facturas de comisiones ni operar transacciones financieras. El archivo se almacena en bucket privado con acceso exclusivo mediante signed URLs (no público).
+* **Certificación Turística Oficial:** Se debe indicar el tipo de certificación (por ejemplo: RNT — Registro Nacional de Turismo, IATA, CLIA, AMAV, SECTUR) y proporcionar la clave o folio de certificación correspondiente. Es un campo obligatorio; las agencias sin certificación turística oficial no pueden completar el registro.
+* **Aceptación de Términos y Condiciones:** Checkbox obligatorio de aceptación de los Términos de Uso de la Plataforma, la Política de Privacidad y el acuerdo de comisión del 13% + IVA sobre transacciones procesadas. El registro no se finaliza sin esta aceptación explícita.  
 * **Dashboard de Control Interno:** Panel privado que renderiza métricas limpias y aisladas (clics en flyers, leads generados, estado del flujo de ingresos de Stripe Connect y facturación SaaS de Stripe Billing) basados exclusivamente en el contexto de la agencia autenticada\[cite: 1, 3\].  
 * **Formulario de Nuevo Flyer:** Componente con validación estricta en el cliente. Campos requeridos: Título del viaje, Región/Destino, Precio Base, selector de divisa, área de arrastre (*drop-zone*) conectada a almacenamiento en la nube y un selector binario (Switch) para **"Coordinador"**\[cite: 1, 3\]. Al activarse, inyecta en el catálogo público una etiqueta verde "Con Coordinador"; de lo contrario, renderiza una etiqueta gris "Sin Coordinador".
 
@@ -96,10 +115,58 @@ Las notificaciones se distribuyen a través de canales específicos para equilib
 2. **Mensaje Directo en el Chat In-App:** Envía una alerta **Push** instantánea si el agente de viajes se encuentra logueado y activo en la SPA. Si el agente permanece desconectado de la plataforma por un periodo continuo mayor a **5 minutos**, el backend dispara una notificación automatizada por **WhatsApp / Correo Electrónico (vía Resend o SendGrid)** alertándole sobre el mensaje en espera.  
 3. **Confirmación Transaccional de Compra:** Al confirmarse con éxito el cobro de un anticipo en la pasarela, el sistema gatilla en paralelo: Notificación **Push** en el Dashboard de la agencia, **Correo electrónico** formal al viajero adjuntando el recibo de Stripe y el acuerdo contractual de condiciones, y un **Mensaje de WhatsApp automatizado** a ambas partes confirmando los detalles de la reservación.
 
-### **3.4 Roadmap de Expansión Móvil (Futuro)**
+### **3.4 Aplicaciones Móviles Nativas (Android & iOS)**
 
-* La plataforma contempla en su mapa de ruta técnico el desarrollo futuro de aplicaciones móviles nativas o híbridas enfocadas a los sistemas operativos **Android e iOS**.  
-* El diseño desacoplado de las alertas y la persistencia en tiempo real a través de Supabase Realtime permitirá que la misma infraestructura de red reemplace de manera orgánica los envíos de WhatsApp por **notificaciones push nativas directas a la aplicación**. Esto reducirá a largo plazo la dependencia de servicios de mensajería externos de pago y aumentará la retención del usuario en el ecosistema propietario.
+La plataforma contará con aplicaciones móviles nativas para Android e iOS, desarrolladas con React Native para maximizar la reutilización de código, acelerar el desarrollo y garantizar consistencia funcional entre plataformas.
+
+**Estrategia de Desarrollo y Frameworks:**
+
+* **Framework Principal:** React Native con Expo (managed workflow) para build y despliegue automatizado en App Store Connect y Google Play Console.
+* **Lenguaje Base:** TypeScript en toda la base de código compartida, con módulos nativos en Swift/Kotlin únicamente para funcionalidades que requieran acceso directo a APIs de plataforma (notificaciones push, cámara, wallet, biométricos).
+* **PWA como Respaldo Inmediato:** Mientras las apps nativas están en desarrollo, la SPA actual se distribuye como Progressive Web App (PWA) con soporte offline básico, instalable desde el navegador en ambos sistemas operativos. La PWA sirve como puente de disponibilidad hasta el lanzamiento de las apps nativas.
+
+**Experiencia Nativa por Plataforma:**
+
+*Android:*
+* Material Design 3 (Material You) con theming dinámico que respeta los colores del sistema del usuario.
+* Navegación con gestos predictivos (back gesture) integrada con React Navigation.
+* Notificaciones push nativas vía Firebase Cloud Messaging (FCM).
+* Integración con Google Wallet/Google Pay para pagos express en checkout.
+* Splash Screen API nativa (Android 12+).
+* Soporte para pantallas adaptables (foldables, tablets) mediante diseño responsivo con breakpoints.
+
+*iOS:*
+* Human Interface Guidelines (HIG) de Apple con navegación por tabs y gestos nativos (swipe back, pull to refresh).
+* Notificaciones push nativas vía Apple Push Notification service (APNs).
+* Integración con Apple Pay para pagos express en checkout.
+* Face ID / Touch ID para autenticación biométrica en inicio de sesión.
+* Haptic Feedback (UIImpactFeedbackGenerator) en micro-interacciones críticas: confirmación de compra, canje de puntos, agregar a favoritos.
+* Widgets en Home Screen y Lock Screen: viajes próximos del usuario, ofertas destacadas del marketplace.
+* Dynamic Island para estado de checkout en proceso y notificaciones de mensajes en chat (iPhone 14 Pro en adelante).
+
+**Funcionalidades Compartidas (Ambas Plataformas):**
+
+* **Sincronización en Tiempo Real:** Chat in-app, notificaciones de leads y actualizaciones de estado de compra mediante Supabase Realtime sobre WebSockets. Misma infraestructura de red que la versión web.
+* **Modo Offline Parcial:** Consulta de flyers guardados en favoritos, historial de puntos y resumen de viajes próximos sin conexión a internet. Sincronización automática de datos al reconectar. Los datos offline se persisten mediante AsyncStorage con expiración de caché de 7 días.
+* **Carga de Imágenes Optimizada:** Uso de FastImage (React Native) con caché agresiva de flyers en variantes thumbnail (listados) y HD (vista de detalle) según el contexto de visualización.
+* **Cartera de Puntos (Avimo Puntos):** Visualización de saldo, historial de acumulaciones y canjes, y aplicación de puntos como método de pago parcial durante el checkout, con la misma lógica de negocio que la versión web.
+* **Cámara para Documentos:** Subida de CSF, comprobantes de pago y otros documentos oficiales directamente desde la cámara del dispositivo con recorte y enderezado automático mediante react-native-vision-camera.
+* **Deep Linking Universal:** Soporte para esquemas de URL avimo:// en Android y Universal Links (apple-app-site-association) en iOS para abrir flyers específicos, completar checkouts pendientes o acceder a conversaciones de chat directamente desde notificaciones push o enlaces externos.
+
+**Rendimiento y Optimización:**
+
+* Hermes Engine (motor JavaScript de Meta) habilitado por defecto en Android para reducir tiempo de inicio y consumo de memoria. JavaScriptCore (JSC) optimizado en iOS.
+* Listas virtualizadas con FlashList (Shopify) para catálogos con desplazamiento fluido a 60 FPS independientemente del número de flyers.
+* Lazy loading de módulos pesados (cámara con visión artificial, mapas, reproductores multimedia) para minimizar el tamaño del bundle inicial.
+* Bundles optimizados con tree-shaking y división por plataforma. Assets (imágenes, fuentes) servidos por separado.
+* Telemetría de crashes con Sentry para ambas plataformas, con breadcrumbs de navegación para reproducción de errores.
+
+**Distribución y CI/CD:**
+
+* **Android:** Distribución vía Google Play Console con build automático desde GitHub Actions mediante Expo EAS Build. Canales de pruebas internas (alpha) y abiertas (beta) antes de producción.
+* **iOS:** Distribución vía App Store Connect con TestFlight para beta testing externo (hasta 10,000 testers). Build automatizado mediante Expo EAS Build conectado a GitHub Actions. Perfiles de provisionamiento gestionados por EAS.
+* **Actualizaciones Over-The-Air (OTA):** Expo EAS Update para desplegar parches de JavaScript sin pasar por revisión de tiendas. Exclusivo para cambios que no involucren código nativo (Swift/Kotlin). Permite resolver bugs críticos en minutos.
+* **Versionado Semántico (MAJOR.MINOR.PATCH):** Sincronizado entre ambas plataformas. Cada build de producción genera un tag de versión en el repositorio y un changelog automático.
 
 ## **4\. PARTE 3: OPTIMIZACIÓN, COSTOS Y SEGURIDAD DE LA IA**
 
@@ -162,7 +229,9 @@ Cuando un paquete de viaje supera la fecha límite establecida para la salida de
 
 La arquitectura transaccional de la plataforma se rige bajo la integración de **Stripe Connect** configurada bajo la modalidad estricta de **Cuentas Custom / Express** para mitigar los riesgos contables y fiscales directos del SaaS\[cite: 1, 5\].
 
-* **Esquema de Retención Transaccional:** La pasarela capturará los montos completos en Pesos Mexicanos (MXN) y aplicará una arquitectura de transferencias separadas (*Split Payments*): **retendrá automáticamente un 3% de comisión neta destinada a la cuenta bancaria de la plataforma más la tarifa de procesamiento estándar que cobre Stripe**, dispersando de forma inmediata el remanente neto a la cuenta bancaria enlazada de la agencia de viajes correspondiente\[cite: 1, 7\].  
+* **Porcentaje de Comisión de la Plataforma:** Se retiene automáticamente un **13% + IVA** sobre el monto total de la transacción. El IVA (16%) se aplica exclusivamente sobre el 13% de comisión, resultando en un total deducido de aproximadamente 15.08% de la venta. Ejemplo práctico: en una venta de $10,000 MXN, la comisión base es $1,300 MXN más $208 MXN de IVA = $1,508 MXN retenidos, dispersando a la agencia $8,492 MXN netos.  
+* **Absorción de Tarifas de Stripe por la Plataforma:** Las tarifas de procesamiento estándar que cobra Stripe (aproximadamente 2.9% + $3 MXN por transacción) se descuentan directamente del 13% de comisión que retiene la plataforma. La plataforma absorbe estos costos como gasto operativo y **la agencia NO paga tarifas de Stripe de forma directa ni adicional**. El remanente que recibe la agencia ya es neto después de la retención del 13% + IVA de comisión, sin deducciones adicionales por procesamiento de pagos.  
+* **Esquema de Transferencias Separadas (Split Payments):** La pasarela captura los montos completos en Pesos Mexicanos (MXN) y aplica una arquitectura de split: retiene el 13% + IVA hacia la cuenta bancaria de la plataforma y dispersa de forma inmediata el remanente neto a la cuenta bancaria enlazada de la agencia de viajes correspondiente\[cite: 1, 7\].  
 * **Blindaje contra Contracargos Bancarios (Disputes):** Al operar bajo el modelo Express/Custom de Stripe Connect, si un viajero inicia una disputa o contracargo directamente con su institución bancaria alegando fraude o incumplimiento, **la responsabilidad financiera y el saldo negativo resultante son transferidos íntegramente por Stripe al balance de la cuenta conectada de la agencia**. La plataforma SaaS queda totalmente exenta de absorber la pérdida monetaria de la disputa bancaria.
 
 ### **6.2 Planes de Pago Diferidos e Impagos B2C**
@@ -170,13 +239,64 @@ La arquitectura transaccional de la plataforma se rige bajo la integración de *
 Las agencias tienen la facultad de habilitar planes de financiamiento con un **plazo máximo de 4 meses** para liquidar el viaje. La agencia es la única encargada de designar el porcentaje de anticipo inicial requerido en el checkout (estableciendo la plataforma una sugerencia mínima del 20%).
 
 * **Gestión de Mensualidades:** Se implementa de forma estricta la **Opción B (Manual por enlace)**. El backend no realizará cobros recurrentes automatizados a la tarjeta del cliente. En su lugar, el motor de comunicación omnicanal enviará cada mes notificaciones automatizadas con un link exclusivo de Stripe Checkout para que el viajero ingrese y liquide su abono de forma manual.  
-* **Corte Proporcional de Comisión:** La comisión del 3% correspondiente a la plataforma **se cobrará de manera proporcional (el 3% de cada abono)** conforme el usuario vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
-* **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de exactamente dos semanas (14 días naturales) a partir de la fecha de corte**. Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en Twenty CRM y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de monederos electrónicos ni notas de crédito internas.
+* **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (13% + IVA) **se cobrará de manera proporcional (el 13% + IVA de cada abono)** conforme el usuario vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
+* **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de exactamente cinco días naturales (5 días) a partir de la fecha de corte**. Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en Twenty CRM y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de monederos electrónicos ni notas de crédito internas.
 
 ### **6.3 Delimitación de Responsabilidad Fiscal (CFDI México)**
 
-* **Facturación de la Plataforma (B2B):** El backend automatizará el timbrado fiscal de facturas electrónicas (CFDI para el mercado de México) consumiendo la API externa de **Facturama**. El sistema emitirá los comprobantes fiscales correspondientes dirigidos a las agencias exclusivamente por dos conceptos: el costo de las suscripciones mensuales/anuales de los planes SaaS y el cobro de las comisiones del 3% retenidas por transaccionalidad de pasarela.  
+* **Facturación de la Plataforma (B2B):** El backend automatizará el timbrado fiscal de facturas electrónicas (CFDI para el mercado de México) consumiendo la API externa de **Facturama**. El sistema emitirá los comprobantes fiscales correspondientes dirigidos a las agencias exclusivamente por el concepto de las comisiones del 13% + IVA retenidas por transaccionalidad de pasarela.  
 * **Facturación del Viaje (B2C):** La emisión de facturas fiscales CFDI por el monto total del paquete de viaje o los anticipos aportados por los viajeros queda **100% bajo la responsabilidad operativa y legal de la agencia de viajes contratada** (siguiendo estrictamente el modelo de transacciones descentralizadas de Amazon). La plataforma SaaS no intervendrá en el timbrado ni en la conciliación fiscal de los servicios turísticos comercializados entre agencias y consumidores finales.
+
+### **6.4 Sistema de Lealtad y Cartera Virtual (Avimo Puntos)**
+
+La plataforma cuenta con un programa de lealtad donde los viajeros acumulan puntos por cada compra realizada en el marketplace. Los puntos se almacenan en una cartera virtual personal y pueden canjearse como método de pago parcial para nuevas compras. El valor de los puntos canjeados es absorbido por las arcas de la empresa (Avimo), sin impacto financiero para la agencia vendedora.
+
+#### **6.4.1 Valor y Conversión de Puntos**
+
+* **Valor del Punto:** Cada punto equivale exactamente a **$1.00 MXN** (un peso mexicano). La conversión 1:1 es deliberadamente simple para que el viajero entienda de inmediato el valor real de su saldo sin fricción cognitiva.  
+* **Naturaleza:** La cartera virtual es personal, nominal e intransferible. Los puntos no son canjeables por dinero en efectivo bajo ninguna circunstancia.  
+* **Vigencia:** Los puntos **no expiran**. Se mantienen en la cuenta del viajero de forma indefinida mientras su perfil de usuario permanezca activo en la plataforma.
+
+#### **6.4.2 Reglas de Acumulación de Puntos**
+
+Los puntos se ganan a través de las siguientes acciones dentro de la plataforma:
+
+| Acción | Puntos Otorgados | Equivalencia en MXN | Notas |
+| :--- | :--- | :--- | :--- |
+| **Compra de Viaje** (por cada $100 MXN gastados) | 1 punto | $1.00 | Equivale a un 1% de cashback efectivo. Se acredita al confirmarse el pago exitoso (no en estado pending). |
+| **Bono de Bienvenida** (al completar perfil de viajero + onboarding de intereses) | 5 puntos | $5.00 | Se otorga una sola vez por cuenta. Requiere haber llenado el cuestionario de perfilamiento de intereses (Sección 4.2). |
+| **Bono por Referido** (por cada viajero referido que completa su primera compra) | 2 puntos | $2.00 | Se acredita al confirmarse el primer pago exitoso del referido. Sin límite de referidos. El referido debe usar el código o enlace único de referido al registrarse. |
+| **Review Verificada Post-Viaje** (por review publicada tras la conclusión del viaje) | 1 punto | $1.00 | Se otorga una vez por viaje completado. La review debe pasar la validación de contenido antes de acreditar los puntos. |
+
+* **Eventos Especiales con Multiplicador:** Durante las temporadas comerciales definidas por la plataforma (Buen Fin, Hot Sale, aniversario de Avimo), los puntos por compra se multiplican **x2** (2 puntos por cada $100 MXN gastados). Estos eventos son configurados manualmente por el SuperAdmin especificando fecha de inicio y fin, y se reflejan visualmente en el marketplace durante su vigencia.  
+* **Compras a Plazos Diferidos:** En compras financiadas a meses, los puntos se otorgan de forma **proporcional en cada abono confirmado**, no en el anticipo inicial ni de forma total por adelantado. Esto protege a la plataforma de otorgar puntos por montos que el viajero podría nunca llegar a liquidar.
+
+#### **6.4.3 Reglas de Canje de Puntos**
+
+Los puntos acumulados pueden aplicarse como descuento directo en el checkout de una nueva compra, sujeto a las siguientes reglas:
+
+| Regla | Valor |
+| :--- | :--- |
+| **Mínimo de puntos para canjear** | 200 puntos ($200.00 MXN) |
+| **Cobertura máxima por compra** | 20% del valor total de la compra |
+| **Límite máximo de acumulación** | 15,000 puntos ($15,000.00 MXN) |
+
+* **Mecánica de Aplicación:** Los puntos se descuentan primero del subtotal de la compra antes de calcular la comisión del 13% + IVA. La comisión de la plataforma se aplica **únicamente sobre el remanente pagado con tarjeta u otro método de pago**, no sobre la porción cubierta con puntos.  
+* **Ejemplo Práctico:** Compra de $5,000 MXN. El viajero decide canjear 500 puntos ($500 MXN, equivalente al 10% del total, dentro del límite del 20%). El subtotal pagado con tarjeta es de $4,500 MXN. La comisión del 13% + IVA (~15.08%) se calcula sobre $4,500 MXN = $678.60 MXN retenidos. La agencia recibe $3,821.40 MXN netos. Los $500 MXN canjeados son absorbidos por Avimo.  
+* **Protección de la Agencia:** La agencia vendedora no se ve afectada financieramente por el canje de puntos del viajero. Recibe el total de la venta menos únicamente el 13% + IVA de comisión sobre el remanente pagado con tarjeta. Los puntos canjeados son cubiertos íntegramente por las arcas de la empresa.
+
+#### **6.4.4 Control de Riesgo y Políticas de Reversión**
+
+* **Reversión por Contracargo o Disputa:** Si se inicia un contracargo o disputa bancaria sobre una transacción, los puntos ganados en esa compra original se revierten automáticamente del saldo del viajero. Si el saldo disponible es insuficiente para cubrir la reversión, la cartera puede quedar en saldo negativo con un límite máximo de -200 puntos, el cual se descuenta de futuras acumulaciones hasta quedar en cero o positivo.  
+* **Límite de Acumulación:** El saldo de puntos no puede exceder los 15,000 puntos. Si una acumulación llevaría el saldo por encima de este tope, los puntos excedentes se descartan y el sistema notifica al usuario que ha alcanzado el límite máximo.  
+* **Puntos No Transferibles:** Los puntos están vinculados al user\_id del viajero y no pueden transferirse, venderse ni combinarse con la cartera de otro usuario.  
+* **Ajuste de Programa:** La plataforma se reserva el derecho de modificar la tasa de acumulación, las reglas de canje y los eventos multiplicadores con previo aviso de al menos 30 días naturales a los usuarios registrados, notificado por correo electrónico y un banner informativo en el marketplace.
+
+#### **6.4.5 Visualización en la Interfaz de Usuario**
+
+* **Barra de Navegación:** El saldo actual de puntos se muestra en la barra de navegación superior del marketplace junto al ícono del carrito, visible únicamente para usuarios autenticados. El indicador utiliza un ícono de monedero o estrella acompañado del número de puntos.  
+* **Pantalla de Checkout:** Durante el proceso de pago, el viajero visualiza su saldo disponible y un control deslizante (*slider*) o campo numérico para seleccionar cuántos puntos desea aplicar a la compra, con indicadores visuales del mínimo (200 pts) y máximo (20% del total de la compra) permitidos. El resumen del cargo se actualiza en tiempo real reflejando el descuento por puntos.  
+* **Historial de Cartera:** En la sección de perfil del usuario, se despliega un registro cronológico completo de todas las transacciones de puntos (acumulaciones, canjes, reversiones, bonos) con fecha, concepto, cantidad de puntos y saldo resultante. Cada registro es trazable a la orden de compra o evento que lo originó.
 
 ## **7\. PARTE 6: ARQUITECTURA DE PERSISTENCIA E ENDPOINTS INTERNACIONALIZABLES**
 
@@ -207,7 +327,7 @@ CREATE TABLE agencies\_tenants (
     stripe\_customer\_id VARCHAR(255), \-- ID de Cliente para Stripe Billing (SaaS)  
     twenty\_crm\_relation\_id VARCHAR(255), \-- ID de mapeo lógico con la instancia de Twenty CRM  
     status VARCHAR(50) DEFAULT 'En Revisión', \-- En Revisión, Activo, Suspendido por Pago  
-    subscription\_tier VARCHAR(50) DEFAULT 'Gratuito', \-- Gratuito, Comercial, Corporativo  
+    subscription\_tier VARCHAR(50) DEFAULT 'Gratuito', \-- Gratuito, Comercial, Corporativo. Actualmente 'Comercial' por defecto para nuevas agencias. Planes Gratuito y Corporativo documentados para activación futura.  
     created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
 );
 
@@ -261,9 +381,41 @@ CREATE TABLE transactions\_orders (
     total\_amount NUMERIC(12, 2\) NOT NULL,  
     remaining\_balance NUMERIC(12, 2\) NOT NULL, \-- Control del balance pendiente de abonos  
     currency VARCHAR(3) DEFAULT 'MXN',  
-    platform\_commission\_fee NUMERIC(12, 2\) NOT NULL, \-- 3% retenido de manera proporcional por abono  
+    platform\_commission\_fee NUMERIC(12, 2\) NOT NULL, \-- 13% + IVA retenido de manera proporcional por abono  
+    points\_earned INTEGER DEFAULT 0, \-- Puntos (1 pt = $1 MXN) acumulados por el viajero en esta transacción  
+    points\_redeemed INTEGER DEFAULT 0, \-- Puntos canjeados como descuento en esta transacción  
     payment\_status VARCHAR(50) DEFAULT 'pending', \-- pending, partial\_paid, paid, moroso, cancelled  
-    next\_payment\_due TIMESTAMP WITH TIME ZONE, \-- Fecha límite del mes (UTC) para control de los 14 días de gracia  
+    next\_payment\_due TIMESTAMP WITH TIME ZONE, \-- Fecha límite del mes (UTC) para control de los 5 días de gracia  
+    created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
+);
+
+#### **Tabla: user\_wallets**
+
+Almacena el saldo de puntos de lealtad para cada usuario viajero registrado en la plataforma.
+
+SQL  
+CREATE TABLE user\_wallets (  
+    wallet\_id UUID PRIMARY KEY DEFAULT gen\_random\_uuid(),  
+    user\_id UUID NOT NULL UNIQUE, \-- ID del usuario viajero (una cartera por usuario)  
+    points\_balance INTEGER NOT NULL DEFAULT 0 CHECK (points\_balance >= -200 AND points\_balance <= 15000), \-- Saldo actual (1 punto = $1 MXN). Mínimo -200 (sobregiro por reversión), máximo 15000.  
+    max\_balance\_reached INTEGER DEFAULT 0, \-- Máximo saldo histórico alcanzado  
+    created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),  
+    updated\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
+);
+
+#### **Tabla: wallet\_transactions**
+
+Registro de auditoría de todas las operaciones de puntos (acumulaciones, canjes, reversiones, bonos).
+
+SQL  
+CREATE TABLE wallet\_transactions (  
+    transaction\_id UUID PRIMARY KEY DEFAULT gen\_random\_uuid(),  
+    wallet\_id UUID REFERENCES user\_wallets(wallet\_id) ON DELETE CASCADE,  
+    user\_id UUID NOT NULL,  
+    type VARCHAR(20) NOT NULL CHECK (type IN ('earn', 'redeem', 'reversal', 'bonus', 'referral', 'review')), \-- Tipo de operación  
+    points INTEGER NOT NULL, \-- Positivo para acumulaciones/earn/bonus, negativo para canjes/redeem/reversal  
+    description TEXT, \-- Descripción legible (ej: "Compra viaje Cancún", "Canje en checkout", "Bono de bienvenida")  
+    reference\_order\_id UUID, \-- FK opcional a transactions\_orders.order\_id para trazabilidad  
     created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
 );
 
@@ -271,7 +423,7 @@ CREATE TABLE transactions\_orders (
 
 * POST /api/v1/agency/roles/create  
   * **Acceso:** Privado (Agency\_Admin en exclusividad)\[cite: 1, 2\].  
-  * **Lógica:** Intercepta la petición y realiza una subconsulta en la base de datos para verificar el conteo actual de registros en custom\_roles\_permissions vinculados a ese tenant\_id. Si la agencia pertenece al plan Gratuito arroja una excepción de cuota; si es plan Comercial restringe la creación al superar 1 rol; si es Corporativo bloquea al intentar registrar un cuarto rol.  
+  * **Lógica:** Intercepta la petición y realiza una subconsulta en la base de datos para verificar el conteo actual de registros en custom\_roles\_permissions vinculados a ese tenant\_id. Actualmente todas las agencias operan bajo el Plan Comercial, por lo que el límite es de 1 rol personalizado adicional. Si la agencia ya tiene 1 rol registrado, el endpoint rechaza la creación con una excepción de cuota y un mensaje indicando el límite del plan. En caso de reactivación futura del modelo de suscripciones, la lógica se adaptará para evaluar el subscription\_tier de la agencia y aplicar el límite correspondiente (Gratuito: 0, Comercial: 1, Corporativo: 3).  
 * GET /api/v1/crm/leads  
   * **Acceso:** Privado (Personal de agencia autenticado con JWT).  
   * **Lógica:** El backend realiza una llamada de servicio mediante una API Key maestra hacia el Twenty CRM autohospedado para extraer los leads del tenant\[cite: 1, 3\]. Antes de despachar la colección al frontend, el middleware evalúa los permisos del rol del usuario de la agencia. Si can\_view\_global\_leads es FALSE, el gateway filtra los objetos en memoria reteniendo única y exclusivamente aquellos leads donde el campo de asignación coincida estrictamente con el UUID del usuario solicitante.  
@@ -283,4 +435,4 @@ CREATE TABLE transactions\_orders (
   * **Lógica:** Invoca al SDK de Supabase Storage para generar una dirección URL de subida directa con firma criptográfica simétrica y expiración de 300 segundos, evitando la transferencia de binarios pesados a través del servidor central de la plataforma.  
 * POST /api/v1/payments/checkout-session  
   * **Acceso:** Privado (EndUser registrado y autenticado).  
-  * **Lógica:** Configura e inicializa una sesión de Stripe Checkout inyectando los parámetros de Stripe Connect. Calcula el monto del anticipo fijado por la agencia y estipula la transferencia con split, reteniendo de forma proporcional el 3% de la comisión neta de la plataforma más las tasas correspondientes de procesamiento bancario, transfiriendo el restante a la cuenta Express vinculada\[cite: 1, 5, 7\]. Programará las alertas de cobro mensual manual en el sistema de mensajería.
+  * **Lógica:** Configura e inicializa una sesión de Stripe Checkout inyectando los parámetros de Stripe Connect. Procesa la compra en el siguiente orden: (1) Valida y aplica los puntos canjeados por el viajero (mínimo 200 puntos, máximo 20% del total de la compra), descontándolos del subtotal. (2) Calcula el subtotal remanente a pagar con tarjeta u otro método de pago. (3) Calcula el 13% + IVA de comisión sobre el remanente pagado con tarjeta y configura el split de Stripe Connect reteniendo ese monto hacia la plataforma, dispersando el resto a la cuenta Express de la agencia. (4) Calcula los puntos a ganar por esta compra (1 punto por cada $100 MXN del total de la compra, independientemente de los puntos canjeados). (5) Si el pago es diferido en plazos, programa las alertas de cobro mensual manual en el sistema de mensajería omnicanal con recordatorios y links exclusivos de Stripe Checkout.
