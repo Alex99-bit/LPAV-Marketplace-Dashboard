@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { ShoppingCart, User, LogOut, LayoutDashboard, Package, MessageCircle, Sun, Moon } from "lucide-react";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Package, MessageCircle, Sun, Moon, Compass } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -36,8 +36,9 @@ export default function Navbar() {
           </Link>
           <Link
             to="/"
-            className="hidden text-sm font-medium text-text-muted transition-colors hover:text-primary md:inline"
+            className="hidden items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-primary md:flex"
           >
+            <Compass className="h-4 w-4" />
             Explorar
           </Link>
         </div>
