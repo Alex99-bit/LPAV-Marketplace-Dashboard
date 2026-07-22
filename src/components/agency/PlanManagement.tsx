@@ -55,6 +55,20 @@ export default function PlanManagement({ subscription, currentTier }: PlanManage
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6">
+      <h3 className="text-lg font-semibold text-text">Plan de Suscripción</h3>
+      <div className="mt-4 rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
+        <p className="font-medium">Plan Comercial — Sin costo de suscripción</p>
+        <p className="mt-1 text-xs text-blue-600">
+          Todas las agencias operan actualmente bajo el Plan Comercial 
+          con todas sus funcionalidades incluidas. No se requiere 
+          configurar facturación de suscripción.
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-6">
       <h3 className="text-lg font-semibold text-text">Plan y Suscripción</h3>
 
       {subscription && (

@@ -11,6 +11,11 @@ Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // DORMANT: modelo SaaS inactivo — suscripciones deshabilitadas
+  return new Response(JSON.stringify({ error: "Modelo de suscripciones inactivo" }), {
+    status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
   const user = await getUser(req);
   if (!user) {
     return new Response(JSON.stringify({ error: "No autorizado" }), {

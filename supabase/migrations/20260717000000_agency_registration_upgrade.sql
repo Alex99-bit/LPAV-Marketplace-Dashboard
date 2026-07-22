@@ -32,9 +32,13 @@ BEGIN
         RAISE EXCEPTION 'Usuario ya pertenece a una agencia';
     END IF;
 
-    -- Validate subscription tier
+    -- Validate subscription tier (currently only Comercial is active)
     IF p_subscription_tier NOT IN ('Gratuito', 'Comercial', 'Corporativo') THEN
         RAISE EXCEPTION 'Plan de suscripción no válido';
+    END IF;
+
+    IF p_subscription_tier != 'Comercial' THEN
+        RAISE EXCEPTION 'Actualmente solo el Plan Comercial está disponible para nuevas agencias. Los planes Gratuito y Corporativo estarán disponibles próximamente.';
     END IF;
 
     -- Validate legal acceptances (all mandatory)

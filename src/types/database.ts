@@ -95,6 +95,8 @@ export interface TransactionOrder {
   remaining_balance: number;
   currency: Currency;
   platform_commission_fee: number;
+  points_earned: number;
+  points_redeemed: number;
   payment_status: PaymentStatus;
   next_payment_due: string | null;
   created_at: string;
@@ -359,6 +361,26 @@ export interface AgencyTeamMember {
   joined_at: string | null;
 }
 
+export interface UserWallet {
+  wallet_id: string;
+  user_id: string;
+  points_balance: number;
+  max_balance_reached: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WalletTransaction {
+  transaction_id: string;
+  wallet_id: string;
+  user_id: string;
+  type: "earn" | "redeem" | "reversal" | "bonus" | "referral" | "review";
+  points: number;
+  description: string | null;
+  reference_order_id: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -386,6 +408,8 @@ export interface Database {
       package_reviews: { Row: PackageReview; Insert: Partial<PackageReview>; Update: Partial<PackageReview> };
       notification_preferences: { Row: NotificationPreference; Insert: Partial<NotificationPreference>; Update: Partial<NotificationPreference> };
       agency_team_members: { Row: AgencyTeamMember; Insert: Partial<AgencyTeamMember>; Update: Partial<AgencyTeamMember> };
+      user_wallets: { Row: UserWallet; Insert: Partial<UserWallet>; Update: Partial<UserWallet> };
+      wallet_transactions: { Row: WalletTransaction; Insert: Partial<WalletTransaction>; Update: Partial<WalletTransaction> };
     };
   };
 }

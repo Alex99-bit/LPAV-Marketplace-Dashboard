@@ -6,6 +6,7 @@ import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
 import Button from "@/components/ui/Button";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import PointsBalance from "@/components/wallet/PointsBalance";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -86,6 +87,7 @@ export default function Navbar() {
           >
             {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
+          <PointsBalance />
           <Link to="/checkout" className="relative rounded-lg p-2 text-text-muted hover:bg-surface hover:text-primary transition-colors" aria-label={`Carrito (${itemCount} artículo${itemCount !== 1 ? "s" : ""})`}>
             <ShoppingCart className="h-5 w-5" />
             {itemCount > 0 && (
