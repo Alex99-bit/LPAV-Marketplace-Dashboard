@@ -6,7 +6,7 @@
 
 ## **1\. CONFIGURACIÓN GENERAL, ARQUITECTURA MULTI-TENANT Y MODELO SAAS**
 
-La plataforma está diseñada bajo una arquitectura de software como servicio (SaaS) Multi-Tenant. Utiliza una infraestructura unificada respaldada por **Supabase** (PostgreSQL, Auth, Realtime y Storage) como entorno principal para el backend y la persistencia de datos. Esta infraestructura coexiste y se integra mediante una API Gateway centralizada con instancias autohospedadas del sistema de gestión de relaciones con clientes **Twenty CRM** (twentyhq/twenty). El CRM opera de forma externa pero viene conectado con la plataforma para actuar como validador lógico de límites de negocio y repositorio de información conductual.
+La plataforma está diseñada bajo una arquitectura de software como servicio (SaaS) Multi-Tenant. Utiliza una infraestructura unificada respaldada por **Supabase** (PostgreSQL, Auth, Realtime y Storage) como entorno principal para el backend y la persistencia de datos. La plataforma incluye un **CRM integrado nativamente** para la gestión de leads, seguimiento de ventas y relación con clientes. Este CRM opera directamente sobre PostgreSQL (tablas `crm_leads`, `crm_activities`, `crm_ai_qualification_sessions`, `crm_agent_assignment_queue`) sin dependencia de servicios externos, garantizando baja latencia multi-tenant mediante Row-Level Security. Incluye pre-calificación automatizada de leads por IA (Gemini 2.5 Flash), asignación round-robin a agentes y chat en tiempo real integrado con Supabase Realtime. La especificación completa del CRM se detalla en la Sección 2.5.
 
 ### **1.1 Matriz de Niveles de Suscripción B2B**
 
@@ -19,7 +19,7 @@ El ciclo de vida, la facturación recurrente y las cuotas operativas de las agen
 | **Límite de Flyers Activos** | Máximo 5 flyers publicados simultáneamente. | Hasta 25 flyers publicados simultáneamente. | Ilimitados (con tope alto de control de 150 flyers). |
 | **Roles Personalizados (RBAC)** | 0 (Acceso exclusivo mediante cuenta maestra Agency\_Admin). | Permite crear hasta 1 rol personalizado adicional. | Permite crear hasta **3 roles personalizados dinámicos**. |
 | **Límite de Usuarios / Empleados** | Restringido a 1 usuario administrador. | Soporta la asociación de 3 a 5 empleados por tenant. | Usuarios y colaboradores ilimitados por agencia. |
-| **Gestión de Leads (Twenty CRM)** | Registro centralizado en bandeja principal única sin asignación. | Mapeo y filtrado en API Gateway; asignación y vista restringida por agente. | Sincronización avanzada, analíticas de rendimiento de agentes en Gateway. |
+| **Gestión de Leads (CRM Integrado)** | Registro centralizado en bandeja principal única sin asignación. | Asignación automática round-robin a agentes; filtrado por status y prioridad; vista restringida por RBAC. | Dashboard avanzado de métricas, KPIs de conversión, pipeline de ventas y analíticas de rendimiento de agentes. |
 | **Canales de Comunicación** | Alertas Push en Dashboard y notificaciones por Correo. | Omnicanalidad completa: Push, Correo y 50 alertas WhatsApp al mes. | Push e Email ilimitados; WhatsApp ilimitado vía *Metered Billing*. |
 | **Pre-calificación de Leads** | Tradicional (Ingreso directo de formularios al CRM). | Acceso a bots guiados basados en reglas lógicas. | Acceso a bots guiados basados en reglas lógicas. |
 | **Agente de IA de Seguimiento** | No disponible. | **Habilitado:** Agente de IA para seguimiento de leads en chat in-app. | **Habilitado:** Agente de IA para seguimiento de leads en chat in-app. |
@@ -88,6 +88,222 @@ Es obligatorio proporcionar los datos legales de la empresa a través del formul
 * **Dashboard de Control Interno:** Panel privado que renderiza métricas limpias y aisladas (clics en flyers, leads generados, estado del flujo de ingresos de Stripe Connect y facturación SaaS de Stripe Billing) basados exclusivamente en el contexto de la agencia autenticada\[cite: 1, 3\].  
 * **Formulario de Nuevo Flyer:** Componente con validación estricta en el cliente. Campos requeridos: Título del viaje, Región/Destino, Precio Base, selector de divisa, área de arrastre (*drop-zone*) conectada a almacenamiento en la nube y un selector binario (Switch) para **"Coordinador"**\[cite: 1, 3\]. Al activarse, inyecta en el catálogo público una etiqueta verde "Con Coordinador"; de lo contrario, renderiza una etiqueta gris "Sin Coordinador".
 
+### **2.5 CRM Integrado — Arquitectura, Diseño y Funcionamiento**
+
+La plataforma incorpora un sistema de gestión de relaciones con clientes (CRM) integrado nativamente en PostgreSQL, eliminando la dependencia de sistemas externos. Este CRM está diseñado específicamente para agencias de viajes y opera sobre las mismas tablas y políticas RLS que el resto de la plataforma, garantizando aislamiento multi-tenant y cero latencia de red externa.
+
+#### **2.5.1 Visión General y Decisión Arquitectónica**
+
+El CRM fue diseñado como un módulo nativo de la plataforma en lugar de integrar un CRM externo por tres razones fundamentales:
+
+* **Cero Latencia:** Todas las consultas se ejecutan directamente sobre PostgreSQL sin saltos de red a servicios externos. Un agente visualiza leads, aplica filtros y abre detalles en milisegundos.
+* **Multi-Tenant Nativo:** Cada fila de `crm_leads` pertenece a un `tenant_id`. Las políticas RLS garantizan que una agencia nunca vea leads de otra, sin necesidad de un gateway de proxy externo.
+* **Integración Profunda con Chat:** El CRM y el chat en tiempo real comparten la misma base de datos. La columna `crm_leads.conversation_id` vincula directamente un lead con su conversación en Supabase Realtime, permitiendo que el agente tome control del chat con un solo clic.
+
+El CRM se compone de **4 tablas PostgreSQL**, **3 triggers automatizados**, **1 función PL/pgSQL de asignación round-robin**, **6 Edge Functions** y **6 componentes React** en el frontend.
+
+#### **2.5.2 Base de Datos — Esquema del CRM**
+
+**Tabla: `crm_leads`** — Entidad principal del lead. Cada fila representa un viajero que ha mostrado interés en un paquete turístico.
+
+| Columna | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `lead_id` | UUID PK | Identificador único del lead |
+| `tenant_id` | UUID FK → agencies\_tenants | Agencia propietaria del lead (alcance multi-tenant) |
+| `traveler_user_id` | UUID FK → profiles | Viajero que solicitó información |
+| `package_id` | UUID FK → travel\_packages | Paquete sobre el que se consultó |
+| `assigned_to` | UUID FK → profiles | Agente asignado por round-robin |
+| `status` | VARCHAR(50) | Pipeline: new, contacted, qualified, proposal\_sent, won, lost |
+| `source` | VARCHAR(50) | Origen: marketplace, chat, referral, other |
+| `priority` | VARCHAR(20) | Prioridad: low, medium, high |
+| `number_of_travelers` | INT | Extraído por IA durante cualificación |
+| `preferred_travel_dates` | VARCHAR(100) | Fechas preferidas extraídas por IA |
+| `estimated_budget` | NUMERIC(12,2) | **Campo requerido para completar cualificación.** Inicia en 0, la IA lo extrae del chat |
+| `budget_currency` | VARCHAR(3) | Moneda del presupuesto (default MXN) |
+| `travel_type` | VARCHAR(50) | Tipo de viaje extraído por IA |
+| `traveler_origin` | VARCHAR(100) | Ciudad de origen del viajero |
+| `preferred_airline` | VARCHAR(100) | Aerolínea preferida |
+| `accommodation_type` | VARCHAR(50) | Tipo de alojamiento preferido |
+| `special_requirements` | TEXT | Requerimientos especiales |
+| `ai_qualification_progress` | JSONB | Espejo en tiempo real de los campos extraídos por IA |
+| `ai_qualification_completed` | BOOLEAN | TRUE cuando el presupuesto fue extraído |
+| `conversation_id` | UUID | Puente directo con la tabla de chat\_messages |
+| `notes` | TEXT | Notas internas del agente |
+| `created_at` | TIMESTAMPTZ | Fecha de creación |
+| `updated_at` | TIMESTAMPTZ | Actualizado automáticamente por trigger |
+
+Índices: `tenant_id`, `assigned_to`, `status`, `package_id`, `conversation_id`.
+
+**Tabla: `crm_activities`** — Timeline de actividades del lead. Cada evento (creación, cambio de estado, nota, asignación, extracción de IA) genera una fila.
+
+| Columna | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `activity_id` | UUID PK | |
+| `lead_id` | UUID FK → crm\_leads | Lead al que pertenece |
+| `agent_id` | UUID FK → profiles | Agente que realizó la acción (NULL = sistema) |
+| `activity_type` | VARCHAR(50) | Tipo: note, status\_change, assignment, created, ai\_extraction |
+| `description` | TEXT | Resumen legible de la actividad |
+| `metadata` | JSONB | Contexto estructurado (old\_status, new\_status, campos extraídos) |
+| `created_at` | TIMESTAMPTZ | |
+
+**Tabla: `crm_ai_qualification_sessions`** — Controla el estado de la sesión de cualificación por IA para cada lead.
+
+| Columna | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `session_id` | UUID PK | |
+| `lead_id` | UUID FK → crm\_leads | Lead en cualificación |
+| `conversation_id` | UUID | Conversación de chat vinculada |
+| `fields_extracted` | JSONB | Campos acumulados extraídos hasta el momento |
+| `fields_pending` | TEXT[] | Campos que aún no se han capturado |
+| `status` | VARCHAR(50) | active, completed, abandoned |
+| `created_at` | TIMESTAMPTZ | |
+| `completed_at` | TIMESTAMPTZ | Se establece al completar o abandonar |
+
+**Tabla: `crm_agent_assignment_queue`** — Una fila por agencia. Almacena el último agente que recibió un lead para implementar round-robin.
+
+| Columna | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `tenant_id` | UUID PK/FK | Una fila por agencia |
+| `last_assigned_agent_id` | UUID | Último agente que recibió un lead |
+| `updated_at` | TIMESTAMPTZ | |
+
+#### **2.5.3 Triggers Automatizados de Base de Datos**
+
+El CRM utiliza 3 triggers PostgreSQL que garantizan integridad y trazabilidad sin depender de las Edge Functions:
+
+1. **`tr_crm_lead_updated_at`:** BEFORE UPDATE sobre `crm_leads`. Actualiza `updated_at = NOW()` en cada modificación.
+2. **`tr_log_lead_status_change`:** AFTER UPDATE sobre `crm_leads`. Cuando `status` cambia (OLD ≠ NEW), inserta automáticamente una fila en `crm_activities` con `activity_type = 'status_change'` y metadata conteniendo `old_status` y `new_status`. Esto garantiza que cada transición de pipeline quede registrada incluso si el cambio se hace por múltiples vías (Edge Function, RPC, o actualización directa).
+3. **`tr_notify_agent_on_lead_assignment`:** AFTER UPDATE sobre `crm_leads`. Cuando `assigned_to` cambia y el nuevo valor no es NULL, inserta una notificación en la tabla `notifications` dirigida al agente asignado, alertándole en tiempo real en su dashboard.
+
+#### **2.5.4 Pipeline de Status de Leads**
+
+El lead atraviesa un pipeline de 6 estados que refleja su ciclo de vida comercial:
+
+```
+new ──> contacted ──> qualified ──> proposal_sent ──> won
+  │                                                      │
+  └──────────────────> lost <────────────────────────────┘
+```
+
+| Status | Significado | Asignado por | Disparador |
+| :--- | :--- | :--- | :--- |
+| **new** | Lead recién creado, sin interacción aún | `create-lead` Edge Function | Viajero hace clic en "Solicitar información" |
+| **contacted** | La IA envió al menos un mensaje de cualificación | `ai-qualify-lead` (automático) | Viajero responde al mensaje inicial de la IA |
+| **qualified** | Presupuesto extraído. Lead listo para propuesta humana | `ai-qualify-lead` (automático) | IA extrae `estimated_budget` del chat |
+| **proposal\_sent** | El agente envió una cotización formal al viajero | Manual (agente vía `update-lead-status`) | Agente prepara y envía propuesta |
+| **won** | Venta cerrada exitosamente | Manual (agente con confirmación) | Viajero completa el pago |
+| **lost** | Lead perdido (no interesado, competencia, etc.) | Manual (agente con confirmación) | Viajero declina o no responde |
+
+Los estados `won` y `lost` son terminales. Al alcanzarlos, cualquier sesión de IA activa se cierra automáticamente (`completed` para won, `abandoned` para lost).
+
+#### **2.5.5 Pre-Calificación Automatizada con IA (Gemini 2.5 Flash)**
+
+El CRM incorpora un agente conversacional de IA que califica leads de forma autónoma antes de que intervenga un agente humano. El flujo completo es:
+
+**Fase 1 — Creación del Lead (Edge Function `create-lead`):**
+1. El viajero navega el marketplace, ve un flyer y hace clic en "Solicitar información".
+2. `create-lead` crea un registro en `crm_leads` con `status = 'new'`, `source = 'marketplace'` y `estimated_budget = 0`.
+3. Genera un `conversation_id` (UUID) que vincula el lead con el chat.
+4. Invoca la función PL/pgSQL `assign_lead_round_robin(tenant_id, lead_id)` que asigna el lead al siguiente agente disponible.
+5. Crea una sesión en `crm_ai_qualification_sessions` con `status = 'active'` y los 7 campos listados como pendientes.
+6. Inserta dos mensajes en `chat_messages`: un mensaje `[SYSTEM]` con el contexto de creación, y un saludo personalizado de la IA: *"Hola {nombre}! Soy asesor de viajes y estoy aquí para ayudarte con el paquete '{título}' ({región}). ¿Qué te gustaría saber?"*
+7. Retorna `{ lead_id, conversation_id, assigned_to }` al frontend, que redirige al viajero a `/chat`.
+
+**Fase 2 — Cualificación Iterativa (Edge Function `ai-qualify-lead`):**
+1. Cada vez que el viajero envía un mensaje en el chat, el frontend (`Chat.tsx`) invoca `ai-qualify-lead` con `{ lead_id, conversation_id, latest_message }`.
+2. La Edge Function construye un prompt para Gemini 2.5 Flash que incluye:
+   - Nombre de la agencia y detalles del paquete (título, región, precio).
+   - Campos ya extraídos (de `ai_qualification_progress`) para evitar preguntar dos veces lo mismo.
+   - Últimos 30 mensajes del chat (excluyendo `[SYSTEM]`) como contexto conversacional.
+   - Reglas de comportamiento: máximo 2 preguntas por mensaje, nunca revelar que es IA, responder en español, ser conciso y natural.
+3. Gemini responde en formato JSON estructurado (`responseMimeType: application/json`) con:
+   - `reply`: texto de respuesta para el viajero.
+   - `extracted_fields`: campos nuevos detectados en el mensaje (ej. `{ "estimated_budget": "15000", "travel_type": "Playa" }`).
+   - `should_transfer_to_human`: true si el viajero pide explícitamente hablar con una persona.
+4. Los campos extraídos se fusionan con los existentes en `ai_qualification_progress` (JSONB) y se escriben también en las columnas tipadas individuales de `crm_leads`.
+5. El presupuesto se parsea con regex `/[\d.]+/` para extraer el valor numérico del texto.
+6. Cuando `estimated_budget` deja de ser NULL/0, la cualificación se marca como `completed`, el lead pasa automáticamente a `status = 'qualified'`, y se notifica al agente asignado.
+7. La respuesta de la IA se inserta en `chat_messages` usando el `sender_id` del agente asignado, haciendo que la IA aparezca como el agente humano en la conversación.
+
+**Parámetros del modelo:**
+- Modelo: `gemini-2.5-flash`
+- Temperature: 0.7
+- Top-P: 0.9
+- Max Output Tokens: 1024
+- Response MIME Type: `application/json`
+- Response Schema: JSON Schema tipado con campos requeridos `reply`, `extracted_fields`, `should_transfer_to_human`
+
+**Criterio de compleción:** La cualificación se considera completa cuando el campo requerido `estimated_budget` tiene un valor no nulo y no vacío. Los 6 campos opcionales (`number_of_travelers`, `preferred_travel_dates`, `travel_type`, `traveler_origin`, `preferred_airline`, `accommodation_type`) se siguen extrayendo de forma oportunista pero no bloquean la compleción.
+
+#### **2.5.6 Asignación Round-Robin de Agentes**
+
+La función PL/pgSQL `assign_lead_round_robin(p_tenant_id UUID, p_lead_id UUID)` implementa asignación circular equitativa:
+
+1. Obtiene todos los perfiles del tenant con roles `Agency_Admin`, `Agency_Agent` o `Agency_Collaborator`, ordenados por `id`.
+2. Consulta `crm_agent_assignment_queue` para obtener el `last_assigned_agent_id`.
+3. Si no hay asignación previa, selecciona el primer agente de la lista.
+4. Si existe asignación previa, localiza su posición en la lista y selecciona el siguiente (con wrap-around al inicio si es el último).
+5. Actualiza `crm_agent_assignment_queue` con el nuevo `last_assigned_agent_id`.
+6. Actualiza `crm_leads.assigned_to` con el agente seleccionado.
+7. Retorna el UUID del agente asignado.
+
+**Casos borde:**
+- Si el tenant no tiene agentes registrados, retorna NULL y el lead queda sin asignar.
+- Si un agente fue eliminado del tenant, el algoritmo avanza al siguiente en la lista (no se estanca).
+
+#### **2.5.7 Integración Chat ↔ CRM**
+
+La integración entre el chat en tiempo real y el CRM es bidireccional y opera sobre tres puntos de contacto:
+
+1. **Creación de lead desde flyer:** `PackageDetailPage` → `create-lead` → redirección a `/chat?conversationId=X&leadId=Y`. El chat se abre directamente en el contexto del lead recién creado.
+2. **Procesamiento IA en cada mensaje:** `Chat.tsx` detecta si existe un `leadId` activo en el estado de la ruta. Después de cada mensaje del viajero, invoca `ai-qualify-lead` y muestra la respuesta de la IA en el chat. Muestra un indicador "IA escribiendo..." durante el procesamiento. Cuando la cualificación se completa o el agente toma control, desactiva las llamadas a IA.
+3. **Toma de control por el agente:** Desde `LeadDetailModal`, el botón "Tomar control del chat" invoca `transfer-lead-to-human`. Esto:
+   - Marca la sesión de IA como `abandoned`.
+   - Inserta un mensaje `[SYSTEM]` en el chat: *"{agente} ha tomado el control de la conversación."*
+   - En el lado del viajero, `Chat.tsx` detecta que la sesión fue abandonada y deja de invocar `ai-qualify-lead`.
+
+El campo `crm_leads.conversation_id` actúa como puente único entre ambos sistemas. No hay replicación de datos ni sincronización externa.
+
+#### **2.5.8 Control de Acceso y RBAC del CRM**
+
+El acceso a los leads está gobernado por dos capas de seguridad:
+
+| Rol | Visibilidad | Permisos |
+| :--- | :--- | :--- |
+| **Agency\_Admin** | Todos los leads del tenant | CRUD completo: ver, cambiar status, agregar notas, reasignar |
+| **Agency\_Agent / Colaborador** (default) | Solo leads donde `assigned_to = user.id` | Ver detalles, cambiar status, agregar notas |
+| **Agency\_Agent / Colaborador** con `can_view_global_leads = TRUE` | Todos los leads del tenant | Ver detalles, cambiar status, agregar notas |
+
+**Doble capa de seguridad:**
+1. **Base de datos (RLS):** La política `"Agentes ven leads asignados o globales"` en PostgreSQL restringe las filas visibles según `assigned_to` y `can_view_global_leads`.
+2. **Frontend (query filter):** `AgencyCRM.tsx` aplica `.eq("assigned_to", user.id)` cuando `canViewAll === false`, como defensa en profundidad.
+
+#### **2.5.9 UI/UX — Componentes del Frontend del CRM**
+
+El CRM se renderiza en la ruta `/agency/crm`, accesible desde la barra de navegación del dashboard de la agencia. Se compone de 6 componentes React:
+
+| Componente | Propósito | Funcionalidades clave |
+| :--- | :--- | :--- |
+| **`AgencyCRM.tsx`** | Página principal del CRM | Grid responsivo de 1-3 columnas de LeadCards. Filtros por status y prioridad. Búsqueda textual en memoria (nombre, paquete, región). Toggle para mostrar/ocultar dashboard de métricas. Suscripción a Supabase Realtime con debounce de 500ms. Límite actual: 100 leads (paginación en roadmap). |
+| **`CRMMetricsDashboard.tsx`** | Panel de KPIs | 6 tarjetas: Total Leads, Tasa de Conversión (%), Leads Ganados, Leads Nuevos, Pipeline Total (MXN), Ingresos Ganados (MXN). 2 gráficos: Leads por Mes (barras, últimos 6 meses), Distribución por Status (barras horizontales con porcentaje). Leads por Fuente (grid de 4 columnas). Cálculo 100% cliente. |
+| **`LeadCard.tsx`** | Tarjeta resumen de lead | Nombre del viajero, paquete (título + región), status badge coloreado, tiempo relativo de creación, presupuesto formateado. Barra de progreso de cualificación IA. Click abre LeadDetailModal. |
+| **`LeadDetailModal.tsx`** | Modal de detalle completo (tamaño XL) | Status selector con confirmación para won/lost. Datos del viajero y paquete en grid 2 columnas. Campos extraídos por IA con iconos. Requerimientos especiales (card ámbar). Barra de progreso IA con pills por campo (verde = extraído, gris = pendiente, rojo = presupuesto faltante). Botón "Tomar control del chat". Timeline de actividades (notas, cambios de estado, asignaciones, extracciones IA) con scroll. Input para agregar notas. |
+| **`LeadFilters.tsx`** | Barra de filtros | Dos dropdowns controlados: Status (todos los estados + "Todos") y Prioridad (low/medium/high + "Todas"). Estado completamente stateless. |
+| **`AIQualificationProgress.tsx`** | Barra de progreso de cualificación | Barra horizontal con porcentaje y transición animada. 7 pills (1 requerido + 6 opcionales): verde con "+" para campos extraídos, gris con "-" para pendientes, rojo con "*" cuando falta el presupuesto. |
+
+#### **2.5.10 Edge Functions del CRM**
+
+El backend del CRM se compone de 6 Edge Functions (Deno/TypeScript) que orquestan la lógica de negocio:
+
+| Endpoint | Método | Propósito | Disparador |
+| :--- | :--- | :--- | :--- |
+| `/functions/v1/create-lead` | POST | Crea lead, sesión IA, conversación y mensaje inicial. Invoca round-robin. Retorna 201. | Viajero click en "Solicitar información" |
+| `/functions/v1/ai-qualify-lead` | POST | Procesa mensaje del viajero con Gemini, extrae campos, actualiza lead y sesión IA, inserta respuesta en chat. | Cada mensaje del viajero en chat con lead activo |
+| `/functions/v1/update-lead-status` | POST | Cambia status del lead. Cierra sesión IA si es terminal (won/lost). El trigger DB registra la actividad. | Agente cambia status en LeadDetailModal |
+| `/functions/v1/assign-lead` | POST | Reasigna manualmente un lead a otro agente del mismo tenant. Notifica al nuevo agente. | Admin reasigna lead (UI en roadmap) |
+| `/functions/v1/transfer-lead-to-human` | POST | Agente toma control del chat. Abandona sesión IA. Inserta mensaje `[SYSTEM]`. Notifica al viajero. | Agente click en "Tomar control del chat" |
+| `/functions/v1/add-lead-activity` | POST | Agrega nota o actividad manual al timeline del lead. | Agente escribe nota en LeadDetailModal |
+
 ## **3\. PARTE 2: COMUNICACIÓN, NOTIFICACIONES Y CHAT IN-APP**
 
 La plataforma carece intencionalmente de medios de comunicación expuestos públicamente; se obliga al viajero y a la agencia a interactuar de manera exclusiva dentro de la SPA para resguardar la retención del usuario.
@@ -95,7 +311,7 @@ La plataforma carece intencionalmente de medios de comunicación expuestos públ
 ### **3.1 Arquitectura del Chat en Tiempo Real y Persistencia**
 
 * **Motor del Chat:** Delegado e implementado sobre la infraestructura de **Supabase Realtime**, aprovechando conexiones de WebSockets síncronas para proveer mensajería instantánea sin sobrecargar los servidores de la API Gateway.  
-* **Ciclo de Vida del Chat:** La conversación se mantiene completamente aislada dentro de las tablas de datos de nuestra plataforma central (sin replicar texto o mensajes históricos en Twenty CRM). Las reglas de archivado automático operan bajo los siguientes estados comerciales:  
+* **Ciclo de Vida del Chat:** La conversación se mantiene completamente aislada dentro de las tablas de datos de nuestra plataforma central (sin replicar texto o mensajes históricos en sistemas externos). Las reglas de archivado automático operan bajo los siguientes estados comerciales:  
   * Si el lead asociado se marca como Perdido en el CRM, la ventana de chat se archiva automáticamente.  
   * Si el lead se marca como Ganado (Venta exitosa), el chat permanece abierto y completamente operativo para coordinar la logística, archivándose de forma automática únicamente cuando el viaje contratado concluya con base en la fecha de retorno establecida.
 
@@ -111,7 +327,7 @@ Para salvaguardar las normas de la comunidad y forzar la transaccionalidad in-ap
 
 Las notificaciones se distribuyen a través de canales específicos para equilibrar la inmediatez de la conversión con los costos fijos asociados a la API de WhatsApp Business:
 
-1. **Captura de Lead Básico:** Ocurre cuando un viajero interactúa con un flyer o completa el flujo inicial con el bot guiado de requerimientos. Detona una alerta **Push** en tiempo real en el Dashboard de la agencia e inyecta la entidad Lead en Twenty CRM. *Se excluye el canal de WhatsApp en este paso para mitigar costos de leads fríos.*  
+1. **Captura de Lead Básico:** Ocurre cuando un viajero interactúa con un flyer o completa el flujo inicial con el bot guiado de requerimientos. Detona una alerta **Push** en tiempo real en el Dashboard de la agencia e inyecta la entidad Lead en el CRM integrado. *Se excluye el canal de WhatsApp en este paso para mitigar costos de leads fríos.*  
 2. **Mensaje Directo en el Chat In-App:** Envía una alerta **Push** instantánea si el agente de viajes se encuentra logueado y activo en la SPA. Si el agente permanece desconectado de la plataforma por un periodo continuo mayor a **5 minutos**, el backend dispara una notificación automatizada por **WhatsApp / Correo Electrónico (vía Resend o SendGrid)** alertándole sobre el mensaje en espera.  
 3. **Confirmación Transaccional de Compra:** Al confirmarse con éxito el cobro de un anticipo en la pasarela, el sistema gatilla en paralelo: Notificación **Push** en el Dashboard de la agencia, **Correo electrónico** formal al viajero adjuntando el recibo de Stripe y el acuerdo contractual de condiciones, y un **Mensaje de WhatsApp automatizado** a ambas partes confirmando los detalles de la reservación.
 
@@ -240,7 +456,7 @@ Las agencias tienen la facultad de habilitar planes de financiamiento con un **p
 
 * **Gestión de Mensualidades:** Se implementa de forma estricta la **Opción B (Manual por enlace)**. El backend no realizará cobros recurrentes automatizados a la tarjeta del cliente. En su lugar, el motor de comunicación omnicanal enviará cada mes notificaciones automatizadas con un link exclusivo de Stripe Checkout para que el viajero ingrese y liquide su abono de forma manual.  
 * **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (13% + IVA) **se cobrará de manera proporcional (el 13% + IVA de cada abono)** conforme el usuario vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
-* **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de exactamente cinco días naturales (5 días) a partir de la fecha de corte**. Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en Twenty CRM y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de monederos electrónicos ni notas de crédito internas.
+* **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de exactamente cinco días naturales (5 días) a partir de la fecha de corte**. Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en el CRM integrado y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de monederos electrónicos ni notas de crédito internas.
 
 ### **6.3 Delimitación de Responsabilidad Fiscal (CFDI México)**
 
@@ -324,8 +540,7 @@ CREATE TABLE agencies\_tenants (
     fiscal\_pdf\_url TEXT NOT NULL, \-- Constancia de Situación Fiscal en storage  
     certification\_key VARCHAR(100) NOT NULL, \-- Clave de certificación turística  
     stripe\_account\_id VARCHAR(255), \-- ID de Cuenta Express/Custom de Stripe Connect  
-    stripe\_customer\_id VARCHAR(255), \-- ID de Cliente para Stripe Billing (SaaS)  
-    twenty\_crm\_relation\_id VARCHAR(255), \-- ID de mapeo lógico con la instancia de Twenty CRM  
+    stripe\_customer\_id VARCHAR(255), \-- ID de Cliente para Stripe Billing (SaaS). Dormant: suscripciones inactivas.  
     status VARCHAR(50) DEFAULT 'En Revisión', \-- En Revisión, Activo, Suspendido por Pago  
     subscription\_tier VARCHAR(50) DEFAULT 'Gratuito', \-- Gratuito, Comercial, Corporativo. Actualmente 'Comercial' por defecto para nuevas agencias. Planes Gratuito y Corporativo documentados para activación futura.  
     created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
@@ -426,7 +641,7 @@ CREATE TABLE wallet\_transactions (
   * **Lógica:** Intercepta la petición y realiza una subconsulta en la base de datos para verificar el conteo actual de registros en custom\_roles\_permissions vinculados a ese tenant\_id. Actualmente todas las agencias operan bajo el Plan Comercial, por lo que el límite es de 1 rol personalizado adicional. Si la agencia ya tiene 1 rol registrado, el endpoint rechaza la creación con una excepción de cuota y un mensaje indicando el límite del plan. En caso de reactivación futura del modelo de suscripciones, la lógica se adaptará para evaluar el subscription\_tier de la agencia y aplicar el límite correspondiente (Gratuito: 0, Comercial: 1, Corporativo: 3).  
 * GET /api/v1/crm/leads  
   * **Acceso:** Privado (Personal de agencia autenticado con JWT).  
-  * **Lógica:** El backend realiza una llamada de servicio mediante una API Key maestra hacia el Twenty CRM autohospedado para extraer los leads del tenant\[cite: 1, 3\]. Antes de despachar la colección al frontend, el middleware evalúa los permisos del rol del usuario de la agencia. Si can\_view\_global\_leads es FALSE, el gateway filtra los objetos en memoria reteniendo única y exclusivamente aquellos leads donde el campo de asignación coincida estrictamente con el UUID del usuario solicitante.  
+  * **Lógica:** El backend consulta directamente las tablas `crm_leads` y `crm_activities` en PostgreSQL aplicando Row-Level Security por tenant para extraer los leads de la agencia. Se une con `profiles` (nombre del viajero) y `travel_packages` (título y región del paquete) para enriquecer la respuesta. Antes de despachar la colección al frontend, el middleware evalúa los permisos del rol del usuario de la agencia. Si `can_view_global_leads` es FALSE, el gateway filtra en el query añadiendo `.eq("assigned_to", user.id)`, reteniendo única y exclusivamente aquellos leads donde el campo de asignación coincida estrictamente con el UUID del usuario solicitante. La consulta está limitada a 100 registros con paginación del lado del servidor en roadmap. Los cambios en tiempo real se reciben mediante suscripción a Supabase Realtime sobre la tabla `crm_leads` con debounce de 500ms para evitar sobrecarga.  
 * POST /api/v1/ai/generate-itinerary  
   * **Acceso:** Privado (Solo usuarios finales registrados y validados vía Google reCAPTCHA v3).  
   * **Lógica:** Verifica en Redis que el contador diario del user\_id no exceda de 5 peticiones. Si el límite por minuto se vulnera, aplica la penalización escalonada de tiempo (15 min \-\> 1 hora \-\> baneo del día). Si pasa el control, calcula la clave criptográfica combinando el ID del viaje con el clúster de intereses del perfil del viajero. De existir en la tabla de caché, retorna el JSON estructurado en milisegundos; de lo contrario, consume la API de Gemini forzando el formato tipado de la línea de tiempo.  
