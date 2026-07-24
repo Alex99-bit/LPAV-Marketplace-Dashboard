@@ -16,6 +16,7 @@ import {
   LogIn,
   UserPlus,
   X,
+  ReceiptText,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -105,6 +106,7 @@ export default function AgencyAuth() {
     accept_no_refunds: false,
     accept_ai_data_usage: false,
     accept_nda: false,
+    accept_iva_disclaimer: false,
   });
 
   const updateField = (field: string, value: string | boolean) =>
@@ -277,8 +279,8 @@ export default function AgencyAuth() {
   };
 
   const validateLegalStep = (): boolean => {
-    if (!legal.accept_no_refunds || !legal.accept_ai_data_usage || !legal.accept_nda) {
-      setError("Debes aceptar los tres acuerdos legales para continuar");
+    if (!legal.accept_no_refunds || !legal.accept_ai_data_usage || !legal.accept_nda || !legal.accept_iva_disclaimer) {
+      setError("Debes aceptar todos los acuerdos legales para continuar");
       return false;
     }
     setError("");
@@ -351,6 +353,7 @@ export default function AgencyAuth() {
         p_accept_no_refunds: legal.accept_no_refunds,
         p_accept_ai_data_usage: legal.accept_ai_data_usage,
         p_accept_nda: legal.accept_nda,
+        p_accept_iva_disclaimer: legal.accept_iva_disclaimer,
       });
 
       if (rpcError) throw rpcError;
@@ -712,6 +715,37 @@ export default function AgencyAuth() {
           </p>
         </div>
       </label>
+
+      {/* IVA Disclaimer */}
+      <label
+        className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-colors cursor-pointer ${
+          legal.accept_iva_disclaimer
+            ? "border-primary bg-primary/5"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={legal.accept_iva_disclaimer}
+          onChange={() => updateLegal("accept_iva_disclaimer")}
+          className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <ReceiptText className="h-4 w-4 text-blue-500" />
+            <span className="text-sm font-semibold text-text">
+              Compromiso de Precios con IVA
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-text-muted">
+            Me comprometo a publicar todos los precios de paquetes con IVA
+            incluido (16%), de conformidad con la legislación fiscal mexicana.
+            Entiendo que Avimo retendrá el 9.28% (8% + IVA) de comisión sobre
+            cada venta, y que el IVA de dicha comisión es acreditable para mi
+            agencia vía CFDI emitido por Avimo.
+          </p>
+        </div>
+      </label>
     </div>
   );
 
@@ -774,6 +808,12 @@ export default function AgencyAuth() {
               <div className="flex items-center gap-2 text-sm">
                 <CheckCircle className="h-3 w-3 text-success" />
                 <span>Convenio de Confidencialidad (NDA)</span>
+              </div>
+            )}
+            {legal.accept_iva_disclaimer && (
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="h-3 w-3 text-success" />
+                <span>Compromiso de Precios con IVA (16%)</span>
               </div>
             )}
           </div>

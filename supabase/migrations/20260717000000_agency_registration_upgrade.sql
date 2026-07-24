@@ -18,7 +18,8 @@ CREATE OR REPLACE FUNCTION public.register_agency(
     p_subscription_tier VARCHAR(20),
     p_accept_no_refunds BOOLEAN,
     p_accept_ai_data_usage BOOLEAN,
-    p_accept_nda BOOLEAN
+    p_accept_nda BOOLEAN,
+    p_accept_iva_disclaimer BOOLEAN DEFAULT FALSE
 ) RETURNS UUID AS $$
 DECLARE
     v_tenant_id UUID;
@@ -54,6 +55,10 @@ BEGIN
         RAISE EXCEPTION 'Debes firmar el Convenio de Confidencialidad (NDA)';
     END IF;
 
+    IF NOT p_accept_iva_disclaimer THEN
+        RAISE EXCEPTION 'Debes aceptar el Compromiso de Precios con IVA';
+    END IF;
+
     INSERT INTO public.agencies_tenants (
         business_name,
         rfc,
@@ -66,6 +71,7 @@ BEGIN
         accept_no_refunds,
         accept_ai_data_usage,
         accept_nda,
+        accept_iva_disclaimer,
         legal_acceptances_at
     ) VALUES (
         p_business_name,

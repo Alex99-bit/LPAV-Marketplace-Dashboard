@@ -4,6 +4,9 @@ import {
   Shield, AlertTriangle, CheckCircle, XCircle, Search,
   BarChart3, CreditCard, MessageSquare, Eye, RefreshCw, LogOut
 } from "lucide-react";
+import FiscalIncomeTab from "@/components/admin/FiscalIncomeTab";
+import FiscalExpenseTab from "@/components/admin/FiscalExpenseTab";
+import FiscalPeriodTab from "@/components/admin/FiscalPeriodTab";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency } from "@/lib/formatters";
 import type { PackageReport, AgencyTenant, Profile } from "@/types";
@@ -12,7 +15,7 @@ import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
-type Tab = "resumen" | "agencias" | "usuarios" | "moderacion";
+type Tab = "resumen" | "agencias" | "usuarios" | "moderacion" | "fiscal";
 
 type PendingAction =
   | { type: "agency-status"; tenantId: string; newStatus: string; label: string }
@@ -34,6 +37,7 @@ interface Metrics {
 
 export default function SuperAdminDashboard() {
   const [tab, setTab] = useState<Tab>("resumen");
+  const [fiscalSubTab, setFiscalSubTab] = useState<"income" | "expense" | "periods">("income");
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<Metrics>({
     totalAgencies: 0, activeAgencies: 0, totalPackages: 0, publishedPackages: 0,
@@ -187,6 +191,7 @@ export default function SuperAdminDashboard() {
     { key: "agencias", label: "Agencias", icon: Building2 },
     { key: "usuarios", label: "Usuarios", icon: Users },
     { key: "moderacion", label: "Moderación", icon: Shield, badge: metrics.pendingReports },
+    { key: "fiscal", label: "Fiscal", icon: DollarSign },
   ];
 
   return (
@@ -271,6 +276,28 @@ export default function SuperAdminDashboard() {
         )}
         {tab === "moderacion" && (
           <ModeracionTab reports={reports} packages={reportPackages} onReview={handleReview} />
+        )}
+        {tab === "fiscal" && (
+          <div>
+            <div className="mb-6 flex gap-2 border-b border-gray-200">
+              {(["income", "expense", "periods"] as const).map((sub) => (
+                <button
+                  key={sub}
+                  onClick={() => setFiscalSubTab(sub)}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    fiscalSubTab === sub
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-text-muted hover:text-text"
+                  }`}
+                >
+                  {sub === "income" ? "Ingresos" : sub === "expense" ? "Egresos" : "Periodos"}
+                </button>
+              ))}
+            </div>
+            {fiscalSubTab === "income" && <FiscalIncomeTab />}
+            {fiscalSubTab === "expense" && <FiscalExpenseTab />}
+            {fiscalSubTab === "periods" && <FiscalPeriodTab />}
+          </div>
         )}
       </div>
 

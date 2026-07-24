@@ -122,9 +122,12 @@ export const PLAN_DETAILS: Record<
     ],
     },
 };
-export const PLATFORM_COMMISSION_RATE = 0.13;
 export const IVA_RATE = 0.16;
-export const EFFECTIVE_COMMISSION_RATE = 0.1508;
+export const TRAVELER_SERVICE_FEE_RATE = 0.06;
+export const AGENCY_COMMISSION_RATE = 0.08;
+export const AGENCY_EFFECTIVE_RATE = 0.0928;
+export const STRIPE_FEE_RATE = 0.041;
+export const STRIPE_FEE_FIXED = 3;
 export const MIN_DEPOSIT_PERCENTAGE = 0.2;
 export const MAX_DEFERRED_MONTHS = 4;
 export const GRACE_PERIOD_DAYS = 5;

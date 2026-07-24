@@ -1,6 +1,68 @@
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { createServiceClient } from "../_shared/auth.ts";
 
+const IVA_RATE = 0.16;
+
+interface ReceiptData {
+  travelerName: string;
+  packageTitle: string;
+  packageSubtotal: number;
+  packageIVA: number;
+  serviceFee: number;
+  serviceFeeSubtotal: number;
+  serviceFeeIVA: number;
+  total: number;
+  agencyName: string;
+  orderId: string;
+  date: string;
+}
+
+function generateReceiptHtml(data: ReceiptData): string {
+  const formatMxn = (n: number) => n.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:16px">
+  <h2 style="color:#3B82F6;margin-bottom:4px">Recibo de Compra — Avimo</h2>
+  <p style="margin:0 0 16px;color:#6B7280">Gracias por tu compra, <strong>${data.travelerName}</strong>.</p>
+  <table style="width:100%;border-collapse:collapse">
+    <tr style="border-bottom:1px solid #E5E7EB">
+      <td style="padding:8px 0"><strong>${data.packageTitle}</strong></td>
+      <td style="text-align:right">$${formatMxn(data.packageSubtotal + data.packageIVA)}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #E5E7EB;color:#6B7280;font-size:13px">
+      <td style="padding:4px 0 8px 16px">Subtotal</td>
+      <td style="text-align:right">$${formatMxn(data.packageSubtotal)}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #E5E7EB;color:#6B7280;font-size:13px">
+      <td style="padding:4px 0 8px 16px">IVA (16%)</td>
+      <td style="text-align:right">$${formatMxn(data.packageIVA)}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #E5E7EB">
+      <td style="padding:8px 0">Tarifa de servicio Avimo</td>
+      <td style="text-align:right">$${formatMxn(data.serviceFee)}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #E5E7EB;color:#6B7280;font-size:13px">
+      <td style="padding:4px 0 8px 16px">Subtotal</td>
+      <td style="text-align:right">$${formatMxn(data.serviceFeeSubtotal)}</td>
+    </tr>
+    <tr style="border-bottom:2px solid #111827;color:#6B7280;font-size:13px">
+      <td style="padding:4px 0 8px 16px">IVA (16%)</td>
+      <td style="text-align:right">$${formatMxn(data.serviceFeeIVA)}</td>
+    </tr>
+    <tr>
+      <td style="padding:12px 0;font-size:16px"><strong>Total pagado</strong></td>
+      <td style="text-align:right;font-size:16px"><strong>$${formatMxn(data.total)}</strong></td>
+    </tr>
+  </table>
+  <p style="color:#6B7280;font-size:11px;margin:16px 0 0">
+    Agencia: ${data.agencyName} &middot; Orden: #${data.orderId.slice(0,8)} &middot; ${data.date}
+  </p>
+  <p style="color:#9CA3AF;font-size:10px;margin:24px 0 0">
+    Para factura fiscal (CFDI) del paquete, contacta directamente a la agencia.<br>
+    Este recibo no es un comprobante fiscal.
+  </p>
+</body></html>`;
+}
+
 Deno.serve(async (req: Request) => {
   const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
@@ -23,27 +85,34 @@ Deno.serve(async (req: Request) => {
       const metadata = session.metadata!;
       const userId = metadata.user_id;
 
+      const { data: pkg } = await supabase
+        .from("travel_packages")
+        .select("title")
+        .eq("package_id", metadata.package_id)
+        .single();
+      const pkgTitle = (pkg as unknown as { title: string })?.title || "Paquete";
+
       const packageTotal = metadata.package_total
         ? parseFloat(metadata.package_total)
         : session.amount_total! / 100;
       const pointsEarned = Math.floor(packageTotal / 100);
 
-      const { data: order } = await supabase
-        .from("transactions_orders")
-        .insert({
-          tenant_id: metadata.tenant_id,
-          stripe_checkout_session_id: session.id,
-          user_id: userId,
-          total_amount: session.amount_total! / 100,
-          remaining_balance: (session.amount_total! / 100) * (1 / 0.2 - 1),
-          currency: (session.currency || "mxn").toUpperCase() as "MXN",
-          platform_commission_fee: (session.amount_total! * 0.1508) / 100,
-          payment_status: "partial_paid",
-          next_payment_due: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          points_earned: pointsEarned,
-        })
-        .select()
-        .single();
+      const { data: order } = await supabase.from("transactions_orders").insert({
+        tenant_id: metadata.tenant_id,
+        stripe_checkout_session_id: session.id,
+        user_id: userId,
+        total_amount: session.amount_total! / 100,
+        remaining_balance: (session.amount_total! / 100) * (1 / 0.2 - 1),
+        currency: (session.currency || "mxn").toUpperCase() as "MXN",
+        platform_commission_fee: parseFloat(metadata.traveler_service_fee || "0") + parseFloat(metadata.agency_commission || "0"),
+        traveler_service_fee: parseFloat(metadata.traveler_service_fee || "0"),
+        agency_commission_fee: parseFloat(metadata.agency_commission || "0"),
+        package_subtotal: parseFloat(metadata.package_subtotal || "0"),
+        package_iva: parseFloat(metadata.package_iva || "0"),
+        payment_status: "partial_paid",
+        next_payment_due: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        points_earned: pointsEarned,
+      }).select().single();
 
       if (order) {
         if (pointsEarned > 0) {
@@ -73,6 +142,76 @@ Deno.serve(async (req: Request) => {
           title: "Pago confirmado",
           message: "Tu anticipo ha sido procesado exitosamente.",
         });
+
+        // Income record #1: Service fee
+        const serviceFeeVal = parseFloat(metadata.traveler_service_fee || "0");
+        const serviceFeeSubtotal = parseFloat(metadata.service_fee_subtotal || "0");
+        const serviceFeeIVA = parseFloat(metadata.service_fee_iva || "0");
+        const stripeFeeBase = (session.amount_total! * 0.041 / 100) + 3;
+        const stripeFeeIVA = stripeFeeBase * 0.16;
+
+        await supabase.from("fiscal_income_records").insert({
+          order_id: order.order_id,
+          tenant_id: metadata.tenant_id,
+          concept: `Tarifa de servicio — ${pkgTitle}`,
+          income_type: "service_fee",
+          subtotal: serviceFeeSubtotal,
+          iva_amount: serviceFeeIVA,
+          total: serviceFeeVal,
+          stripe_fee: parseFloat(stripeFeeBase.toFixed(2)),
+          stripe_fee_iva: parseFloat(stripeFeeIVA.toFixed(2)),
+          recorded_at: new Date().toISOString(),
+        });
+
+        // Income record #2: Agency commission
+        const agencyCommissionVal = parseFloat(metadata.agency_commission || "0");
+        const agencyCommissionSubtotal = agencyCommissionVal / (1 + IVA_RATE);
+        const agencyCommissionIVA = agencyCommissionVal - agencyCommissionSubtotal;
+
+        await supabase.from("fiscal_income_records").insert({
+          order_id: order.order_id,
+          tenant_id: metadata.tenant_id,
+          concept: `Comisión agencia — ${metadata.agency_name || ""}`,
+          income_type: "agency_commission",
+          subtotal: parseFloat(agencyCommissionSubtotal.toFixed(2)),
+          iva_amount: parseFloat(agencyCommissionIVA.toFixed(2)),
+          total: agencyCommissionVal,
+          recorded_at: new Date().toISOString(),
+        });
+
+        // Send receipt email
+        const { data: traveler } = await supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("id", userId)
+          .single();
+
+        if (traveler?.email && order) {
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              to: traveler.email,
+              subject: `Recibo de compra — ${pkgTitle}`,
+              html: generateReceiptHtml({
+                travelerName: traveler.full_name || "Viajero",
+                packageTitle: pkgTitle,
+                packageSubtotal: parseFloat(metadata.package_subtotal || "0"),
+                packageIVA: parseFloat(metadata.package_iva || "0"),
+                serviceFee: serviceFeeVal,
+                serviceFeeSubtotal: serviceFeeSubtotal,
+                serviceFeeIVA: serviceFeeIVA,
+                total: session.amount_total! / 100,
+                agencyName: metadata.agency_name || "Agencia",
+                orderId: order.order_id,
+                date: new Date().toLocaleDateString("es-MX"),
+              }),
+            }),
+          });
+        }
       }
       break;
     }

@@ -441,26 +441,62 @@ Cuando un paquete de viaje supera la fecha límite establecida para la salida de
 
 ## **6\. PARTE 5: ARQUITECTURA FINANCIERA Y LOGÍSTICA DE PAGOS**
 
-### **6.1 Modelo de Comisión y Dispersión Inmediata**
+### **6.1 Modelo de Fee Dividido (Viajero + Agencia)**
 
-La arquitectura transaccional de la plataforma se rige bajo la integración de **Stripe Connect** configurada bajo la modalidad estricta de **Cuentas Custom / Express** para mitigar los riesgos contables y fiscales directos del SaaS\[cite: 1, 5\].
+La plataforma opera bajo un modelo de fee dividido que separa la carga entre el viajero y la agencia, maximizando la transparencia, competitividad y cumplimiento fiscal.
 
-* **Porcentaje de Comisión de la Plataforma:** Se retiene automáticamente un **13% + IVA** sobre el monto total de la transacción. El IVA (16%) se aplica exclusivamente sobre el 13% de comisión, resultando en un total deducido de aproximadamente 15.08% de la venta. Ejemplo práctico: en una venta de $10,000 MXN, la comisión base es $1,300 MXN más $208 MXN de IVA = $1,508 MXN retenidos, dispersando a la agencia $8,492 MXN netos.  
-* **Absorción de Tarifas de Stripe por la Plataforma:** Las tarifas de procesamiento estándar que cobra Stripe (aproximadamente 2.9% + $3 MXN por transacción) se descuentan directamente del 13% de comisión que retiene la plataforma. La plataforma absorbe estos costos como gasto operativo y **la agencia NO paga tarifas de Stripe de forma directa ni adicional**. El remanente que recibe la agencia ya es neto después de la retención del 13% + IVA de comisión, sin deducciones adicionales por procesamiento de pagos.  
-* **Esquema de Transferencias Separadas (Split Payments):** La pasarela captura los montos completos en Pesos Mexicanos (MXN) y aplica una arquitectura de split: retiene el 13% + IVA hacia la cuenta bancaria de la plataforma y dispersa de forma inmediata el remanente neto a la cuenta bancaria enlazada de la agencia de viajes correspondiente\[cite: 1, 7\].  
-* **Blindaje contra Contracargos Bancarios (Disputes):** Al operar bajo el modelo Express/Custom de Stripe Connect, si un viajero inicia una disputa o contracargo directamente con su institución bancaria alegando fraude o incumplimiento, **la responsabilidad financiera y el saldo negativo resultante son transferidos íntegramente por Stripe al balance de la cuenta conectada de la agencia**. La plataforma SaaS queda totalmente exenta de absorber la pérdida monetaria de la disputa bancaria.
+* **Tarifa de Servicio al Viajero (6% IVA incluido):** Se agrega automáticamente al checkout como línea separada visible para el viajero. Cubre: procesamiento de pago (Stripe ~4.1% + IVA + $3 MXN), protección al viajero y costo operativo de la plataforma. El viajero ve el desglose completo con subtotal e IVA (16%) en el checkout y en el recibo de compra enviado por email.  
+* **Comisión a la Agencia (8% + IVA = 9.28% efectivo):** Se retiene del precio del paquete publicado por la agencia (que por contrato debe incluir IVA). El IVA (16% sobre el 8%) es acreditable para la agencia vía CFDI emitido por Avimo a través de Facturama. Costo neto real para la agencia: ~8.0% después de acreditar el IVA. La agencia NUNCA ve la tarifa de servicio del viajero en su dashboard.  
+* **Absorción de Tarifas de Stripe:** Las tarifas de Stripe se descuentan del 6% de service fee cobrado al viajero, no de la comisión de la agencia. La plataforma absorbe cualquier diferencia como gasto operativo. **La agencia NO paga tarifas de Stripe.**
+
+**Ejemplo — Venta de $10,000 MXN (IVA incluido):**
+
+| Concepto | Cálculo | Monto |
+| :--- | :--- | :--- |
+| Precio del paquete (IVA incluido) | — | **$10,000.00** |
+| Subtotal paquete | $10,000 / 1.16 | $8,620.69 |
+| IVA paquete (16%) | | $1,379.31 |
+| Tarifa de servicio Avimo (6% IVA incluido) | $10,000 × 6% | **$600.00** |
+| Subtotal service fee | $600 / 1.16 | $517.24 |
+| IVA service fee (16%) | | $82.76 |
+| **Total cobrado al viajero** | | **$10,600.00** |
+
+| Destino | Cálculo | Monto |
+| :--- | :--- | :--- |
+| **Agencia** (vía Split de Stripe Connect) | $10,000 − 9.28% | **$9,072.00** |
+| **Avimo** (application\_fee\_amount) | $600 + $928 | **$1,528.00** |
+
+| Concepto | Monto |
+| :--- | :--- |
+| Stripe: 4.1% × $10,600 + $3 MXN | $437.60 |
+| IVA sobre Stripe (acreditable) | $70.02 |
+| Total costo Stripe | $507.62 |
+| **Neto Avimo en caja** | **$1,020.38 (~10.2%)** |
+
+**Obligaciones IVA:**
+
+| Origen | IVA a enterar al SAT | IVA acreditable | Neto |
+| :--- | :--- | :--- | :--- |
+| Service fee viajero | $82.76 | — | +$82.76 |
+| Comisión agencia (CFDI emitido) | $128.00 | — | +$128.00 |
+| Stripe (CFDI de gasto recibido) | — | $70.02 | −$70.02 |
+| **IVA neto a pagar al SAT** | | | **$140.74** |
+
+* **Esquema de Split Payments (Stripe Connect):** La pasarela captura el monto total ($10,600 MXN en el ejemplo) y aplica split mediante `application_fee_amount`, reteniendo $1,528 MXN hacia Avimo (service fee + comisión agencia) y dispersando $9,072 MXN netos a la cuenta bancaria de la agencia.  
+* **Blindaje contra Contracargos Bancarios (Disputes):** Al operar bajo el modelo Express/Custom de Stripe Connect, si un viajero inicia una disputa o contracargo directamente con su institución bancaria alegando fraude o incumplimiento, **la responsabilidad financiera y el saldo negativo resultante son transferidos íntegramente por Stripe al balance de la cuenta conectada de la agencia**. La plataforma SaaS queda totalmente exenta de absorber la pérdida monetaria de la disputa bancaria.  
+* **Disclaimer para Agencias:** Como parte del registro corporativo, las agencias aceptan obligatoriamente el Compromiso de Precios con IVA, donde se comprometen a publicar todos los precios con IVA incluido (16%) y reconocen que Avimo retendrá el 9.28% de comisión efectiva sobre cada venta.
 
 ### **6.2 Planes de Pago Diferidos e Impagos B2C**
 
 Las agencias tienen la facultad de habilitar planes de financiamiento con un **plazo máximo de 4 meses** para liquidar el viaje. La agencia es la única encargada de designar el porcentaje de anticipo inicial requerido en el checkout (estableciendo la plataforma una sugerencia mínima del 20%).
 
 * **Gestión de Mensualidades:** Se implementa de forma estricta la **Opción B (Manual por enlace)**. El backend no realizará cobros recurrentes automatizados a la tarjeta del cliente. En su lugar, el motor de comunicación omnicanal enviará cada mes notificaciones automatizadas con un link exclusivo de Stripe Checkout para que el viajero ingrese y liquide su abono de forma manual.  
-* **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (13% + IVA) **se cobrará de manera proporcional (el 13% + IVA de cada abono)** conforme el usuario vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
+* **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (8% + IVA = 9.28% efectivo) **se cobrará de manera proporcional (el 9.28% de cada abono)** conforme el usuario vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
 * **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de exactamente cinco días naturales (5 días) a partir de la fecha de corte**. Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en el CRM integrado y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de monederos electrónicos ni notas de crédito internas.
 
 ### **6.3 Delimitación de Responsabilidad Fiscal (CFDI México)**
 
-* **Facturación de la Plataforma (B2B):** El backend automatizará el timbrado fiscal de facturas electrónicas (CFDI para el mercado de México) consumiendo la API externa de **Facturama**. El sistema emitirá los comprobantes fiscales correspondientes dirigidos a las agencias exclusivamente por el concepto de las comisiones del 13% + IVA retenidas por transaccionalidad de pasarela.  
+* **Facturación de la Plataforma (B2B):** El backend automatizará el timbrado fiscal de facturas electrónicas (CFDI para el mercado de México) consumiendo la API externa de **Facturama**. El sistema emitirá los comprobantes fiscales correspondientes dirigidos a las agencias exclusivamente por el concepto de las comisiones del 8% + IVA (9.28% efectivo) retenidas por transaccionalidad de pasarela.  
 * **Facturación del Viaje (B2C):** La emisión de facturas fiscales CFDI por el monto total del paquete de viaje o los anticipos aportados por los viajeros queda **100% bajo la responsabilidad operativa y legal de la agencia de viajes contratada** (siguiendo estrictamente el modelo de transacciones descentralizadas de Amazon). La plataforma SaaS no intervendrá en el timbrado ni en la conciliación fiscal de los servicios turísticos comercializados entre agencias y consumidores finales.
 
 ### **6.4 Sistema de Lealtad y Cartera Virtual (Avimo Puntos)**
@@ -513,6 +549,87 @@ Los puntos acumulados pueden aplicarse como descuento directo en el checkout de 
 * **Barra de Navegación:** El saldo actual de puntos se muestra en la barra de navegación superior del marketplace junto al ícono del carrito, visible únicamente para usuarios autenticados. El indicador utiliza un ícono de monedero o estrella acompañado del número de puntos.  
 * **Pantalla de Checkout:** Durante el proceso de pago, el viajero visualiza su saldo disponible y un control deslizante (*slider*) o campo numérico para seleccionar cuántos puntos desea aplicar a la compra, con indicadores visuales del mínimo (200 pts) y máximo (20% del total de la compra) permitidos. El resumen del cargo se actualiza en tiempo real reflejando el descuento por puntos.  
 * **Historial de Cartera:** En la sección de perfil del usuario, se despliega un registro cronológico completo de todas las transacciones de puntos (acumulaciones, canjes, reversiones, bonos) con fecha, concepto, cantidad de puntos y saldo resultante. Cada registro es trazable a la orden de compra o evento que lo originó.
+
+### **6.5 Contabilidad Fiscal y Trazabilidad de Ingresos (Panel SuperAdmin)**
+
+La plataforma incluye un módulo de contabilidad fiscal accesible exclusivamente desde el Panel SuperAdmin (`/admin`, pestaña "Fiscal"), diseñado para facilitar la declaración de impuestos ante el SAT y la trazabilidad financiera completa de la empresa. El módulo se divide en tres sub-pestañas: Ingresos, Egresos, y Periodos Fiscales.
+
+#### **6.5.1 Registro Automático de Ingresos**
+
+Cada pago exitoso en Stripe (`checkout.session.completed`) genera automáticamente dos registros en la tabla `fiscal_income_records`:
+
+| Registro | Tipo | Contenido |
+| :--- | :--- | :--- |
+| Tarifa de servicio del viajero | `service_fee` | Subtotal sin IVA, IVA cobrado, fee de Stripe con su IVA acreditable, total |
+| Comisión de la agencia | `agency_commission` | Subtotal sin IVA, IVA cobrado, total |
+
+Cada registro incluye:
+- **`order_id`:** Trazabilidad completa a la orden de compra original.
+- **`stripe_fee` / `stripe_fee_iva`:** El costo de Stripe imputado a ese ingreso (solo en registros `service_fee`), permitiendo calcular el neto real.
+- **`cfdi_status`:** Estado del CFDI (`pending`, `issued`, `cancelled`). La emisión de CFDI por comisiones a agencias se realiza vía Facturama en lote o individualmente.
+- **`fiscal_period_id`:** Se asigna automáticamente al cerrar un periodo fiscal, vinculando el ingreso al periodo correspondiente.
+
+La pestaña "Ingresos" del panel muestra KPIs (ingresos brutos, IVA cobrado, Stripe fees, IVA Stripe acreditable, neto real), filtros por tipo (`service_fee` / `agency_commission`), y tabla completa con todos los campos.
+
+#### **6.5.2 Registro Manual de Egresos Operativos**
+
+El SuperAdmin puede registrar egresos operativos manualmente en la tabla `fiscal_expense_records`. Cada egreso se categoriza en uno de los siguientes rubros:
+
+| Categoría | Ejemplos |
+| :--- | :--- |
+| `infrastructure` | Supabase, hosting, dominio, Cloudflare |
+| `ai_api` | API de Gemini, tokens de IA |
+| `salaries` | Nómina, honorarios, contractor fees |
+| `rent` | Oficina, coworking |
+| `software` | Suscripciones SaaS, herramientas, licencias |
+| `marketing` | Ads, contenido, redes sociales |
+| `legal_accounting` | Contador, abogado, notario |
+| `stripe_fees` | Fees de Stripe no cubiertos por service fee |
+| `other` | Otros gastos operativos |
+
+Cada egreso captura:
+- **Proveedor y RFC:** Para respaldar la deducción fiscal ante el SAT.
+- **Subtotal, IVA, Total:** Con cálculo automático del IVA (16% sobre subtotal).
+- **CFDI del proveedor:** UUID y URL al PDF/XML para verificación.
+- **Notas:** Campo libre para documentación adicional.
+
+La pestaña "Egresos" muestra un formulario de registro, KPIs (egresos totales, IVA acreditable), gráfico de distribución por categoría, y tabla completa de egresos.
+
+#### **6.5.3 Cierre de Periodos Fiscales**
+
+La tabla `fiscal_periods` permite gestionar cierres mensuales, trimestrales y anuales. El flujo de cierre es:
+
+1. **Generación de periodos:** El SuperAdmin genera periodos mensuales (o trimestrales/anuales) desde el panel.
+2. **Acumulación automática:** Los `fiscal_income_records` y `fiscal_expense_records` se registran con `fiscal_period_id = NULL` hasta que el periodo se cierra.
+3. **Cierre:** Al hacer clic en "Cerrar Periodo", la función PL/pgSQL `close_fiscal_period`:
+   - Suma todos los ingresos y egresos del rango de fechas.
+   - Calcula `iva_to_declare` = IVA cobrado − IVA acreditable (si es negativo → IVA a favor).
+   - Calcula `isr_base` = (ingresos − egresos) sin IVA (base imponible para ISR).
+   - Asigna `fiscal_period_id` a todos los registros del periodo.
+   - Cambia el status del periodo a `closed`.
+4. **Post-cierre:** El periodo cerrado puede marcarse como `declared` cuando se presenta la declaración al SAT.
+
+La pestaña "Periodos" muestra tarjetas mensuales con los totales, el IVA a declarar, la base ISR, y botones de cierre. También incluye exportación CSV de todos los ingresos para contabilidad externa.
+
+#### **6.5.4 Esquema de Tablas Fiscales**
+
+| Tabla | Propósito | Acceso |
+| :--- | :--- | :--- |
+| `fiscal_income_records` | Ingresos automáticos por cada pago exitoso | Solo SuperAdmin (RLS) |
+| `fiscal_expense_records` | Egresos manuales registrados por SuperAdmin | Solo SuperAdmin (RLS) |
+| `fiscal_periods` | Periodos mensuales/trimestrales/anuales con totales | Solo SuperAdmin (RLS) |
+
+**RPCs disponibles:**
+- `calculate_period_totals(p_start DATE, p_end DATE)` — Calcula sumas de ingresos y egresos para un rango de fechas.
+- `close_fiscal_period(p_period_id UUID)` — Cierra un periodo, calcula totales, asigna registros al periodo.
+- `credit_points` / `debit_points` — Gestión de puntos de lealtad (Sección 6.4), con trazabilidad fiscal vía `wallet_transactions`.
+
+**Cumplimiento Fiscal:**
+- Todos los ingresos por service fee y comisiones generan IVA trasladado que debe enterarse al SAT.
+- Todos los egresos con CFDI de proveedor generan IVA acreditable.
+- Stripe emite CFDI por sus fees, cuyo IVA es acreditable para Avimo.
+- La diferencia neta (IVA cobrado − IVA acreditable) es lo que se declara y paga al SAT en cada periodo.
+- Las agencias reciben CFDI por las comisiones retenidas (8% + IVA), que acreditan contra sus propios impuestos.
 
 ## **7\. PARTE 6: ARQUITECTURA DE PERSISTENCIA E ENDPOINTS INTERNACIONALIZABLES**
 
