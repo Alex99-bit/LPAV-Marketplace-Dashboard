@@ -7,9 +7,9 @@ import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency, formatPoints } from "@/lib/formatters";
 import {
-  PLATFORM_COMMISSION_RATE,
+  IVA_RATE,
+  TRAVELER_SERVICE_FEE_RATE,
   MIN_DEPOSIT_PERCENTAGE,
-  EFFECTIVE_COMMISSION_RATE,
   MIN_REDEEM_POINTS,
   MAX_POINTS_PERCENT_PER_PURCHASE,
   POINTS_PER_100_MXN,
@@ -57,10 +57,15 @@ export default function Checkout() {
     );
   }
 
-  const subtotalAfterPoints = Math.max(0, total - pointsToRedeem * POINT_VALUE_MXN);
-  const depositAmount = Math.round(subtotalAfterPoints * MIN_DEPOSIT_PERCENTAGE * 100) / 100;
-  const commissionAmount = Math.round(depositAmount * EFFECTIVE_COMMISSION_RATE * 100) / 100;
-  const totalToPay = depositAmount;
+  const serviceFee = Math.round(total * TRAVELER_SERVICE_FEE_RATE * 100) / 100;
+  const packageSubtotal = Math.round((total / (1 + IVA_RATE)) * 100) / 100;
+  const packageIVA = Math.round((total - packageSubtotal) * 100) / 100;
+  const serviceFeeSubtotal = Math.round((serviceFee / (1 + IVA_RATE)) * 100) / 100;
+  const serviceFeeIVA = Math.round((serviceFee - serviceFeeSubtotal) * 100) / 100;
+
+  const depositBase = total - pointsToRedeem * POINT_VALUE_MXN;
+  const depositAmount = Math.round(depositBase * MIN_DEPOSIT_PERCENTAGE * 100) / 100;
+  const totalToPay = depositAmount + serviceFee;
   const pointsEarned = Math.floor(total / 100) * POINTS_PER_100_MXN;
   const maxRedeemable = Math.floor(total * MAX_POINTS_PERCENT_PER_PURCHASE);
   const pointsMxnValue = pointsToRedeem * POINT_VALUE_MXN;
@@ -145,36 +150,59 @@ export default function Checkout() {
 
         <div className="rounded-2xl border border-gray-100 bg-white p-6">
           <h2 className="text-lg font-semibold text-text">Resumen</h2>
-          <div className="mt-4 space-y-3 text-sm">
+          <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-text-muted">Subtotal</span>
+              <span className="text-text-muted">Subtotal (IVA incluido)</span>
               <span className="font-medium text-text">{formatCurrency(total)}</span>
             </div>
+            <div className="flex justify-between text-xs text-text-muted ml-3">
+              <span>Subtotal sin IVA</span>
+              <span>{formatCurrency(packageSubtotal)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-text-muted ml-3">
+              <span>IVA (16%)</span>
+              <span>{formatCurrency(packageIVA)}</span>
+            </div>
+
+            <div className="flex justify-between pt-1">
+              <span
+                className="text-text-muted cursor-help"
+                title="Cubre procesamiento de pago, protección al viajero y uso de la plataforma."
+              >
+                Tarifa de servicio (6%)
+              </span>
+              <span className="font-medium text-text">{formatCurrency(serviceFee)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-text-muted ml-3">
+              <span>Subtotal sin IVA</span>
+              <span>{formatCurrency(serviceFeeSubtotal)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-text-muted ml-3">
+              <span>IVA (16%)</span>
+              <span>{formatCurrency(serviceFeeIVA)}</span>
+            </div>
+
             {pointsToRedeem > 0 && (
-              <div className="flex justify-between">
+              <div className="flex justify-between pt-1">
                 <span className="text-text-muted">Puntos canjeados</span>
                 <span className="font-medium text-green-600">
-                  -{formatCurrency(pointsMxnValue)}
+                  −{formatCurrency(pointsMxnValue)}
                 </span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-text-muted">
-                Anticipo ({(MIN_DEPOSIT_PERCENTAGE * 100)}%)
-              </span>
-              <span className="font-medium text-text">
-                {formatCurrency(depositAmount)}
-              </span>
+
+            <div className="border-t border-gray-100 pt-2">
+              <div className="flex justify-between">
+                <span className="text-text-muted">
+                  Anticipo ({(MIN_DEPOSIT_PERCENTAGE * 100)}%)
+                </span>
+                <span className="font-medium text-text">
+                  {formatCurrency(depositAmount)}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-text-muted">
-                Comisión plataforma ({(EFFECTIVE_COMMISSION_RATE * 100)}%)
-              </span>
-              <span className="font-medium text-text">
-                {formatCurrency(commissionAmount)}
-              </span>
-            </div>
-            <div className="border-t border-gray-100 pt-3">
+
+            <div className="border-t border-gray-100 pt-2">
               <div className="flex justify-between">
                 <span className="font-semibold text-text">Total a pagar</span>
                 <span className="text-lg font-bold text-primary">
@@ -183,9 +211,9 @@ export default function Checkout() {
               </div>
             </div>
             <div className="flex justify-between">
-              <span className="text-text-muted">Puntos a ganar</span>
+              <span className="text-text-muted">Ganarás</span>
               <span className="font-medium text-primary">
-                +{formatPoints(pointsEarned)} pts
+                +{formatPoints(pointsEarned)} pts con esta compra
               </span>
             </div>
           </div>

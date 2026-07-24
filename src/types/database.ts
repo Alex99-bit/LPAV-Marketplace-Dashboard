@@ -95,6 +95,10 @@ export interface TransactionOrder {
   remaining_balance: number;
   currency: Currency;
   platform_commission_fee: number;
+  traveler_service_fee: number;
+  agency_commission_fee: number;
+  package_subtotal: number;
+  package_iva: number;
   points_earned: number;
   points_redeemed: number;
   payment_status: PaymentStatus;
@@ -361,6 +365,62 @@ export interface AgencyTeamMember {
   joined_at: string | null;
 }
 
+export interface FiscalIncomeRecord {
+  income_id: string;
+  order_id: string | null;
+  tenant_id: string | null;
+  concept: string;
+  income_type: "service_fee" | "agency_commission";
+  subtotal: number;
+  iva_amount: number;
+  total: number;
+  currency: string;
+  stripe_fee: number;
+  stripe_fee_iva: number;
+  cfdi_status: "pending" | "issued" | "cancelled";
+  cfdi_uuid: string | null;
+  recorded_at: string;
+  fiscal_period_id: string | null;
+}
+
+export interface FiscalExpenseRecord {
+  expense_id: string;
+  concept: string;
+  expense_category: "infrastructure" | "ai_api" | "salaries" | "rent" | "software" | "marketing" | "legal_accounting" | "stripe_fees" | "other";
+  provider_name: string | null;
+  provider_rfc: string | null;
+  subtotal: number;
+  iva_amount: number;
+  total: number;
+  currency: string;
+  cfdi_status: "pending" | "received" | "verified";
+  cfdi_uuid: string | null;
+  cfdi_pdf_url: string | null;
+  notes: string | null;
+  recorded_by: string | null;
+  recorded_at: string;
+  fiscal_period_id: string | null;
+}
+
+export interface FiscalPeriod {
+  period_id: string;
+  period_type: "monthly" | "quarterly" | "annual";
+  period_label: string;
+  period_start: string;
+  period_end: string;
+  total_income_subtotal: number;
+  total_income_iva: number;
+  total_expense_subtotal: number;
+  total_expense_iva: number;
+  iva_to_declare: number;
+  isr_base: number;
+  status: "open" | "closed" | "declared";
+  closed_at: string | null;
+  closed_by: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface UserWallet {
   wallet_id: string;
   user_id: string;
@@ -410,6 +470,9 @@ export interface Database {
       agency_team_members: { Row: AgencyTeamMember; Insert: Partial<AgencyTeamMember>; Update: Partial<AgencyTeamMember> };
       user_wallets: { Row: UserWallet; Insert: Partial<UserWallet>; Update: Partial<UserWallet> };
       wallet_transactions: { Row: WalletTransaction; Insert: Partial<WalletTransaction>; Update: Partial<WalletTransaction> };
+      fiscal_income_records: { Row: FiscalIncomeRecord; Insert: Partial<FiscalIncomeRecord>; Update: Partial<FiscalIncomeRecord> };
+      fiscal_expense_records: { Row: FiscalExpenseRecord; Insert: Partial<FiscalExpenseRecord>; Update: Partial<FiscalExpenseRecord> };
+      fiscal_periods: { Row: FiscalPeriod; Insert: Partial<FiscalPeriod>; Update: Partial<FiscalPeriod> };
     };
   };
 }
