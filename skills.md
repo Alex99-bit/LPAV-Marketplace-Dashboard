@@ -118,7 +118,7 @@ RESEND_API_KEY=
 TWENTY_CRM_API_KEY=
 TWENTY_CRM_URL=
 VITE_TWENTY_CRM_URL=
-VITE_TWENTY_CRM_SSO_SECRET=
+TWENTY_CRM_SSO_SECRET=
 
 # Facturama (CFDI)
 FACTURAMA_API_KEY=
@@ -917,7 +917,7 @@ Deno.serve(async (req: Request) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "LPAV <noreply@lpav.mx>",
+      from: "LPAV <{FROM_EMAIL}>",
       to: Array.isArray(to) ? to : [to],
       subject,
       html: html || undefined,
@@ -1770,7 +1770,7 @@ jobs:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_TWENTY_CRM_URL`
-- `VITE_TWENTY_CRM_SSO_SECRET`
+- `TWENTY_CRM_SSO_SECRET`
 - `VITE_APP_URL`
 
 **Supabase Edge Function secrets:**
@@ -2080,7 +2080,7 @@ Content-Type: application/json
 {
   "grant_type": "client_credentials",
   "client_id": "lpav-marketplace",
-  "client_secret": "{VITE_TWENTY_CRM_SSO_SECRET}"
+  "client_secret": "{TWENTY_CRM_SSO_SECRET}"
 }
 ```
 

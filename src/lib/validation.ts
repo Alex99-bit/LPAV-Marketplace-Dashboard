@@ -4,8 +4,11 @@ export function isValidRFC(rfc: string): boolean {
 }
 
 export function isValidEmail(email: string): boolean {
+  if (email.includes("\0") || email.includes("\u0000")) return false;
+  const trimmed = email.trim();
+  if (trimmed.length > 254) return false;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim());
+  return emailRegex.test(trimmed);
 }
 
 export function isValidPhone(phone: string): boolean {

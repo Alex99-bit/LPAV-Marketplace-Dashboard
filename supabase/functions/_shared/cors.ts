@@ -1,8 +1,19 @@
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://tudominio.com",
+  "https://lpav.mx",
+  "https://www.lpav.mx",
 ];
+
+function getProductionOrigin(): string | null {
+  const origin = Deno.env.get("PRODUCTION_ORIGIN");
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    ALLOWED_ORIGINS.push(origin);
+  }
+  return origin;
+}
+
+getProductionOrigin();
 
 export function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
