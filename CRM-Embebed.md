@@ -1811,11 +1811,11 @@ const handleReassign = async (newAgentId: string) => {
 GEMINI_API_KEY=AIzaSy...
 
 # Supabase
-VITE_SUPABASE_URL=https://qmcpaqbxbmkhxjezhlch.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 
 # Opcional (para edge functions)
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 **Ubicación**: `.env` en la raíz del proyecto

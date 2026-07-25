@@ -4,7 +4,6 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string;
   readonly VITE_SUPABASE_ANON_KEY: string;
   readonly VITE_TWENTY_CRM_URL: string;
-  readonly VITE_TWENTY_CRM_SSO_SECRET: string;
 }
 
 interface ImportMeta {

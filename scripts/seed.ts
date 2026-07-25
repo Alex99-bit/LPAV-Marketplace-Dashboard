@@ -31,7 +31,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const PASSWORD = "Test1234!";
+const PASSWORD = env.SEED_PASSWORD || "Test1234!";
 
 // ── Test users definition ────────────────────────────────────
 
