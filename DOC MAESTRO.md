@@ -8,27 +8,100 @@
 
 La plataforma está diseñada bajo una arquitectura de software como servicio (SaaS) Multi-Tenant. Utiliza una infraestructura unificada respaldada por **Supabase** (PostgreSQL, Auth, Realtime y Storage) como entorno principal para el backend y la persistencia de datos. La plataforma incluye un **CRM integrado nativamente** para la gestión de leads, seguimiento de ventas y relación con clientes. Este CRM opera directamente sobre PostgreSQL (tablas `crm_leads`, `crm_activities`, `crm_ai_qualification_sessions`, `crm_agent_assignment_queue`) sin dependencia de servicios externos, garantizando baja latencia multi-tenant mediante Row-Level Security. Incluye pre-calificación automatizada de leads por IA (Gemini 2.5 Flash), asignación round-robin a agentes y chat en tiempo real integrado con Supabase Realtime. La especificación completa del CRM se detalla en la Sección 2.5.
 
-### **1.1 Matriz de Niveles de Suscripción B2B**
+### **1.1 Matriz de Paquetes para Agencias**
 
-El ciclo de vida, la facturación recurrente y las cuotas operativas de las agencias de viajes registradas en la plataforma son gestionados de manera automatizada mediante la integración de **Stripe Billing**.
+La plataforma ofrece cuatro paquetes para agencias de viajes, cada uno con una tasa de comisión diferenciada sobre las ventas. La facturación recurrente de los paquetes de paga (Intermedio y Premium) se gestiona mediante **Stripe Billing**.
 
-| Característica / Límite | Plan Básico (Gratuito) MD | Plan Comercial (De Paga) MD | Plan Corporativo (De Paga) MD |
-| :---- | :---- | :---- | :---- |
-| **Enfoque de Mercado** | Captación masiva y Product-Led Growth (PLG). | Agencias en pleno crecimiento y expansión. | Agencias consolidadas y corporativos premium. |
-| **Ciclo de Facturación** | N/A. | Mensual o Anual (Anual incluye 20% de descuento). | Mensual o Anual (Anual incluye 20% de descuento). |
-| **Límite de Flyers Activos** | Máximo 5 flyers publicados simultáneamente. | Hasta 25 flyers publicados simultáneamente. | Ilimitados (con tope alto de control de 150 flyers). |
-| **Roles Personalizados (RBAC)** | 0 (Acceso exclusivo mediante cuenta maestra Agency\_Admin). | Permite crear hasta 1 rol personalizado adicional. | Permite crear hasta **3 roles personalizados dinámicos**. |
-| **Límite de Usuarios / Empleados** | Restringido a 1 usuario administrador. | Soporta la asociación de 3 a 5 empleados por tenant. | Usuarios y colaboradores ilimitados por agencia. |
-| **Gestión de Leads (CRM Integrado)** | Registro centralizado en bandeja principal única sin asignación. | Asignación automática round-robin a agentes; filtrado por status y prioridad; vista restringida por RBAC. | Dashboard avanzado de métricas, KPIs de conversión, pipeline de ventas y analíticas de rendimiento de agentes. |
-| **Canales de Comunicación** | Alertas Push en Dashboard y notificaciones por Correo. | Omnicanalidad completa: Push, Correo y 50 alertas WhatsApp al mes. | Push e Email ilimitados; WhatsApp ilimitado vía *Metered Billing*. |
-| **Pre-calificación de Leads** | Tradicional (Ingreso directo de formularios al CRM). | Acceso a bots guiados basados en reglas lógicas. | Acceso a bots guiados basados en reglas lógicas. |
-| **Agente de IA de Seguimiento** | No disponible. | **Habilitado:** Agente de IA para seguimiento de leads en chat in-app. | **Habilitado:** Agente de IA para seguimiento de leads en chat in-app. |
+| Característica | Plan Básico | Plan Intermedio | Plan Premium | Plan Fundador |
+| :--- | :--- | :--- | :--- | :--- |
+| **Mensualidad** | Sin mensualidad ($0 MXN) | $1,799 MXN | $2,999 MXN | Sin mensualidad ($0 MXN) |
+| **Tasa de Comisión (IVA incluido)** | 20% | 18% (preferencial 17%) | 15% (preferencial 12%) | 7.5% |
+| **Límite de Flyers Activos** | 50 flyers | 50 flyers | 50 flyers | 50 flyers |
+| **Límite de Usuarios / Empleados** | 1 usuario administrador | 3 a 5 empleados por tenant | Ilimitados | Ilimitados |
+| **Roles Personalizados (RBAC)** | 0 (solo Agency\_Admin) | 1 rol personalizado adicional | 3 roles personalizados | 3 roles personalizados |
+| **Gestión de Leads (CRM)** | Bandeja única sin asignación | Asignación round-robin; filtros por status | Dashboard avanzado con KPIs y pipeline | Dashboard avanzado con KPIs y pipeline |
+| **Pre-calificación de Leads** | Tradicional (formularios al CRM) | Bots guiados por reglas lógicas | Bots guiados por reglas lógicas | Bots guiados por reglas lógicas |
+| **Agente de IA de Seguimiento** | No disponible | Habilitado | Habilitado | Habilitado |
+| **Logo Distintivo en Marketplace** | — | Sí | Sí | Sí |
+| **Referidos Directos por Avimo** | — | Sí | Sí | Sí |
+| **Apartado Completo en Marketplace** | — | — | Sí | Sí |
+| **Soporte** | Estándar | Estándar | 24/7 | 24/7 |
+| **Comunicación Agencia-Cliente** | Chat interno en plataforma | Chat interno en plataforma | Chat interno en plataforma | Chat interno en plataforma |
 
-**Regla de Asignación de Plan:** Todas las agencias de nueva creación ingresan por defecto e indefectiblemente al **Plan Comercial**, sin opción a elegir otro nivel. La facturación recurrente de Stripe Billing asociada al Plan Comercial se encuentra actualmente **desactivada**, por lo que las agencias no pagan cuota de suscripción mensual o anual. Las columnas de los planes Gratuito y Corporativo se conservan documentadas exclusivamente como referencia para una posible reactivación futura del modelo de suscripciones SaaS. En tanto el modelo de suscripción permanezca inactivo, Stripe Billing no ejecutará cobros recurrentes de ningún tipo.
+**Regla de Asignación de Paquete:** Todas las agencias de nueva creación ingresan por defecto al **Plan Intermedio**, sin opción a elegir otro nivel. La agencia podrá solicitar cambio de plan una vez completado el proceso de verificación (Sección 1.1.2). La facturación recurrente de Stripe Billing aplica exclusivamente a los planes Intermedio y Premium. El Plan Básico y el Plan Fundador no generan cobros de suscripción mensual.
+
+**Comunicación con Clientes:** Las agencias se comunican con los viajeros **exclusivamente a través del chat interno integrado en la plataforma** (web y aplicación móvil), accesible desde el Portal de Agencia y el Marketplace. No se habilita comunicación externa por email, WhatsApp ni ningún otro canal para la gestión de leads y ventas. Todo el historial de comunicación queda registrado y trazable en el CRM para garantizar transparencia y control de calidad.
+
+#### **1.1.1 Fase Inicial y Límite de Agencias (Plan Fundador)**
+
+La plataforma operará bajo un esquema de acceso controlado durante su primera fase:
+
+* El **Plan Fundador** está limitado a las primeras **10 agencias** que completen el proceso de registro y verificación.  
+* Una vez cubiertas las 10 plazas del Plan Fundador, este paquete **se cierra de forma permanente** para nuevas agencias. No se habilitarán plazas adicionales ni listas de espera.  
+* Las agencias que ingresen posteriormente podrán optar únicamente por los planes Básico, Intermedio o Premium.  
+* El límite de 10 agencias no aplica a los demás planes (Básico, Intermedio y Premium), que permanecen abiertos sin restricción de cupo.
+
+#### **1.1.2 Requisitos de Verificación Adicionales**
+
+Además de los requisitos fiscales y legales estándar detallados en la Sección 2.4.1, **todas las agencias** —sin importar el plan— deben cumplir con los siguientes requisitos de verificación adicionales antes de que su perfil sea activado en el marketplace:
+
+* **Mínimo 3 años de servicio comprobable:** La agencia debe acreditar al menos 3 años de operación continua en el sector turístico mediante documentación oficial (acta constitutiva, registros de actividad, certificaciones turísticas con antigüedad verificable). No se aceptan agencias con menos de 3 años de trayectoria.  
+* **Lugar físico verificable:** La agencia debe contar con una oficina, sucursal o local comercial físico verificable. No se aceptan agencias que operen exclusivamente de forma virtual o sin domicilio comercial comprobable. Se requiere evidencia documental (comprobante de domicilio, contrato de arrendamiento o escritura) con antigüedad no mayor a 3 meses.  
+* **RFC validado contra el SAT:** El RFC proporcionado en el registro es validado en tiempo real contra el servicio de verificación del SAT a través de la API de Facturama. RFCs no localizados, suspendidos o con estatus irregular son rechazados automáticamente.  
+* **Contrato firmado con la plataforma:** La agencia debe firmar electrónicamente un contrato de prestación de servicios con Avimo que establece los términos de operación, la tasa de comisión aplicable según su plan, las condiciones de facturación de suscripción (si aplica), y las obligaciones fiscales de emisión de CFDI. El contrato se gestiona mediante firma electrónica dentro del flujo de registro y se almacena en el bucket privado del tenant.
+
+> **Nota:** Estos requisitos son adicionales e independientes del registro estándar descrito en la Sección 2.4.1. Una agencia puede completar su registro corporativo pero no será activada en el marketplace hasta que todos los requisitos de verificación adicionales hayan sido aprobados.
+
+#### **1.1.3 Tasas Preferenciales por Desempeño en Conversión**
+
+Los planes Intermedio y Premium cuentan con una **tasa de comisión preferencial reducida** que se activa cuando la agencia demuestra un desempeño consistente en la conversión de leads a ventas dentro de la plataforma.
+
+**Métrica de Conversión:** La tasa de conversión se define como el porcentaje de leads generados en la plataforma que la agencia convierte en ventas efectivas, evaluado en **ventanas móviles de 3 meses calendario**:
+
+```
+Tasa de Conversión = (Ventas efectivas en 3 meses / Leads generados en plataforma en 3 meses) × 100
+```
+
+* Un lead se considera "generado en plataforma" cuando un viajero solicita información sobre un paquete de la agencia a través del chat interno, botón de contacto en flyer, o formulario de interés en el marketplace.  
+* Una venta se considera "efectiva" cuando el pago del viajero ha sido confirmado exitosamente por Stripe (`checkout.session.completed`).  
+* Leads y ventas fuera de la plataforma (contacto directo, teléfono, canales externos) **no cuentan** para esta métrica.
+
+**Umbrales y Tasas:**
+
+| Plan | Tasa Base | Tasa Preferencial | Umbral de Conversión | Diferencia |
+| :--- | :--- | :--- | :--- | :--- |
+| Intermedio | 18% | 17% | ≥ 5% de leads → ventas | −1 punto porcentual |
+| Premium | 15% | 12% | ≥ 8% de leads → ventas | −3 puntos porcentuales |
+
+* El Plan Básico y el Plan Fundador tienen **tasas fijas** (20% y 7.5% respectivamente) y no participan en el esquema de tasas preferenciales por conversión.
+
+**Mecanismo de Evaluación y Ajuste:**
+
+* La evaluación se ejecuta de forma **automática el primer día de cada mes**, analizando la ventana de los 3 meses calendario inmediatos anteriores.  
+* Si la agencia alcanza o supera el umbral de conversión de su plan, su tasa de comisión se ajusta a la **tasa preferencial** para todas las ventas del mes en curso.  
+* Si la agencia cae por debajo del umbral durante **2 meses consecutivos**, la tasa regresa automáticamente a la **tasa base** de su plan al inicio del mes siguiente.  
+* La agencia recibe una notificación en su dashboard cada vez que su tasa de comisión cambia (activación o desactivación de tasa preferencial), con el detalle del cálculo de conversión del periodo evaluado.  
+* La consulta del estatus actual de tasa preferencial y el historial de evaluaciones está disponible en el Panel de Finanzas de la agencia (`/agency/finance`).
+
+**Ejemplo — Plan Premium:**
+
+| Mes | Leads | Ventas | Conversión | Tasa Aplicada |
+| :--- | :--- | :--- | :--- | :--- |
+| Ene–Mar | 50 | 5 | 10.0% ≥ 8% | **12% (preferencial activada en Abr)** |
+| Feb–Abr | 60 | 4 | 6.7% < 8% (1er mes bajo umbral) | 12% (mantiene) |
+| Mar–May | 55 | 3 | 5.5% < 8% (2do mes consecutivo bajo umbral) | **15% (regresa a base en Jun)** |
+
+#### **1.1.4 Campañas de Marketing y Promoción Propias (Avimo)**
+
+Avimo utiliza canales de comunicación externa (**email y WhatsApp**) de forma exclusiva para sus propias campañas de marketing y promoción dirigidas a la base de viajeros registrados. Estos canales **no están disponibles para las agencias** como herramientas de contacto con clientes.
+
+* **Email Marketing:** Avimo envía newsletters periódicas a viajeros registrados con paquetes destacados, ofertas especiales y agencias recomendadas. Las agencias de planes Premium y Fundador reciben colocación prioritaria en estas campañas.  
+* **WhatsApp Marketing:** Avimo utiliza WhatsApp para campañas promocionales segmentadas por intereses de viaje (basadas en el perfil de intereses del viajero — Sección 4.2), notificaciones de nuevos paquetes que coinciden con preferencias guardadas, y recordatorios de viajes guardados en wishlist.  
+* **Notificaciones Push In-App:** Las notificaciones push dentro de la plataforma se utilizan para alertas transaccionales (estado de compra, mensajes nuevos en chat, recordatorios de pago) tanto para viajeros como para agencias.
 
 ### **1.2 Regla de Negocio ante Fallos de Pago B2B (Periodo de Gracia)**
 
-> **Estado Actual:** Esta regla de negocio aplica únicamente cuando el modelo de suscripciones SaaS por Stripe Billing esté activo. Actualmente la plataforma opera sin cobros de suscripción, por lo que esta sección se encuentra en estado **inactivo/dormido** y no se ejecuta en producción. Se conserva documentada para reactivación futura del modelo de suscripciones.
+> **Aplica a:** Plan Intermedio y Plan Premium. Los planes Básico y Fundador no tienen cobros de suscripción, por lo que esta regla no les aplica.
 
 * Si el cobro recurrente de la suscripción SaaS de una agencia falla, Stripe Billing ejecutará automáticamente un máximo de 3 reintentos de cargo.  
 * En cada intento fallido, el sistema enviará de inmediato una notificación automatizada por correo electrónico al administrador de la agencia indicando que el cargo no pudo ser procesado.  
@@ -56,6 +129,7 @@ El componente orientado al cliente se desarrollará como una **Single Page Appli
 * **Filtros Interactivos:** El filtro de precios operará con actualización de estado local e inmediata en el cliente para evitar cualquier latencia de recarga de red.  
 * **Detalle con IA:** Un modal flotante premium se activa al hacer clic en un flyer, el cual integra el botón **"Generar Itinerario con IA ✨"** para renderizar un plan detallado día por día consumiendo inteligencia artificial.  
 * **Navegación Global:** Barra fija superior con efecto de *glassmorphism* activo mediante scroll. El menú de hamburguesa para resoluciones móviles implementará una animación nativa por CSS que transforma tres líneas físicas en una "X" al abrirse.
+* **Guardado de Paquetes (Wishlist):** Cada tarjeta de flyer incluye un ícono interactivo de corazón/guardar que permite al viajero añadir o remover el paquete de su lista de deseos personal. En modo invitado, los paquetes guardados se persisten en LocalStorage del navegador. Al autenticarse, el sistema fusiona los favoritos locales con la base de datos (`user_saved_packages`) y persiste cualquier cambio futuro en tiempo real. La lista de paquetes guardados es accesible desde el menú de navegación y el perfil del usuario, mostrando los flyers en formato compacto con acceso directo al detalle, al carrito y a la opción de eliminar de la lista.
 
 ### **2.3 Flujos de Autenticación y Gestión de Carrito**
 
@@ -84,7 +158,7 @@ Es obligatorio proporcionar los datos legales de la empresa a través del formul
 * **Dirección Física Completa:** Calle, número exterior, número interior (opcional), colonia, código postal, municipio/alcaldía, estado. Este dato es obligatorio para la creación de cuentas Express/Custom en Stripe Connect.
 * **Constancia de Situación Fiscal (CSF) en formato PDF — Requisito Obligatorio:** Debe cargarse en formato PDF legible y vigente (no mayor a 3 meses de antigüedad). Es requisito indispensable para habilitar el timbrado automatizado de facturas electrónicas (CFDI) a través de la API de Facturama. Sin CSF validada, el tenant no podrá emitir facturas de comisiones ni operar transacciones financieras. El archivo se almacena en bucket privado con acceso exclusivo mediante signed URLs (no público).
 * **Certificación Turística Oficial:** Se debe indicar el tipo de certificación (por ejemplo: RNT — Registro Nacional de Turismo, IATA, CLIA, AMAV, SECTUR) y proporcionar la clave o folio de certificación correspondiente. Es un campo obligatorio; las agencias sin certificación turística oficial no pueden completar el registro.
-* **Aceptación de Términos y Condiciones:** Checkbox obligatorio de aceptación de los Términos de Uso de la Plataforma, la Política de Privacidad y el acuerdo de comisión del 13% + IVA sobre transacciones procesadas. El registro no se finaliza sin esta aceptación explícita.  
+* **Aceptación de Términos y Condiciones:** Checkbox obligatorio de aceptación de los Términos de Uso de la Plataforma, la Política de Privacidad y el acuerdo de comisión según el plan contratado (ver Sección 1.1). El registro no se finaliza sin esta aceptación explícita.  
 * **Dashboard de Control Interno:** Panel privado que renderiza métricas limpias y aisladas (clics en flyers, leads generados, estado del flujo de ingresos de Stripe Connect y facturación SaaS de Stripe Billing) basados exclusivamente en el contexto de la agencia autenticada\[cite: 1, 3\].  
 * **Formulario de Nuevo Flyer:** Componente con validación estricta en el cliente. Campos requeridos: Título del viaje, Región/Destino, Precio Base, selector de divisa, área de arrastre (*drop-zone*) conectada a almacenamiento en la nube y un selector binario (Switch) para **"Coordinador"**\[cite: 1, 3\]. Al activarse, inyecta en el catálogo público una etiqueta verde "Con Coordinador"; de lo contrario, renderiza una etiqueta gris "Sin Coordinador".
 
@@ -441,62 +515,155 @@ Cuando un paquete de viaje supera la fecha límite establecida para la salida de
 
 ## **6\. PARTE 5: ARQUITECTURA FINANCIERA Y LOGÍSTICA DE PAGOS**
 
-### **6.1 Modelo de Fee Dividido (Viajero + Agencia)**
+### **6.1 Modelo de Comisión Variable por Plan**
 
-La plataforma opera bajo un modelo de fee dividido que separa la carga entre el viajero y la agencia, maximizando la transparencia, competitividad y cumplimiento fiscal.
+La plataforma opera bajo un modelo de comisión variable aplicada exclusivamente a la agencia vendedora, determinado por el plan contratado y, en los planes Intermedio y Premium, por el desempeño en conversión de leads (Sección 1.1.3). El viajero final no paga ninguna tarifa de servicio adicional.
 
-* **Tarifa de Servicio al Viajero (6% IVA incluido):** Se agrega automáticamente al checkout como línea separada visible para el viajero. Cubre: procesamiento de pago (Stripe ~4.1% + IVA + $3 MXN), protección al viajero y costo operativo de la plataforma. El viajero ve el desglose completo con subtotal e IVA (16%) en el checkout y en el recibo de compra enviado por email.  
-* **Comisión a la Agencia (8% + IVA = 9.28% efectivo):** Se retiene del precio del paquete publicado por la agencia (que por contrato debe incluir IVA). El IVA (16% sobre el 8%) es acreditable para la agencia vía CFDI emitido por Avimo a través de Facturama. Costo neto real para la agencia: ~8.0% después de acreditar el IVA. La agencia NUNCA ve la tarifa de servicio del viajero en su dashboard.  
-* **Absorción de Tarifas de Stripe:** Las tarifas de Stripe se descuentan del 6% de service fee cobrado al viajero, no de la comisión de la agencia. La plataforma absorbe cualquier diferencia como gasto operativo. **La agencia NO paga tarifas de Stripe.**
+#### **6.1.1 Tabla Resumen de Comisiones por Plan**
 
-**Ejemplo — Venta de $10,000 MXN (IVA incluido):**
+Todas las tasas de comisión indicadas **ya incluyen el IVA (16%)** y se calculan sobre el precio del paquete publicado por la agencia (que por contrato debe incluir IVA).
+
+| Plan | Tasa Base (IVA incluido) | Tasa Preferencial (IVA incluido) | Condición para Preferencial | Mensualidad |
+| :--- | :--- | :--- | :--- | :--- |
+| Básico | **20%** | — (tasa fija) | No aplica | $0 MXN |
+| Intermedio | **18%** | **17%** | Conversión ≥ 5% en ventana de 3 meses | $1,799 MXN |
+| Premium | **15%** | **12%** | Conversión ≥ 8% en ventana de 3 meses | $2,999 MXN |
+| Fundador | **7.5%** | — (tasa fija) | No aplica. Cerrado tras 10 agencias. | $0 MXN |
+
+**Desglose fiscal por cada tasa (IVA 16%):**
+
+| Tasa Nominal (IVA incl.) | Subtotal Comisión (sin IVA) | IVA Comisión (16%) | IVA Acreditable para Agencia |
+| :--- | :--- | :--- | :--- |
+| 20% | 17.24% | 2.76% | 2.76% |
+| 18% | 15.52% | 2.48% | 2.48% |
+| 17% | 14.66% | 2.34% | 2.34% |
+| 15% | 12.93% | 2.07% | 2.07% |
+| 12% | 10.34% | 1.66% | 1.66% |
+| 7.5% | 6.47% | 1.03% | 1.03% |
+
+#### **6.1.2 Cálculo de la Comisión — Fórmula General**
+
+```
+Comisión Total = Precio del Paquete (IVA incluido) × Tasa de Comisión del Plan
+
+Subtotal Comisión = Comisión Total / 1.16
+IVA Comisión = Comisión Total − Subtotal Comisión
+
+Monto Agencia = Precio del Paquete − Comisión Total
+Monto Avimo (application_fee_amount) = Comisión Total
+```
+
+* **Base de cálculo:** El precio del paquete publicado por la agencia, que por contrato debe incluir el IVA del 16%.  
+* **Tasa aplicable:** La tasa de comisión vigente para la agencia al momento de la transacción, determinada por su `plan_type` y el campo `commission_rate` en `agencies_tenants`.  
+* **IVA de la comisión:** La agencia recibe un CFDI por el IVA de la comisión retenida, que es 100% acreditable contra sus propias obligaciones fiscales.
+
+#### **6.1.3 Desglose por Plan — Ejemplo sobre Venta de $10,000 MXN**
+
+**Plan Básico — Tasa 20% (Fija):**
 
 | Concepto | Cálculo | Monto |
 | :--- | :--- | :--- |
 | Precio del paquete (IVA incluido) | — | **$10,000.00** |
 | Subtotal paquete | $10,000 / 1.16 | $8,620.69 |
 | IVA paquete (16%) | | $1,379.31 |
-| Tarifa de servicio Avimo (6% IVA incluido) | $10,000 × 6% | **$600.00** |
-| Subtotal service fee | $600 / 1.16 | $517.24 |
-| IVA service fee (16%) | | $82.76 |
-| **Total cobrado al viajero** | | **$10,600.00** |
+| **Total cobrado al viajero** | | **$10,000.00** |
+| Comisión total (20% s/precio) | $10,000 × 20% | $2,000.00 |
+| Subtotal comisión | $2,000 / 1.16 | $1,724.14 |
+| IVA comisión (16%) | | $275.86 |
+| **Monto dispersado a la agencia** | $10,000 − $2,000 | **$8,000.00** |
+| **Monto Avimo (application\_fee\_amount)** | $2,000 | **$2,000.00** |
+| Stripe: 4.1% × $10,000 + $3 MXN | | $413.00 |
+| IVA Stripe (acreditable) | | $66.08 |
+| Total costo Stripe | | $479.08 |
+| **Neto Avimo** | | **$1,520.92** |
+| IVA neto a pagar al SAT (comisión − Stripe) | | $209.78 |
 
-| Destino | Cálculo | Monto |
+**Plan Intermedio — Tasa Base 18% / Tasa Preferencial 17%:**
+
+| Concepto | Tasa Base (18%) | Tasa Preferencial (17%) |
 | :--- | :--- | :--- |
-| **Agencia** (vía Split de Stripe Connect) | $10,000 − 9.28% | **$9,072.00** |
-| **Avimo** (application\_fee\_amount) | $600 + $928 | **$1,528.00** |
+| Comisión total | $10,000 × 18% = **$1,800.00** | $10,000 × 17% = **$1,700.00** |
+| Subtotal comisión | $1,551.72 | $1,465.52 |
+| IVA comisión | $248.28 | $234.48 |
+| **Monto agencia** | **$8,200.00** | **$8,300.00** |
+| Monto Avimo | $1,800.00 | $1,700.00 |
+| Stripe (4.1% + $3) + IVA | $479.08 | $479.08 |
+| **Neto Avimo** | **$1,320.92** | **$1,220.92** |
+| IVA neto al SAT | $182.20 | $168.40 |
+| Ahorro para agencia vs. tasa base | — | **+$100.00 por venta** |
 
-| Concepto | Monto |
-| :--- | :--- |
-| Stripe: 4.1% × $10,600 + $3 MXN | $437.60 |
-| IVA sobre Stripe (acreditable) | $70.02 |
-| Total costo Stripe | $507.62 |
-| **Neto Avimo en caja** | **$1,020.38 (~10.2%)** |
+**Plan Premium — Tasa Base 15% / Tasa Preferencial 12%:**
 
-**Obligaciones IVA:**
+| Concepto | Tasa Base (15%) | Tasa Preferencial (12%) |
+| :--- | :--- | :--- |
+| Comisión total | $10,000 × 15% = **$1,500.00** | $10,000 × 12% = **$1,200.00** |
+| Subtotal comisión | $1,293.10 | $1,034.48 |
+| IVA comisión | $206.90 | $165.52 |
+| **Monto agencia** | **$8,500.00** | **$8,800.00** |
+| Monto Avimo | $1,500.00 | $1,200.00 |
+| Stripe (4.1% + $3) + IVA | $479.08 | $479.08 |
+| **Neto Avimo** | **$1,020.92** | **$720.92** |
+| IVA neto al SAT | $140.82 | $99.44 |
+| Ahorro para agencia vs. tasa base | — | **+$300.00 por venta** |
 
-| Origen | IVA a enterar al SAT | IVA acreditable | Neto |
-| :--- | :--- | :--- | :--- |
-| Service fee viajero | $82.76 | — | +$82.76 |
-| Comisión agencia (CFDI emitido) | $128.00 | — | +$128.00 |
-| Stripe (CFDI de gasto recibido) | — | $70.02 | −$70.02 |
-| **IVA neto a pagar al SAT** | | | **$140.74** |
+**Plan Fundador — Tasa 7.5% (Fija):**
 
-* **Esquema de Split Payments (Stripe Connect):** La pasarela captura el monto total ($10,600 MXN en el ejemplo) y aplica split mediante `application_fee_amount`, reteniendo $1,528 MXN hacia Avimo (service fee + comisión agencia) y dispersando $9,072 MXN netos a la cuenta bancaria de la agencia.  
-* **Blindaje contra Contracargos Bancarios (Disputes):** Al operar bajo el modelo Express/Custom de Stripe Connect, si un viajero inicia una disputa o contracargo directamente con su institución bancaria alegando fraude o incumplimiento, **la responsabilidad financiera y el saldo negativo resultante son transferidos íntegramente por Stripe al balance de la cuenta conectada de la agencia**. La plataforma SaaS queda totalmente exenta de absorber la pérdida monetaria de la disputa bancaria.  
-* **Disclaimer para Agencias:** Como parte del registro corporativo, las agencias aceptan obligatoriamente el Compromiso de Precios con IVA, donde se comprometen a publicar todos los precios con IVA incluido (16%) y reconocen que Avimo retendrá el 9.28% de comisión efectiva sobre cada venta.
+| Concepto | Cálculo | Monto |
+| :--- | :--- | :--- |
+| Comisión total (7.5% s/precio) | $10,000 × 7.5% | $750.00 |
+| Subtotal comisión | $750 / 1.16 | $646.55 |
+| IVA comisión (16%) | | $103.45 |
+| **Monto agencia** | $10,000 − $750 | **$9,250.00** |
+| Monto Avimo | $750 | $750.00 |
+| Stripe (4.1% + $3) + IVA | | $479.08 |
+| **Neto Avimo** | | **$270.92** |
+| IVA neto al SAT | | $37.37 |
+
+#### **6.1.4 Comparativa entre Planes (sobre $10,000 MXN)**
+
+| Plan | Tasa | Comisión Retenida | Agencia Recibe | Neto Avimo |
+| :--- | :--- | :--- | :--- | :--- |
+| Fundador | 7.5% | $750.00 | **$9,250.00** | $270.92 |
+| Premium (pref.) | 12% | $1,200.00 | **$8,800.00** | $720.92 |
+| Premium (base) | 15% | $1,500.00 | **$8,500.00** | $1,020.92 |
+| Intermedio (pref.) | 17% | $1,700.00 | **$8,300.00** | $1,220.92 |
+| Intermedio (base) | 18% | $1,800.00 | **$8,200.00** | $1,320.92 |
+| Básico | 20% | $2,000.00 | **$8,000.00** | $1,520.92 |
+
+#### **6.1.5 Reglas de Cambio de Plan**
+
+* **Upgrade (subir de plan):** Una agencia puede solicitar upgrade de plan en cualquier momento desde su Panel de Finanzas. El cambio es inmediato una vez aprobado, y la nueva tasa de comisión aplica a partir de la siguiente venta. Si el upgrade implica un aumento de mensualidad (ej. Básico → Intermedio, Intermedio → Premium), la diferencia proporcional del ciclo de facturación se cobra al momento del cambio.  
+* **Downgrade (bajar de plan):** El downgrade se aplica al final del ciclo de facturación vigente (fin de mes). Durante el ciclo en curso, la agencia mantiene su plan y tasa actuales. Al iniciar el nuevo ciclo, se aplica la tasa del plan inferior y se ajusta la mensualidad.  
+* **Plan Fundador:** Cerrado de forma permanente una vez que las 10 plazas hayan sido ocupadas. No se permiten upgrades ni downgrades hacia o desde el Plan Fundador. Las agencias Fundadoras pueden solicitar cambio a otro plan, pero pierden su plaza de Fundador de forma irreversible.  
+* **Periodo de prueba:** Las agencias nuevas en Plan Intermedio gozan de los primeros 30 días sin cobro de mensualidad (periodo de prueba). A partir del día 31, inicia la facturación recurrente mensual. Durante el periodo de prueba, la tasa de comisión base (18%) aplica normalmente.
+
+#### **6.1.6 Absorción de Tarifas de Stripe**
+
+Las tarifas de Stripe (procesamiento de pago) son absorbidas por la plataforma y se descuentan de la comisión retenida a la agencia. La agencia recibe su pago neto libre de tarifas bancarias. **La agencia NO paga tarifas de Stripe.** Esto aplica a todos los planes por igual.
+
+#### **6.1.7 Esquema de Split Payments (Stripe Connect)**
+
+La pasarela captura el monto total de la venta y aplica split mediante `application_fee_amount`, reteniendo hacia Avimo el monto correspondiente a la comisión según el plan y tasa vigente de la agencia. El remanente se dispersa a la cuenta bancaria de la agencia vía Stripe Connect.
+
+#### **6.1.8 Blindaje contra Contracargos Bancarios (Disputes)**
+
+Al operar bajo el modelo Express/Custom de Stripe Connect, si un viajero inicia una disputa o contracargo directamente con su institución bancaria alegando fraude o incumplimiento, **la responsabilidad financiera y el saldo negativo resultante son transferidos íntegramente por Stripe al balance de la cuenta conectada de la agencia**. La plataforma SaaS queda totalmente exenta de absorber la pérdida monetaria de la disputa bancaria.
+
+#### **6.1.9 Compromiso de Precios con IVA (Disclaimer para Agencias)**
+
+Como parte del registro corporativo, las agencias aceptan obligatoriamente el Compromiso de Precios con IVA, donde se comprometen a publicar todos los precios con IVA incluido (16%) y reconocen que Avimo retendrá la comisión correspondiente según el plan contratado y la tasa vigente al momento de cada transacción. La tasa de comisión aplicable está definida en el contrato firmado (Sección 1.1.2) y es visible en tiempo real en el Panel de Finanzas de la agencia.
 
 ### **6.2 Planes de Pago Diferidos e Impagos B2C**
 
 Las agencias tienen la facultad de habilitar planes de financiamiento con un **plazo máximo de 4 meses** para liquidar el viaje. La agencia es la única encargada de designar el porcentaje de anticipo inicial requerido en el checkout (estableciendo la plataforma una sugerencia mínima del 20%).
 
 * **Gestión de Mensualidades:** Se implementa de forma estricta la **Opción B (Manual por enlace)**. El backend no realizará cobros recurrentes automatizados a la tarjeta del cliente. En su lugar, el motor de comunicación omnicanal enviará cada mes notificaciones automatizadas con un link exclusivo de Stripe Checkout para que el viajero ingrese y liquide su abono de forma manual.  
-* **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (8% + IVA = 9.28% efectivo) **se cobrará de manera proporcional (el 9.28% de cada abono)** conforme el usuario vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
+* **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (según la tasa vigente del plan de la agencia — Sección 6.1.1) **se cobrará de manera proporcional sobre cada abono** conforme el viajero vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
 * **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de exactamente cinco días naturales (5 días) a partir de la fecha de corte**. Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en el CRM integrado y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de monederos electrónicos ni notas de crédito internas.
 
 ### **6.3 Delimitación de Responsabilidad Fiscal (CFDI México)**
 
-* **Facturación de la Plataforma (B2B):** El backend automatizará el timbrado fiscal de facturas electrónicas (CFDI para el mercado de México) consumiendo la API externa de **Facturama**. El sistema emitirá los comprobantes fiscales correspondientes dirigidos a las agencias exclusivamente por el concepto de las comisiones del 8% + IVA (9.28% efectivo) retenidas por transaccionalidad de pasarela.  
+* **Facturación de la Plataforma (B2B):** El backend automatizará el timbrado fiscal de facturas electrónicas (CFDI para el mercado de México) consumiendo la API externa de **Facturama**. El sistema emitirá los comprobantes fiscales correspondientes dirigidos a las agencias exclusivamente por el concepto de las comisiones retenidas según el plan contratado y la tasa vigente al momento de cada transacción (Sección 6.1.1).  
 * **Facturación del Viaje (B2C):** La emisión de facturas fiscales CFDI por el monto total del paquete de viaje o los anticipos aportados por los viajeros queda **100% bajo la responsabilidad operativa y legal de la agencia de viajes contratada** (siguiendo estrictamente el modelo de transacciones descentralizadas de Amazon). La plataforma SaaS no intervendrá en el timbrado ni en la conciliación fiscal de los servicios turísticos comercializados entre agencias y consumidores finales.
 
 ### **6.4 Sistema de Lealtad y Cartera Virtual (Avimo Puntos)**
@@ -533,9 +700,9 @@ Los puntos acumulados pueden aplicarse como descuento directo en el checkout de 
 | **Cobertura máxima por compra** | 20% del valor total de la compra |
 | **Límite máximo de acumulación** | 15,000 puntos ($15,000.00 MXN) |
 
-* **Mecánica de Aplicación:** Los puntos se descuentan primero del subtotal de la compra antes de calcular la comisión del 13% + IVA. La comisión de la plataforma se aplica **únicamente sobre el remanente pagado con tarjeta u otro método de pago**, no sobre la porción cubierta con puntos.  
-* **Ejemplo Práctico:** Compra de $5,000 MXN. El viajero decide canjear 500 puntos ($500 MXN, equivalente al 10% del total, dentro del límite del 20%). El subtotal pagado con tarjeta es de $4,500 MXN. La comisión del 13% + IVA (~15.08%) se calcula sobre $4,500 MXN = $678.60 MXN retenidos. La agencia recibe $3,821.40 MXN netos. Los $500 MXN canjeados son absorbidos por Avimo.  
-* **Protección de la Agencia:** La agencia vendedora no se ve afectada financieramente por el canje de puntos del viajero. Recibe el total de la venta menos únicamente el 13% + IVA de comisión sobre el remanente pagado con tarjeta. Los puntos canjeados son cubiertos íntegramente por las arcas de la empresa.
+* **Mecánica de Aplicación:** Los puntos se descuentan primero del subtotal de la compra antes de calcular la comisión de la plataforma. La comisión (según el plan y tasa vigente de la agencia — Sección 6.1.1) se aplica **únicamente sobre el remanente pagado con tarjeta u otro método de pago**, no sobre la porción cubierta con puntos.  
+* **Ejemplo Práctico (Plan Intermedio, tasa base 18%):** Compra de $5,000 MXN. El viajero decide canjear 500 puntos ($500 MXN, equivalente al 10% del total, dentro del límite del 20%). El subtotal pagado con tarjeta es de $4,500 MXN. La comisión del 18% sobre $4,500 MXN = $810.00 MXN retenidos. La agencia recibe $3,690.00 MXN netos. Los $500 MXN canjeados son absorbidos por Avimo.  
+* **Protección de la Agencia:** La agencia vendedora no se ve afectada financieramente por el canje de puntos del viajero. Recibe el total de la venta menos únicamente la comisión según su plan y tasa vigente (Sección 6.1.1) sobre el remanente pagado con tarjeta. Los puntos canjeados son cubiertos íntegramente por las arcas de la empresa.
 
 #### **6.4.4 Control de Riesgo y Políticas de Reversión**
 
@@ -556,20 +723,19 @@ La plataforma incluye un módulo de contabilidad fiscal accesible exclusivamente
 
 #### **6.5.1 Registro Automático de Ingresos**
 
-Cada pago exitoso en Stripe (`checkout.session.completed`) genera automáticamente dos registros en la tabla `fiscal_income_records`:
+Cada pago exitoso en Stripe (`checkout.session.completed`) genera automáticamente un registro en la tabla `fiscal_income_records`:
 
 | Registro | Tipo | Contenido |
 | :--- | :--- | :--- |
-| Tarifa de servicio del viajero | `service_fee` | Subtotal sin IVA, IVA cobrado, fee de Stripe con su IVA acreditable, total |
-| Comisión de la agencia | `agency_commission` | Subtotal sin IVA, IVA cobrado, total |
+| Comisión de la agencia | `agency_commission` | Subtotal sin IVA, IVA cobrado, fee de Stripe con su IVA acreditable, total |
 
 Cada registro incluye:
 - **`order_id`:** Trazabilidad completa a la orden de compra original.
-- **`stripe_fee` / `stripe_fee_iva`:** El costo de Stripe imputado a ese ingreso (solo en registros `service_fee`), permitiendo calcular el neto real.
+- **`stripe_fee` / `stripe_fee_iva`:** El costo de Stripe imputado a ese ingreso, permitiendo calcular el neto real.
 - **`cfdi_status`:** Estado del CFDI (`pending`, `issued`, `cancelled`). La emisión de CFDI por comisiones a agencias se realiza vía Facturama en lote o individualmente.
 - **`fiscal_period_id`:** Se asigna automáticamente al cerrar un periodo fiscal, vinculando el ingreso al periodo correspondiente.
 
-La pestaña "Ingresos" del panel muestra KPIs (ingresos brutos, IVA cobrado, Stripe fees, IVA Stripe acreditable, neto real), filtros por tipo (`service_fee` / `agency_commission`), y tabla completa con todos los campos.
+La pestaña "Ingresos" del panel muestra KPIs (ingresos brutos, IVA cobrado, Stripe fees, IVA Stripe acreditable, neto real), filtros por tipo (`agency_commission`), y tabla completa con todos los campos.
 
 #### **6.5.2 Registro Manual de Egresos Operativos**
 
@@ -584,7 +750,7 @@ El SuperAdmin puede registrar egresos operativos manualmente en la tabla `fiscal
 | `software` | Suscripciones SaaS, herramientas, licencias |
 | `marketing` | Ads, contenido, redes sociales |
 | `legal_accounting` | Contador, abogado, notario |
-| `stripe_fees` | Fees de Stripe no cubiertos por service fee |
+| `stripe_fees` | Fees de Stripe (gasto operativo de la plataforma) |
 | `other` | Otros gastos operativos |
 
 Cada egreso captura:
@@ -625,11 +791,11 @@ La pestaña "Periodos" muestra tarjetas mensuales con los totales, el IVA a decl
 - `credit_points` / `debit_points` — Gestión de puntos de lealtad (Sección 6.4), con trazabilidad fiscal vía `wallet_transactions`.
 
 **Cumplimiento Fiscal:**
-- Todos los ingresos por service fee y comisiones generan IVA trasladado que debe enterarse al SAT.
+- Todos los ingresos por comisiones generan IVA trasladado que debe enterarse al SAT.
 - Todos los egresos con CFDI de proveedor generan IVA acreditable.
 - Stripe emite CFDI por sus fees, cuyo IVA es acreditable para Avimo.
 - La diferencia neta (IVA cobrado − IVA acreditable) es lo que se declara y paga al SAT en cada periodo.
-- Las agencias reciben CFDI por las comisiones retenidas (8% + IVA), que acreditan contra sus propios impuestos.
+- Las agencias reciben CFDI por las comisiones retenidas (según plan y tasa vigente), que acreditan contra sus propios impuestos.
 
 ## **7\. PARTE 6: ARQUITECTURA DE PERSISTENCIA E ENDPOINTS INTERNACIONALIZABLES**
 
@@ -646,7 +812,7 @@ La persistencia de datos opera sobre una base de datos única compartida utiliza
 
 #### **Tabla: agencies\_tenants**
 
-Almacena las configuraciones generales del inquilino corporativo, sus credenciales fiscales de registro y sus relaciones con las pasarelas externas.
+Almacena las configuraciones generales del inquilino corporativo, sus credenciales fiscales de registro, el plan contratado y sus relaciones con las pasarelas externas.
 
 SQL  
 CREATE TABLE agencies\_tenants (  
@@ -657,9 +823,18 @@ CREATE TABLE agencies\_tenants (
     fiscal\_pdf\_url TEXT NOT NULL, \-- Constancia de Situación Fiscal en storage  
     certification\_key VARCHAR(100) NOT NULL, \-- Clave de certificación turística  
     stripe\_account\_id VARCHAR(255), \-- ID de Cuenta Express/Custom de Stripe Connect  
-    stripe\_customer\_id VARCHAR(255), \-- ID de Cliente para Stripe Billing (SaaS). Dormant: suscripciones inactivas.  
+    stripe\_customer\_id VARCHAR(255), \-- ID de Cliente para Stripe Billing (SaaS)  
     status VARCHAR(50) DEFAULT 'En Revisión', \-- En Revisión, Activo, Suspendido por Pago  
-    subscription\_tier VARCHAR(50) DEFAULT 'Gratuito', \-- Gratuito, Comercial, Corporativo. Actualmente 'Comercial' por defecto para nuevas agencias. Planes Gratuito y Corporativo documentados para activación futura.  
+    plan\_type VARCHAR(50) DEFAULT 'Intermedio', \-- Básico, Intermedio, Premium, Fundador  
+    commission\_rate NUMERIC(5,2) NOT NULL DEFAULT 18.00, \-- Tasa de comisión vigente (IVA incluido). 18% para Intermedio por defecto.  
+    conversion\_window\_leads INTEGER DEFAULT 0, \-- Leads generados en plataforma en la ventana de 3 meses  
+    conversion\_window\_sales INTEGER DEFAULT 0, \-- Ventas efectivas en la ventana de 3 meses  
+    conversion\_rate NUMERIC(5,2), \-- Tasa de conversión calculada: (ventas / leads) × 100  
+    preferential\_rate\_active BOOLEAN DEFAULT FALSE, \-- TRUE si goza de tasa preferencial por conversión  
+    consecutive\_months\_below\_threshold INTEGER DEFAULT 0, \-- Meses consecutivos bajo el umbral de conversión. Al llegar a 2, se revierte a tasa base.  
+    verification\_status VARCHAR(50) DEFAULT 'pending', \-- pending, verified, rejected (requisitos adicionales 1.1.2)  
+    contract\_signed\_at TIMESTAMP WITH TIME ZONE, \-- Fecha de firma de contrato con la plataforma  
+    contract\_pdf\_url TEXT, \-- Contrato firmado en bucket privado  
     created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
 );
 
@@ -713,7 +888,7 @@ CREATE TABLE transactions\_orders (
     total\_amount NUMERIC(12, 2\) NOT NULL,  
     remaining\_balance NUMERIC(12, 2\) NOT NULL, \-- Control del balance pendiente de abonos  
     currency VARCHAR(3) DEFAULT 'MXN',  
-    platform\_commission\_fee NUMERIC(12, 2\) NOT NULL, \-- 13% + IVA retenido de manera proporcional por abono  
+    platform\_commission\_fee NUMERIC(12, 2\) NOT NULL, \-- Comisión retenida según plan y tasa vigente, proporcional por abono  
     points\_earned INTEGER DEFAULT 0, \-- Puntos (1 pt = $1 MXN) acumulados por el viajero en esta transacción  
     points\_redeemed INTEGER DEFAULT 0, \-- Puntos canjeados como descuento en esta transacción  
     payment\_status VARCHAR(50) DEFAULT 'pending', \-- pending, partial\_paid, paid, moroso, cancelled  
@@ -751,11 +926,19 @@ CREATE TABLE wallet\_transactions (
     created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
 );
 
+CREATE TABLE user\_saved\_packages (
+    id UUID PRIMARY KEY DEFAULT gen\_random\_uuid(),
+    user\_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    package\_id UUID NOT NULL REFERENCES travel\_packages(package\_id) ON DELETE CASCADE,
+    saved\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+    UNIQUE(user\_id, package\_id)
+);
+
 ### **7.4 Capa de API Gateway y Endpoints Críticos**
 
 * POST /api/v1/agency/roles/create  
   * **Acceso:** Privado (Agency\_Admin en exclusividad)\[cite: 1, 2\].  
-  * **Lógica:** Intercepta la petición y realiza una subconsulta en la base de datos para verificar el conteo actual de registros en custom\_roles\_permissions vinculados a ese tenant\_id. Actualmente todas las agencias operan bajo el Plan Comercial, por lo que el límite es de 1 rol personalizado adicional. Si la agencia ya tiene 1 rol registrado, el endpoint rechaza la creación con una excepción de cuota y un mensaje indicando el límite del plan. En caso de reactivación futura del modelo de suscripciones, la lógica se adaptará para evaluar el subscription\_tier de la agencia y aplicar el límite correspondiente (Gratuito: 0, Comercial: 1, Corporativo: 3).  
+  * **Lógica:** Intercepta la petición y realiza una subconsulta en la base de datos para verificar el conteo actual de registros en custom\_roles\_permissions vinculados a ese tenant\_id. Evalúa el campo `plan_type` de la agencia en `agencies_tenants` para determinar el límite aplicable: Básico e Intermedio: 0 o 1 rol adicional respectivamente; Premium y Fundador: hasta 3 roles personalizados. Si la agencia ya alcanzó su límite, el endpoint rechaza la creación con una excepción de cuota y un mensaje indicando el límite del plan y la opción de hacer upgrade.  
 * GET /api/v1/crm/leads  
   * **Acceso:** Privado (Personal de agencia autenticado con JWT).  
   * **Lógica:** El backend consulta directamente las tablas `crm_leads` y `crm_activities` en PostgreSQL aplicando Row-Level Security por tenant para extraer los leads de la agencia. Se une con `profiles` (nombre del viajero) y `travel_packages` (título y región del paquete) para enriquecer la respuesta. Antes de despachar la colección al frontend, el middleware evalúa los permisos del rol del usuario de la agencia. Si `can_view_global_leads` es FALSE, el gateway filtra en el query añadiendo `.eq("assigned_to", user.id)`, reteniendo única y exclusivamente aquellos leads donde el campo de asignación coincida estrictamente con el UUID del usuario solicitante. La consulta está limitada a 100 registros con paginación del lado del servidor en roadmap. Los cambios en tiempo real se reciben mediante suscripción a Supabase Realtime sobre la tabla `crm_leads` con debounce de 500ms para evitar sobrecarga.  
@@ -767,4 +950,4 @@ CREATE TABLE wallet\_transactions (
   * **Lógica:** Invoca al SDK de Supabase Storage para generar una dirección URL de subida directa con firma criptográfica simétrica y expiración de 300 segundos, evitando la transferencia de binarios pesados a través del servidor central de la plataforma.  
 * POST /api/v1/payments/checkout-session  
   * **Acceso:** Privado (EndUser registrado y autenticado).  
-  * **Lógica:** Configura e inicializa una sesión de Stripe Checkout inyectando los parámetros de Stripe Connect. Procesa la compra en el siguiente orden: (1) Valida y aplica los puntos canjeados por el viajero (mínimo 200 puntos, máximo 20% del total de la compra), descontándolos del subtotal. (2) Calcula el subtotal remanente a pagar con tarjeta u otro método de pago. (3) Calcula el 13% + IVA de comisión sobre el remanente pagado con tarjeta y configura el split de Stripe Connect reteniendo ese monto hacia la plataforma, dispersando el resto a la cuenta Express de la agencia. (4) Calcula los puntos a ganar por esta compra (1 punto por cada $100 MXN del total de la compra, independientemente de los puntos canjeados). (5) Si el pago es diferido en plazos, programa las alertas de cobro mensual manual en el sistema de mensajería omnicanal con recordatorios y links exclusivos de Stripe Checkout.
+  * **Lógica:** Configura e inicializa una sesión de Stripe Checkout inyectando los parámetros de Stripe Connect. Procesa la compra en el siguiente orden: (1) Valida y aplica los puntos canjeados por el viajero (mínimo 200 puntos, máximo 20% del total de la compra), descontándolos del subtotal. (2) Calcula el subtotal remanente a pagar con tarjeta u otro método de pago. (3) Calcula la comisión según el plan y tasa vigente de la agencia (`commission_rate` en `agencies_tenants`) sobre el remanente pagado con tarjeta y configura el split de Stripe Connect reteniendo ese monto hacia la plataforma, dispersando el resto a la cuenta Express de la agencia. (4) Calcula los puntos a ganar por esta compra (1 punto por cada $100 MXN del total de la compra, independientemente de los puntos canjeados). (5) Si el pago es diferido en plazos, programa las alertas de cobro mensual manual en el sistema de mensajería omnicanal con recordatorios y links exclusivos de Stripe Checkout.
