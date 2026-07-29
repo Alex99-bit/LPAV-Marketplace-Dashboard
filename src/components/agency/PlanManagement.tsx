@@ -1,45 +1,53 @@
 import { useState } from "react";
-import { CreditCard, ExternalLink } from "lucide-react";
+import { CreditCard, CheckCircle2, Star, Zap, Crown, Heart } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import type { SaasSubscription, SubscriptionTier } from "@/types";
+import { PLAN_DETAILS } from "@/lib/constants";
+import type { PlanType } from "@/types";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 
 interface PlanManagementProps {
-  subscription: SaasSubscription | null;
-  currentTier: SubscriptionTier;
+  currentTier: PlanType;
+  currentCommissionRate?: number;
+  preferentialRateActive?: boolean;
 }
 
-const PLANS: { name: SubscriptionTier; features: string[] }[] = [
-  { name: "Gratuito", features: ["5 flyers", "0 roles custom", "1 admin"] },
-  { name: "Comercial", features: ["25 flyers", "1 rol custom", "3-5 empleados", "CRM completo"] },
-  { name: "Corporativo", features: ["150 flyers", "3 roles custom", "Empleados ilimitados", "Analíticas", "AI Agent"] },
-];
+const PLAN_ICONS: Record<PlanType, typeof Star> = {
+  Básico: Star,
+  Intermedio: Zap,
+  Premium: Crown,
+  Fundador: Heart,
+};
 
-// TODO(F4-plan-sync): sincronizar features y límites de PLANS con PLAN_LIMITS
-// en constants.ts y AgencyAuth.tsx para tener una sola fuente de verdad.
-// Hoy los números difieren (5/25 vs 3/20 reales, precios solo en AgencyAuth).
+export default function PlanManagement({
+  currentTier,
+  currentCommissionRate,
+  preferentialRateActive,
+}: PlanManagementProps) {
+  const [loading, setLoading] = useState<PlanType | null>(null);
 
-export default function PlanManagement({ subscription, currentTier }: PlanManagementProps) {
-  const [loading, setLoading] = useState(false);
-
-  const handleUpgrade = async (plan: string) => {
-    setLoading(true);
+  const handleChangePlan = async (plan: PlanType) => {
+    if (plan === currentTier) return;
+    setLoading(plan);
     try {
       const { data, error } = await supabase.functions.invoke("manage-subscription", {
-        body: { action: "create", plan, billing_cycle: "monthly" },
+        body: { action: "change_plan", plan },
       });
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) {
+        window.location.href = data.url;
+      } else if (data?.success) {
+        window.location.reload();
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error al cambiar de plan:", err);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
   const handlePortal = async () => {
-    setLoading(true);
+    setLoading(currentTier);
     try {
       const { data, error } = await supabase.functions.invoke("manage-subscription", {
         body: { action: "portal" },
@@ -49,73 +57,93 @@ export default function PlanManagement({ subscription, currentTier }: PlanManage
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-6">
-      <h3 className="text-lg font-semibold text-text">Plan de Suscripción</h3>
-      <div className="mt-4 rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
-        <p className="font-medium">Plan Comercial — Sin costo de suscripción</p>
-        <p className="mt-1 text-xs text-blue-600">
-          Todas las agencias operan actualmente bajo el Plan Comercial 
-          con todas sus funcionalidades incluidas. No se requiere 
-          configurar facturación de suscripción.
-        </p>
-      </div>
-    </div>
-  );
+  const tierOrder: PlanType[] = ["Básico", "Intermedio", "Premium", "Fundador"];
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6">
-      <h3 className="text-lg font-semibold text-text">Plan y Suscripción</h3>
-
-      {subscription && (
-        <div className="mt-3 flex items-center gap-3">
-          <Badge variant="success">{subscription.plan_tier}</Badge>
-          <span className="text-xs text-text-muted">
-            {subscription.billing_cycle === "monthly" ? "Mensual" : "Anual"}
-          </span>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-text">Plan y Comisión</h3>
+          <p className="mt-1 text-xs text-text-muted">
+            Plan actual: <strong>{PLAN_DETAILS[currentTier].label}</strong>
+            {currentCommissionRate && (
+              <> — Comisión: <strong>{currentCommissionRate}%</strong></>
+            )}
+            {preferentialRateActive && (
+              <Badge variant="success" className="ml-2">Tasa Preferencial</Badge>
+            )}
+          </p>
+        </div>
+        {(currentTier === "Intermedio" || currentTier === "Premium") && (
           <button
             onClick={handlePortal}
-            className="ml-auto inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
           >
             <CreditCard className="h-3.5 w-3.5" /> Portal de Facturación
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        {PLANS.map((plan) => {
-          const isCurrent = plan.name === currentTier;
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {tierOrder.map((tier) => {
+          const plan = PLAN_DETAILS[tier];
+          const isCurrent = tier === currentTier;
+          const Icon = PLAN_ICONS[tier];
+
           return (
             <div
-              key={plan.name}
-              className={`rounded-xl border p-4 ${
-                isCurrent ? "border-primary bg-primary/5" : "border-gray-100"
+              key={tier}
+              className={`rounded-xl border p-4 flex flex-col ${
+                isCurrent
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                  : plan.recommended
+                    ? "border-primary/30"
+                    : "border-gray-100"
               }`}
             >
-              <h4 className="font-semibold text-text">{plan.name}</h4>
-              <ul className="mt-3 space-y-1.5">
-                {plan.features.map((f) => (
-                  <li key={f} className="text-xs text-text-muted">{f}</li>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`p-1.5 rounded-lg ${isCurrent ? "bg-primary/15" : "bg-gray-100"}`}>
+                  <Icon className={`h-4 w-4 ${isCurrent ? "text-primary" : "text-text-muted"}`} />
+                </div>
+                <h4 className="font-semibold text-sm text-text">{plan.label}</h4>
+                {isCurrent && <CheckCircle2 className="h-4 w-4 text-primary ml-auto" />}
+              </div>
+
+              <p className="text-lg font-bold text-text mb-1">{plan.price}</p>
+              <p className="text-xs text-text-muted mb-3">
+                Comisión: <span className="font-semibold text-text">{plan.commission}</span>
+                <br />
+                <span className="text-[10px]">{plan.commissionNote}</span>
+              </p>
+
+              <ul className="flex-1 space-y-1 mb-4">
+                {plan.features.slice(0, 4).map((f) => (
+                  <li key={f} className="text-xs text-text-muted flex items-start gap-1">
+                    <span className="text-primary mt-0.5">•</span> {f}
+                  </li>
                 ))}
+                {plan.features.length > 4 && (
+                  <li className="text-xs text-text-muted pl-4">
+                    +{plan.features.length - 4} más
+                  </li>
+                )}
               </ul>
+
               {isCurrent ? (
-                <Badge variant="info" className="mt-4">Plan Actual</Badge>
+                <Badge variant="info" className="w-full justify-center">Plan Actual</Badge>
               ) : (
                 <Button
-                  className="mt-4 w-full"
+                  className="w-full"
                   size="sm"
-                  variant="outline"
-                  onClick={() => handleUpgrade(plan.name)}
-                  loading={loading}
+                  variant={plan.recommended ? "primary" : "outline"}
+                  onClick={() => handleChangePlan(tier)}
+                  loading={loading === tier}
                 >
-                  {PLANS.findIndex((p) => p.name === currentTier) < PLANS.findIndex((p) => p.name === plan.name)
-                    ? "Mejorar"
-                    : "Cambiar"}
-                  <ExternalLink className="h-3.5 w-3.5" />
+                  {tierOrder.indexOf(tier) > tierOrder.indexOf(currentTier) ? "Mejorar" : "Cambiar"}
                 </Button>
               )}
             </div>

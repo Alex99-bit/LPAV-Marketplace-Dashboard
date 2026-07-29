@@ -46,6 +46,11 @@ export default function AgencyFinance() {
     currencies: [],
     profitability: [],
   });
+  const [planInfo, setPlanInfo] = useState<{
+    plan_type: string;
+    commission_rate: number;
+    preferential_rate_active: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!profile?.tenant_id) return;
@@ -54,7 +59,7 @@ export default function AgencyFinance() {
       const tenantId = profile.tenant_id!;
 
       const [tenantRes, ordersRes] = await Promise.all([
-        supabase.from("agencies_tenants").select("stripe_account_id").eq("tenant_id", tenantId).single(),
+        supabase.from("agencies_tenants").select("stripe_account_id, plan_type, commission_rate, preferential_rate_active").eq("tenant_id", tenantId).single(),
         supabase
           .from("transactions_orders")
           .select("total_amount, platform_commission_fee, agency_commission_fee, currency, travel_packages(package_id, title)")
@@ -107,6 +112,13 @@ export default function AgencyFinance() {
         currencies,
         profitability,
       });
+      if (tenantRes.data) {
+        setPlanInfo({
+          plan_type: (tenantRes.data as unknown as { plan_type: string }).plan_type,
+          commission_rate: (tenantRes.data as unknown as { commission_rate: number }).commission_rate,
+          preferential_rate_active: (tenantRes.data as unknown as { preferential_rate_active: boolean }).preferential_rate_active,
+        });
+      }
       if (currencies.length > 0 && !activeCurrency) {
         setActiveCurrency(currencies[0]!);
       }
@@ -126,7 +138,18 @@ export default function AgencyFinance() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <h1 className="mb-8 text-2xl font-bold text-text">Finanzas</h1>
+      <h1 className="mb-2 text-2xl font-bold text-text">Finanzas</h1>
+      {planInfo && (
+        <p className="mb-6 text-sm text-text-muted">
+          Plan: <strong>{planInfo.plan_type}</strong> &middot;
+          Comisión: <strong>{planInfo.commission_rate}%</strong>
+          {planInfo.preferential_rate_active && (
+            <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+              Tasa Preferencial Activa
+            </span>
+          )}
+        </p>
+      )}
 
       <div className="space-y-6">
         <StripeConnectStatus
@@ -148,6 +171,7 @@ export default function AgencyFinance() {
           totalRevenue={activeGroup?.totalRevenue ?? data.totalRevenue}
           platformFees={activeGroup?.platformFees ?? data.platformFees}
           netReceived={activeGroup?.netReceived ?? data.netReceived}
+          commissionRate={planInfo?.commission_rate}
         />
 
         <ProfitabilityTable

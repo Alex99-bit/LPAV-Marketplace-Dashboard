@@ -67,6 +67,8 @@ export default function FiscalIncomeTab() {
           className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm"
         >
           <option value="all">Todos</option>
+          {/* Ambos tipos se conservan para datos históricos.
+              Nuevas órdenes solo generan registros agency_commission. */}
           <option value="service_fee">Tarifa de Servicio</option>
           <option value="agency_commission">Comisión Agencia</option>
         </select>

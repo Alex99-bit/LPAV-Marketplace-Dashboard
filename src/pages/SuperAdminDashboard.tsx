@@ -331,7 +331,7 @@ function ResumenTab({ metrics }: { metrics: Metrics }) {
     { icon: Users, label: "Usuarios", value: metrics.totalUsers, color: "bg-purple-50 text-purple-600" },
     { icon: MessageSquare, label: "Leads CRM", value: metrics.totalLeads, color: "bg-cyan-50 text-cyan-600" },
     { icon: DollarSign, label: "Ingresos Totales", value: formatCurrency(metrics.totalRevenue), color: "bg-emerald-50 text-emerald-600" },
-    { icon: CreditCard, label: "Comisión (3%)", value: formatCurrency(metrics.commissionEarned), color: "bg-green-50 text-green-600" },
+    { icon: CreditCard, label: "Comisiones", value: formatCurrency(metrics.commissionEarned), color: "bg-green-50 text-green-600" },
     { icon: TrendingUp, label: "Órdenes", value: metrics.totalOrders, color: "bg-sky-50 text-sky-600" },
     { icon: AlertTriangle, label: "Reportes Pend.", value: metrics.pendingReports, color: metrics.pendingReports > 0 ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500" },
   ];

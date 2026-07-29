@@ -8,9 +8,6 @@ interface ReceiptData {
   packageTitle: string;
   packageSubtotal: number;
   packageIVA: number;
-  serviceFee: number;
-  serviceFeeSubtotal: number;
-  serviceFeeIVA: number;
   total: number;
   agencyName: string;
   orderId: string;
@@ -32,21 +29,9 @@ function generateReceiptHtml(data: ReceiptData): string {
       <td style="padding:4px 0 8px 16px">Subtotal</td>
       <td style="text-align:right">$${formatMxn(data.packageSubtotal)}</td>
     </tr>
-    <tr style="border-bottom:1px solid #E5E7EB;color:#6B7280;font-size:13px">
-      <td style="padding:4px 0 8px 16px">IVA (16%)</td>
-      <td style="text-align:right">$${formatMxn(data.packageIVA)}</td>
-    </tr>
-    <tr style="border-bottom:1px solid #E5E7EB">
-      <td style="padding:8px 0">Tarifa de servicio Avimo</td>
-      <td style="text-align:right">$${formatMxn(data.serviceFee)}</td>
-    </tr>
-    <tr style="border-bottom:1px solid #E5E7EB;color:#6B7280;font-size:13px">
-      <td style="padding:4px 0 8px 16px">Subtotal</td>
-      <td style="text-align:right">$${formatMxn(data.serviceFeeSubtotal)}</td>
-    </tr>
     <tr style="border-bottom:2px solid #111827;color:#6B7280;font-size:13px">
       <td style="padding:4px 0 8px 16px">IVA (16%)</td>
-      <td style="text-align:right">$${formatMxn(data.serviceFeeIVA)}</td>
+      <td style="text-align:right">$${formatMxn(data.packageIVA)}</td>
     </tr>
     <tr>
       <td style="padding:12px 0;font-size:16px"><strong>Total pagado</strong></td>
@@ -97,6 +82,9 @@ Deno.serve(async (req: Request) => {
         : session.amount_total! / 100;
       const pointsEarned = Math.floor(packageTotal / 100);
 
+      const agencyCommissionVal = parseFloat(metadata.agency_commission || "0");
+      const commissionRate = parseFloat(metadata.commission_rate || "0");
+
       const { data: order } = await supabase.from("transactions_orders").insert({
         tenant_id: metadata.tenant_id,
         stripe_checkout_session_id: session.id,
@@ -104,9 +92,9 @@ Deno.serve(async (req: Request) => {
         total_amount: session.amount_total! / 100,
         remaining_balance: (session.amount_total! / 100) * (1 / 0.2 - 1),
         currency: (session.currency || "mxn").toUpperCase() as "MXN",
-        platform_commission_fee: parseFloat(metadata.traveler_service_fee || "0") + parseFloat(metadata.agency_commission || "0"),
-        traveler_service_fee: parseFloat(metadata.traveler_service_fee || "0"),
-        agency_commission_fee: parseFloat(metadata.agency_commission || "0"),
+        platform_commission_fee: agencyCommissionVal,
+        traveler_service_fee: 0,
+        agency_commission_fee: agencyCommissionVal,
         package_subtotal: parseFloat(metadata.package_subtotal || "0"),
         package_iva: parseFloat(metadata.package_iva || "0"),
         payment_status: "partial_paid",
@@ -143,28 +131,9 @@ Deno.serve(async (req: Request) => {
           message: "Tu anticipo ha sido procesado exitosamente.",
         });
 
-        // Income record #1: Service fee
-        const serviceFeeVal = parseFloat(metadata.traveler_service_fee || "0");
-        const serviceFeeSubtotal = parseFloat(metadata.service_fee_subtotal || "0");
-        const serviceFeeIVA = parseFloat(metadata.service_fee_iva || "0");
         const stripeFeeBase = (session.amount_total! * 0.041 / 100) + 3;
         const stripeFeeIVA = stripeFeeBase * 0.16;
 
-        await supabase.from("fiscal_income_records").insert({
-          order_id: order.order_id,
-          tenant_id: metadata.tenant_id,
-          concept: `Tarifa de servicio — ${pkgTitle}`,
-          income_type: "service_fee",
-          subtotal: serviceFeeSubtotal,
-          iva_amount: serviceFeeIVA,
-          total: serviceFeeVal,
-          stripe_fee: parseFloat(stripeFeeBase.toFixed(2)),
-          stripe_fee_iva: parseFloat(stripeFeeIVA.toFixed(2)),
-          recorded_at: new Date().toISOString(),
-        });
-
-        // Income record #2: Agency commission
-        const agencyCommissionVal = parseFloat(metadata.agency_commission || "0");
         const agencyCommissionSubtotal = agencyCommissionVal / (1 + IVA_RATE);
         const agencyCommissionIVA = agencyCommissionVal - agencyCommissionSubtotal;
 
@@ -176,10 +145,12 @@ Deno.serve(async (req: Request) => {
           subtotal: parseFloat(agencyCommissionSubtotal.toFixed(2)),
           iva_amount: parseFloat(agencyCommissionIVA.toFixed(2)),
           total: agencyCommissionVal,
+          stripe_fee: parseFloat(stripeFeeBase.toFixed(2)),
+          stripe_fee_iva: parseFloat(stripeFeeIVA.toFixed(2)),
+          commission_rate_applied: commissionRate * 100,
           recorded_at: new Date().toISOString(),
         });
 
-        // Send receipt email
         const { data: traveler } = await supabase
           .from("profiles")
           .select("email, full_name")
@@ -201,9 +172,6 @@ Deno.serve(async (req: Request) => {
                 packageTitle: pkgTitle,
                 packageSubtotal: parseFloat(metadata.package_subtotal || "0"),
                 packageIVA: parseFloat(metadata.package_iva || "0"),
-                serviceFee: serviceFeeVal,
-                serviceFeeSubtotal: serviceFeeSubtotal,
-                serviceFeeIVA: serviceFeeIVA,
                 total: session.amount_total! / 100,
                 agencyName: metadata.agency_name || "Agencia",
                 orderId: order.order_id,
@@ -217,7 +185,6 @@ Deno.serve(async (req: Request) => {
     }
 
     case "charge.dispute.created": {
-      // DORMANT: modelo SaaS inactivo
       const dispute = event.data.object as Stripe.Dispute;
 
       if (dispute.payment_intent) {
@@ -256,7 +223,6 @@ Deno.serve(async (req: Request) => {
     }
 
     case "customer.subscription.updated": {
-      // DORMANT: modelo SaaS inactivo
       const sub = event.data.object as Stripe.Subscription;
       await supabase
         .from("saas_subscriptions")
@@ -269,7 +235,6 @@ Deno.serve(async (req: Request) => {
     }
 
     case "customer.subscription.deleted": {
-      // DORMANT: modelo SaaS inactivo
       const sub = event.data.object as Stripe.Subscription;
       await supabase
         .from("saas_subscriptions")
@@ -298,7 +263,6 @@ Deno.serve(async (req: Request) => {
     }
 
     case "invoice.payment_failed": {
-      // DORMANT: modelo SaaS inactivo
       const invoice = event.data.object as Stripe.Invoice;
       const { data: sub } = await supabase
         .from("saas_subscriptions")

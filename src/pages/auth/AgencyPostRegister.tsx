@@ -14,11 +14,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/Toast";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
-import type { SubscriptionTier } from "@/types";
+import type { PlanType } from "@/types";
 
 interface LocationState {
   tenantId?: string;
-  plan?: SubscriptionTier;
+  plan?: PlanType;
 }
 
 export default function AgencyPostRegister() {
@@ -29,7 +29,7 @@ export default function AgencyPostRegister() {
 
   const state = location.state as LocationState;
   const tenantId = state?.tenantId || profile?.tenant_id;
-  const plan = state?.plan || "Gratuito";
+  const plan = state?.plan || "Intermedio";
 
   const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
   const [stripeConnectDone, setStripeConnectDone] = useState(false);

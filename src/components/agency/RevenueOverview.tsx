@@ -6,6 +6,7 @@ interface RevenueOverviewProps {
   platformFees: number;
   netReceived: number;
   currency?: string;
+  commissionRate?: number;
 }
 
 export default function RevenueOverview({
@@ -13,6 +14,7 @@ export default function RevenueOverview({
   platformFees,
   netReceived,
   currency = "MXN",
+  commissionRate,
 }: RevenueOverviewProps) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6">
@@ -30,7 +32,7 @@ export default function RevenueOverview({
         <div className="rounded-xl bg-red-50 p-4">
           <div className="flex items-center gap-2">
             <TrendingDown className="h-4 w-4 text-red-600" />
-            <span className="text-xs text-red-600">Comisión Plataforma</span>
+            <span className="text-xs text-red-600">Comisión Plataforma{commissionRate !== undefined ? ` (${commissionRate}%)` : ""}</span>
           </div>
           <p className="mt-2 text-xl font-bold text-red-700">
             -{formatCurrency(platformFees, currency as "MXN" | "USD" | "EUR")}

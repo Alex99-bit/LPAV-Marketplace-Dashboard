@@ -21,7 +21,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { mapAuthError, mapSupabaseError } from "@/lib/errors";
-import { PLAN_DETAILS } from "@/lib/constants";
+import { PLAN_DETAILS, PLAN_LIMITS } from "@/lib/constants";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Select from "@/components/ui/Select";
@@ -32,17 +32,18 @@ import {
   validatePassword,
   isValidCertificationKey,
 } from "@/lib/validation";
-import type { SubscriptionTier } from "@/types";
+import type { PlanType } from "@/types";
 
 type Mode = "choice" | "agency_login" | "agency_register";
 type RegisterStep = "business" | "plan" | "fiscal" | "legal" | "review";
 
 /* Iconos de plan: solo datos visuales. La info de precios/límites/features
    vive en constants.ts como fuente única (PLAN_LIMITS + PLAN_DETAILS). */
-const PLAN_ICONS: Record<SubscriptionTier, typeof Store> = {
-  Gratuito: Store,
-  Comercial: Briefcase,
-  Corporativo: Crown,
+const PLAN_ICONS: Record<PlanType, typeof Store> = {
+  Básico: Store,
+  Intermedio: Briefcase,
+  Premium: Crown,
+  Fundador: Crown,
 };
 
 export default function AgencyAuth() {
@@ -88,7 +89,7 @@ export default function AgencyAuth() {
   });
 
   // Plan selection
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>("Comercial");
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>("Intermedio");
 
   // Fiscal document
   const [fiscalFile, setFiscalFile] = useState<File | null>(null);
@@ -349,7 +350,7 @@ export default function AgencyAuth() {
         p_address_text: form.address_text,
         p_fiscal_pdf_url: fiscalUploadUrl,
         p_certification_key: form.certification_key,
-        p_subscription_tier: selectedPlan,
+        p_plan_type: selectedPlan,
         p_accept_no_refunds: legal.accept_no_refunds,
         p_accept_ai_data_usage: legal.accept_ai_data_usage,
         p_accept_nda: legal.accept_nda,
@@ -533,28 +534,66 @@ export default function AgencyAuth() {
   // ── Step: Plan Selection ────────────────────────────────────
 
   const StepPlan = () => (
-    <div className="rounded-2xl border-2 border-primary bg-primary/5 p-6">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
-          <Briefcase className="h-6 w-6" />
-        </div>
-        <div className="flex-1">
-          <h3 className="font-semibold text-text">
-            Plan Comercial — Sin costo de suscripción
-          </h3>
-          <ul className="mt-3 space-y-1">
-            {PLAN_DETAILS.Comercial.features.map((f) => (
-              <li
-                key={f}
-                className="flex items-center gap-2 text-xs text-text-muted"
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {Object.entries(PLAN_DETAILS).map(([key, plan]) => {
+        const isSelected = key === selectedPlan;
+        const Icon = PLAN_ICONS[key as PlanType];
+        return (
+          <button
+            key={key}
+            onClick={() => setSelectedPlan(key as PlanType)}
+            className={`rounded-2xl border-2 p-5 text-left transition-all ${
+              isSelected
+                ? "border-primary bg-primary/10 shadow-md"
+                : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                  isSelected
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-text-muted"
+                }`}
               >
-                <CheckCircle className="h-3 w-3 shrink-0 text-success" />
-                {f}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-text text-sm">{plan.label}</h3>
+                <p className="text-xs text-primary font-bold">{plan.price}</p>
+              </div>
+            </div>
+            <p className="text-xs text-text-muted mb-2">
+              Comisión: {plan.commission}
+            </p>
+            <ul className="space-y-1">
+              {plan.features.slice(0, 4).map((f) => (
+                <li
+                  key={f}
+                  className="flex items-center gap-1.5 text-xs text-text-muted"
+                >
+                  <CheckCircle className="h-3 w-3 shrink-0 text-success" />
+                  {f}
+                </li>
+              ))}
+              {plan.features.length > 4 && (
+                <li className="text-xs text-text-muted pl-4">
+                  +{plan.features.length - 4} más
+                </li>
+              )}
+            </ul>
+            <div
+              className={`mt-4 w-full rounded-lg py-2 text-center text-xs font-semibold transition-colors ${
+                isSelected
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-text"
+              }`}
+            >
+              {isSelected ? "Seleccionado" : "Seleccionar"}
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -775,7 +814,7 @@ export default function AgencyAuth() {
             <Icon className="h-8 w-8 text-primary" />
             <div>
               <p className="font-medium text-text">{plan.label}</p>
-              <p className="text-sm text-primary font-bold">{plan.price}</p>
+              <p className="text-sm text-primary font-bold">{plan.price} — {plan.commission}</p>
             </div>
           </div>
         </div>
@@ -820,7 +859,7 @@ export default function AgencyAuth() {
           </div>
         </div>
 
-        {selectedPlan !== "Gratuito" && (
+        {selectedPlan !== "Básico" && selectedPlan !== "Fundador" && (
           <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
             <p className="font-medium">Siguiente paso después del registro</p>
             <p className="mt-1 text-xs text-amber-600">
