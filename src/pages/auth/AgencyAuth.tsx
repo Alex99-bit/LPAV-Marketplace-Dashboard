@@ -740,8 +740,9 @@ export default function AgencyAuth() {
           <p className="mt-1 text-xs text-text-muted">
             Me comprometo a publicar todos los precios de paquetes con IVA
             incluido (16%), de conformidad con la legislación fiscal mexicana.
-            Entiendo que Avimo retendrá el 9.28% (8% + IVA) de comisión sobre
-            cada venta, y que el IVA de dicha comisión es acreditable para mi
+            Entiendo que Avimo retendrá una comisión sobre cada venta
+            según el plan contratado (ver Sección 1.1 del contrato),
+            y que el IVA de dicha comisión es acreditable para mi
             agencia vía CFDI emitido por Avimo.
           </p>
         </div>
