@@ -1,0 +1,77 @@
+{
+  "name": "LPAV - La Plataforma de las Agencias de Viaje",
+  "short_name": "LPAV",
+  "description": "Conecta directamente con agencias de viaje. Encuentra paquetes turísticos exclusivos con itinerarios generados por Inteligencia Artificial.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
+  "background_color": "#F9FAFB",
+  "theme_color": "#059669",
+  "categories": ["travel", "lifestyle", "shopping"],
+  "lang": "es-MX",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/pwa-64x64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Marketplace de paquetes turísticos"
+    },
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard de agencia con métricas y CRM"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explorar Viajes",
+      "short_name": "Viajes",
+      "description": "Ver catálogo de paquetes turísticos",
+      "url": "/?show=catalog",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Soy Agencia",
+      "short_name": "Agencia",
+      "description": "Portal de gestión para agencias",
+      "url": "/auth/agency",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "iarc_rating_id": "",
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}
