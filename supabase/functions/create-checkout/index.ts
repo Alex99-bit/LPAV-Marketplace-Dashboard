@@ -2,8 +2,6 @@ import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getUser, createServiceClient } from "../_shared/auth.ts";
 
-const TRAVELER_SERVICE_FEE_RATE = 0.06;
-const AGENCY_EFFECTIVE_RATE = 0.0928;
 const IVA_RATE = 0.16;
 
 Deno.serve(async (req: Request) => {
@@ -36,7 +34,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: pkg } = await supabase
     .from("travel_packages")
-    .select("*, agencies_tenants(stripe_account_id, business_name)")
+    .select("*, agencies_tenants(stripe_account_id, business_name, plan_type, commission_rate)")
     .eq("package_id", body.package_id)
     .eq("publication_status", "published")
     .single();
@@ -47,7 +45,13 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const agency = pkg.agencies_tenants as unknown as { stripe_account_id: string; business_name: string };
+  const agency = pkg.agencies_tenants as unknown as {
+    stripe_account_id: string;
+    business_name: string;
+    plan_type: string;
+    commission_rate: number;
+  };
+
   if (!agency?.stripe_account_id) {
     return new Response(JSON.stringify({ error: "Agencia sin Stripe" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -89,17 +93,15 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const serviceFee = Math.round(packageBasePrice * TRAVELER_SERVICE_FEE_RATE * 100);
-  const agencyCommission = Math.round(depositAmount * AGENCY_EFFECTIVE_RATE);
-  const platformFee = serviceFee + agencyCommission;
+  const commissionRate = agency.commission_rate / 100;
+  const agencyCommission = Math.round(depositAmount * commissionRate);
+  const platformFee = agencyCommission;
 
   const packageSubtotal = packageBasePrice / (1 + IVA_RATE);
   const packageIVA = packageBasePrice - packageSubtotal;
-  const serviceFeeSubtotal = (serviceFee / 100) / (1 + IVA_RATE);
-  const serviceFeeIVA = (serviceFee / 100) - serviceFeeSubtotal;
 
   const pointsOffset = pointsToRedeem * 100;
-  const totalCharge = Math.max(0, depositAmount + serviceFee - pointsOffset);
+  const totalCharge = Math.max(0, depositAmount - pointsOffset);
 
   const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
   const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-04-30.basil" });
@@ -129,13 +131,12 @@ Deno.serve(async (req: Request) => {
         order_type: "deposit",
         points_redeemed: String(pointsToRedeem),
         package_total: String(packageBasePrice),
-        traveler_service_fee: String(serviceFee / 100),
         agency_commission: String(agencyCommission / 100),
+        commission_rate: String(commissionRate),
         package_subtotal: packageSubtotal.toFixed(2),
         package_iva: packageIVA.toFixed(2),
-        service_fee_subtotal: serviceFeeSubtotal.toFixed(2),
-        service_fee_iva: serviceFeeIVA.toFixed(2),
         agency_name: agency.business_name,
+        plan_type: agency.plan_type,
       },
     },
     metadata: {
@@ -145,13 +146,12 @@ Deno.serve(async (req: Request) => {
       order_type: "deposit",
       points_redeemed: String(pointsToRedeem),
       package_total: String(packageBasePrice),
-      traveler_service_fee: String(serviceFee / 100),
       agency_commission: String(agencyCommission / 100),
+      commission_rate: String(commissionRate),
       package_subtotal: packageSubtotal.toFixed(2),
       package_iva: packageIVA.toFixed(2),
-      service_fee_subtotal: serviceFeeSubtotal.toFixed(2),
-      service_fee_iva: serviceFeeIVA.toFixed(2),
       agency_name: agency.business_name,
+      plan_type: agency.plan_type,
     },
   }, { stripeAccount: agency.stripe_account_id });
 
@@ -161,8 +161,8 @@ Deno.serve(async (req: Request) => {
     amount_total: totalCharge / 100,
     currency: pkg.currency,
     platform_fee: platformFee / 100,
-    service_fee: serviceFee / 100,
     agency_commission: agencyCommission / 100,
+    commission_rate: commissionRate,
     ...(pointsToRedeem > 0 ? { points_redeemed: pointsToRedeem } : {}),
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });

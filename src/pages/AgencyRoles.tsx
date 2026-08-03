@@ -35,7 +35,7 @@ export default function AgencyRoles() {
     PLAN_LIMITS[
       (profile as unknown as { subscription_tier?: string })
         ?.subscription_tier as keyof typeof PLAN_LIMITS
-    ] ?? PLAN_LIMITS.Gratuito;
+    ] ?? PLAN_LIMITS.Básico;
 
   const fetchRoles = async () => {
     if (!profile?.tenant_id) return;

@@ -8,7 +8,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency, formatPoints } from "@/lib/formatters";
 import {
   IVA_RATE,
-  TRAVELER_SERVICE_FEE_RATE,
   MIN_DEPOSIT_PERCENTAGE,
   MIN_REDEEM_POINTS,
   MAX_POINTS_PERCENT_PER_PURCHASE,
@@ -57,15 +56,12 @@ export default function Checkout() {
     );
   }
 
-  const serviceFee = Math.round(total * TRAVELER_SERVICE_FEE_RATE * 100) / 100;
   const packageSubtotal = Math.round((total / (1 + IVA_RATE)) * 100) / 100;
   const packageIVA = Math.round((total - packageSubtotal) * 100) / 100;
-  const serviceFeeSubtotal = Math.round((serviceFee / (1 + IVA_RATE)) * 100) / 100;
-  const serviceFeeIVA = Math.round((serviceFee - serviceFeeSubtotal) * 100) / 100;
 
   const depositBase = total - pointsToRedeem * POINT_VALUE_MXN;
   const depositAmount = Math.round(depositBase * MIN_DEPOSIT_PERCENTAGE * 100) / 100;
-  const totalToPay = depositAmount + serviceFee;
+  const totalToPay = depositAmount;
   const pointsEarned = Math.floor(total / 100) * POINTS_PER_100_MXN;
   const maxRedeemable = Math.floor(total * MAX_POINTS_PERCENT_PER_PURCHASE);
   const pointsMxnValue = pointsToRedeem * POINT_VALUE_MXN;
@@ -162,24 +158,6 @@ export default function Checkout() {
             <div className="flex justify-between text-xs text-text-muted ml-3">
               <span>IVA (16%)</span>
               <span>{formatCurrency(packageIVA)}</span>
-            </div>
-
-            <div className="flex justify-between pt-1">
-              <span
-                className="text-text-muted cursor-help"
-                title="Cubre procesamiento de pago, protección al viajero y uso de la plataforma."
-              >
-                Tarifa de servicio (6%)
-              </span>
-              <span className="font-medium text-text">{formatCurrency(serviceFee)}</span>
-            </div>
-            <div className="flex justify-between text-xs text-text-muted ml-3">
-              <span>Subtotal sin IVA</span>
-              <span>{formatCurrency(serviceFeeSubtotal)}</span>
-            </div>
-            <div className="flex justify-between text-xs text-text-muted ml-3">
-              <span>IVA (16%)</span>
-              <span>{formatCurrency(serviceFeeIVA)}</span>
             </div>
 
             {pointsToRedeem > 0 && (

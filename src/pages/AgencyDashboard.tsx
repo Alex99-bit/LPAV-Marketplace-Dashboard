@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatters";
 import { PLAN_LIMITS } from "@/lib/constants";
-import type { SaasSubscription, SubscriptionTier, StripeAccount } from "@/types";
+import type { SaasSubscription, PlanType, StripeAccount } from "@/types";
 import KpiCard from "@/components/agency/KpiCard";
 import RevenueChart from "@/components/agency/RevenueChart";
 import RecentActivity from "@/components/agency/RecentActivity";
@@ -44,10 +44,11 @@ const QUICK_ACTIONS = [
   { to: "/agency/settings", label: "Configuración", desc: "Ajustes de la agencia", icon: Settings, color: "bg-gray-100 text-gray-600" },
 ];
 
-const PLAN_BADGES: Record<SubscriptionTier, { label: string; color: string }> = {
-  Gratuito: { label: "Plan Básico", color: "bg-gray-100 text-gray-700" },
-  Comercial: { label: "Plan Comercial", color: "bg-blue-100 text-blue-700" },
-  Corporativo: { label: "Plan Corporativo", color: "bg-amber-100 text-amber-700" },
+const PLAN_BADGES: Record<PlanType, { label: string; color: string }> = {
+  Básico: { label: "Plan Básico", color: "bg-gray-100 text-gray-700" },
+  Intermedio: { label: "Plan Intermedio", color: "bg-blue-100 text-blue-700" },
+  Premium: { label: "Plan Premium", color: "bg-amber-100 text-amber-700" },
+  Fundador: { label: "Plan Fundador", color: "bg-green-100 text-green-700" },
 };
 
 export default function AgencyDashboard() {
@@ -73,7 +74,7 @@ export default function AgencyDashboard() {
   const [subscription, setSubscription] = useState<SaasSubscription | null>(null);
   const [tenantStatus, setTenantStatus] = useState("Activo");
   const [businessName, setBusinessName] = useState("");
-  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("Gratuito");
+  const [subscriptionTier, setSubscriptionTier] = useState<PlanType>("Básico");
   const [stripeAccount, setStripeAccount] = useState<StripeAccount | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -104,7 +105,7 @@ export default function AgencyDashboard() {
         supabase.from("crm_leads").select("lead_id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "won"),
         supabase.from("agency_team_members").select("member_id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
         supabase.from("saas_subscriptions").select("*").eq("tenant_id", tenantId).single(),
-        supabase.from("agencies_tenants").select("status, subscription_tier, business_name").eq("tenant_id", tenantId).single(),
+        supabase.from("agencies_tenants").select("status, plan_type, business_name").eq("tenant_id", tenantId).single(),
         supabase.from("stripe_accounts").select("*").eq("tenant_id", tenantId).single(),
       ]);
 
@@ -180,14 +181,14 @@ export default function AgencyDashboard() {
       if (tenantRes.data) {
         setTenantStatus(tenantRes.data.status);
         setBusinessName(tenantRes.data.business_name ?? "");
-        setSubscriptionTier(tenantRes.data.subscription_tier ?? "Gratuito");
+        setSubscriptionTier((tenantRes.data as unknown as { plan_type?: PlanType })?.plan_type ?? "Intermedio");
       }
       if (stripeRes.data) setStripeAccount(stripeRes.data as StripeAccount);
       setLoading(false);
     })();
   }, [profile?.tenant_id, profile?.censorship_strikes]);
 
-  const planLimits = PLAN_LIMITS[subscriptionTier] ?? PLAN_LIMITS.Gratuito;
+  const planLimits = PLAN_LIMITS[subscriptionTier] ?? PLAN_LIMITS.Básico;
   const planBadge = PLAN_BADGES[subscriptionTier];
   const isEmpty = data.activeFlyers === 0 && data.totalOrdersMonth === 0;
   const firstName = profile?.full_name?.split(" ")[0] ?? "Agencia";

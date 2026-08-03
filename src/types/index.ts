@@ -1,7 +1,8 @@
 export type {
   AgencyTenant,
   AgencyStatus,
-  SubscriptionTier,
+  PlanType,
+  VerificationStatus,
   CustomRolePermission,
   Profile,
   AgencyInvitation,

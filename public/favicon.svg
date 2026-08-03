@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#1E40AF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <g transform="translate(256,230)">
+    <ellipse cx="0" cy="0" rx="140" ry="110" fill="none" stroke="white" stroke-width="18"/>
+    <line x1="0" y1="0" x2="0" y2="-110" stroke="white" stroke-width="14" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="95" y2="-55" stroke="white" stroke-width="14" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="-95" y2="-55" stroke="white" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="24" fill="white"/>
+  </g>
+  <text x="256" y="420" text-anchor="middle" fill="white" font-family="Inter,sans-serif" font-size="72" font-weight="700" letter-spacing="8">LPAV</text>
+</svg>

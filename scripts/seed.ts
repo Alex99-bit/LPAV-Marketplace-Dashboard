@@ -61,7 +61,8 @@ const AGENCIES = [
     rfc: "VIA123456789",
     address_text: "Av. Reforma 500, Col. Centro, CDMX, 06000",
     certification_key: "CERT-TUR-2026-001",
-    subscription_tier: "Comercial" as const,
+    plan_type: "Intermedio" as const,
+    commission_rate: 18.00,
     status: "Activo" as const,
   },
   {
@@ -69,7 +70,26 @@ const AGENCIES = [
     rfc: "TOU987654321",
     address_text: "Blvd. Kukulcán Km 12, Cancún, Q.Roo, 77500",
     certification_key: "CERT-TUR-2026-002",
-    subscription_tier: "Comercial" as const,
+    plan_type: "Premium" as const,
+    commission_rate: 15.00,
+    status: "Activo" as const,
+  },
+  {
+    business_name: "Aventura Maya Travel",
+    rfc: "AMA123456789",
+    address_text: "Calle 60 No. 299, Col. Centro, Mérida, Yuc., 97000",
+    certification_key: "CERT-TUR-2026-003",
+    plan_type: "Básico" as const,
+    commission_rate: 20.00,
+    status: "Activo" as const,
+  },
+  {
+    business_name: "Luxury Explorer",
+    rfc: "LUX987654321",
+    address_text: "Paseo de la Reforma 222, Col. Juárez, CDMX, 06600",
+    certification_key: "CERT-TUR-2026-004",
+    plan_type: "Fundador" as const,
+    commission_rate: 7.50,
     status: "Activo" as const,
   },
 ];
@@ -261,7 +281,7 @@ async function seed() {
     }
 
     tenantIds[i] = data.tenant_id;
-    console.log(`   ${agency.business_name} → ${data.tenant_id.slice(0, 8)}... (${agency.subscription_tier})`);
+    console.log(`   ${agency.business_name} → ${data.tenant_id.slice(0, 8)}... (${agency.plan_type})`);
   }
   console.log();
 
@@ -294,14 +314,14 @@ async function seed() {
 
     await supabase.from("saas_subscriptions").insert({
       tenant_id: tid,
-      plan_tier: AGENCIES[i].subscription_tier,
+      plan_tier: AGENCIES[i].plan_type,
       billing_cycle: "monthly",
       status: "active",
       current_period_start: now.toISOString(),
       current_period_end: periodEnd.toISOString(),
     });
 
-    console.log(`   Suscripción ${AGENCIES[i].subscription_tier} creada`);
+    console.log(`   Suscripción ${AGENCIES[i].plan_type} creada`);
   }
   console.log();
 
@@ -408,7 +428,11 @@ async function seed() {
     const travelerId = travelerIds[i % travelerIds.length];
     const pkgId = publishedPackageIds[i % publishedPackageIds.length];
     const amount = 5000 + Math.floor(Math.random() * 30000);
-    const commission = Math.round(amount * 0.03 * 100) / 100;
+    const agency = AGENCIES[tenantIdx];
+    const commissionRate = agency.commission_rate / 100;
+    const agencyCommission = Math.round(amount * commissionRate * 100) / 100;
+    const packageSubtotal = Math.round((amount / 1.16) * 100) / 100;
+    const packageIVA = Math.round((amount - packageSubtotal) * 100) / 100;
     const statuses = ["pending", "partial_paid", "paid", "paid", "partial_paid", "pending"];
     const status = statuses[i];
 
@@ -419,11 +443,15 @@ async function seed() {
       total_amount: amount,
       remaining_balance: status === "paid" ? 0 : Math.round(amount * 0.6 * 100) / 100,
       currency: "MXN",
-      platform_commission_fee: commission,
+      platform_commission_fee: agencyCommission,
+      traveler_service_fee: 0,
+      agency_commission_fee: agencyCommission,
+      package_subtotal: packageSubtotal,
+      package_iva: packageIVA,
       payment_status: status,
     });
 
-    console.log(`   Orden $${amount} MXN (${status})`);
+    console.log(`   Orden $${amount} MXN (${status}, comisión ${agencyCommission})`);
   }
   console.log();
 
@@ -583,7 +611,7 @@ async function seed() {
   console.log("─".repeat(50));
   for (let i = 0; i < AGENCIES.length; i++) {
     const tid = tenantIds[i];
-    console.log(`  ${AGENCIES[i].business_name.padEnd(35)} ${AGENCIES[i].subscription_tier.padEnd(12)} ${tid ? tid.slice(0, 8) + "..." : "ERROR"}`);
+    console.log(`  ${AGENCIES[i].business_name.padEnd(35)} ${AGENCIES[i].plan_type.padEnd(12)} ${tid ? tid.slice(0, 8) + "..." : "ERROR"}`);
   }
   console.log();
   console.log(`  Carteras de puntos: ${travelerIds.length}`);

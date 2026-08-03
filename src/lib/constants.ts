@@ -1,16 +1,13 @@
-import type { SubscriptionTier, PublicationStatus, Currency, NotificationType, CRMLeadStatus } from "@/types";
+import type { PlanType, PublicationStatus, Currency, NotificationType, CRMLeadStatus } from "@/types";
 
 export const PLAN_LIMITS: Record<
-  SubscriptionTier,
+  PlanType,
   { maxFlyers: number; maxCustomRoles: number; maxEmployees: string }
 > = {
-  Gratuito: { maxFlyers: 3, maxCustomRoles: 0, maxEmployees: "1 admin" },
-  Comercial: { maxFlyers: 20, maxCustomRoles: 1, maxEmployees: "3-5" },
-  Corporativo: {
-    maxFlyers: 150,
-    maxCustomRoles: 3,
-    maxEmployees: "Ilimitados",
-  },
+  Básico: { maxFlyers: 50, maxCustomRoles: 0, maxEmployees: "1 admin" },
+  Intermedio: { maxFlyers: 50, maxCustomRoles: 1, maxEmployees: "3-5" },
+  Premium: { maxFlyers: 50, maxCustomRoles: 3, maxEmployees: "Ilimitados" },
+  Fundador: { maxFlyers: 50, maxCustomRoles: 3, maxEmployees: "Ilimitados" },
 };
 
 export const PUBLICATION_STATES: Record<
@@ -83,49 +80,89 @@ export const BUDGET_RANGES = [
   { value: "Premium", label: "Lujo (más de $80,000 MXN)" },
 ] as const;
 
-/* Plan features y precios — fuente única. PLAN_LIMITS (arriba) define
-   los límites numéricos; PLAN_DETAILS define el copy de cara al usuario
-   y los precios. AgenciaAuth y PlanManagement consumen ambas constantes. */
+/* Plan features y precios — fuente unica. PLAN_LIMITS (arriba) define
+   los limites numericos; PLAN_DETAILS define el copy de cara al usuario,
+   precios, y tasas de comision. AgenciaAuth y PlanManagement consumen ambas constantes. */
 export const PLAN_DETAILS: Record<
-  SubscriptionTier,
-  { label: string; price: string; features: string[]; recommended?: boolean }
+  PlanType,
+  { label: string; price: string; commission: string; commissionNote: string; features: string[]; recommended?: boolean }
 > = {
-  Gratuito: {
-    label: "Básico (Gratuito)",
+  Básico: {
+    label: "Plan Básico",
     price: "$0/mes",
+    commission: "20%",
+    commissionNote: "Tasa fija",
     features: [
-      `${PLAN_LIMITS.Gratuito.maxFlyers} flyers publicados`,
+      `${PLAN_LIMITS.Básico.maxFlyers} flyers publicados`,
       "Sin roles personalizados",
       "1 cuenta de administrador",
+      "Soporte estándar",
     ],
   },
-  Comercial: {
-    label: "Comercial",
-    price: "$499/mes",
+  Intermedio: {
+    label: "Plan Intermedio",
+    price: "$1,799/mes",
+    commission: "18% (pref. 17%)",
+    commissionNote: "≥5% conversión → 17%",
     features: [
-      `${PLAN_LIMITS.Comercial.maxFlyers} flyers publicados`,
+      `${PLAN_LIMITS.Intermedio.maxFlyers} flyers publicados`,
       "1 rol personalizado (Agentes de Ventas)",
       "3-5 colaboradores",
-      "Soporte prioritario",
+      "Logo distintivo en marketplace",
+      "Referidos por Avimo",
+      "Bots de pre-calificación de leads",
+      "Agente IA de seguimiento",
+      "Soporte estándar",
     ],
     recommended: true,
   },
-  Corporativo: {
-    label: "Corporativo",
-    price: "$1,499/mes",
+  Premium: {
+    label: "Plan Premium",
+    price: "$2,999/mes",
+    commission: "15% (pref. 12%)",
+    commissionNote: "≥8% conversión → 12%",
     features: [
-      `${PLAN_LIMITS.Corporativo.maxFlyers} flyers publicados`,
-      "3 roles personalizados dinámicos",
+      `${PLAN_LIMITS.Premium.maxFlyers} flyers publicados`,
+      "3 roles personalizados",
       "Colaboradores ilimitados",
-      "Matriz de permisos granulares",
-      "Soporte dedicado",
+      "Logo distintivo en marketplace",
+      "Referidos por Avimo",
+      "Apartado completo en marketplace",
+      "Dashboard avanzado con KPIs",
+      "Soporte 24/7",
     ],
-    },
+  },
+  Fundador: {
+    label: "Plan Fundador",
+    price: "$0/mes",
+    commission: "7.5%",
+    commissionNote: "Tasa fija — 10 plazas",
+    features: [
+      `${PLAN_LIMITS.Fundador.maxFlyers} flyers publicados`,
+      "3 roles personalizados",
+      "Colaboradores ilimitados",
+      "Todos los beneficios Premium",
+      "Logo distintivo",
+      "Apartado completo",
+      "Soporte 24/7",
+    ],
+  },
 };
 export const IVA_RATE = 0.16;
-export const TRAVELER_SERVICE_FEE_RATE = 0.06;
-export const AGENCY_COMMISSION_RATE = 0.08;
-export const AGENCY_EFFECTIVE_RATE = 0.0928;
+export const PLAN_COMMISSION_RATES: Record<PlanType, number> = {
+  Básico: 0.20,
+  Intermedio: 0.18,
+  Premium: 0.15,
+  Fundador: 0.075,
+};
+export const PLAN_PREFERENTIAL_RATES: Partial<Record<PlanType, number>> = {
+  Intermedio: 0.17,
+  Premium: 0.12,
+};
+export const PLAN_PREFERENTIAL_THRESHOLDS: Partial<Record<PlanType, number>> = {
+  Intermedio: 5,
+  Premium: 8,
+};
 export const STRIPE_FEE_RATE = 0.041;
 export const STRIPE_FEE_FIXED = 3;
 export const MIN_DEPOSIT_PERCENTAGE = 0.2;

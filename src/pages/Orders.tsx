@@ -193,15 +193,7 @@ export default function Orders() {
                       {formatCurrency(order.remaining_balance, order.currency)}
                     </p>
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <p className="text-text-muted">Comisión</p>
-                    <p className="font-medium text-text">
-                      {formatCurrency(
-                        order.platform_commission_fee,
-                        order.currency,
-                      )}
-                    </p>
-                  </div>
+
                 </div>
                 {order.next_payment_due && (
                   <div className="mt-3 flex items-center justify-between">

@@ -10,12 +10,29 @@ export interface AgencyTenant {
   stripe_subscription_id: string | null;
   owner_user_id: string | null;
   status: AgencyStatus;
-  subscription_tier: SubscriptionTier;
+  plan_type: PlanType;
+  commission_rate: number;
+  conversion_window_leads: number;
+  conversion_window_sales: number;
+  conversion_rate: number | null;
+  preferential_rate_active: boolean;
+  consecutive_months_below_threshold: number;
+  verification_status: VerificationStatus;
+  contract_signed_at: string | null;
+  contract_pdf_url: string | null;
+  years_of_service: number | null;
+  has_physical_location: boolean;
+  accept_no_refunds: boolean;
+  accept_ai_data_usage: boolean;
+  accept_nda: boolean;
+  accept_iva_disclaimer: boolean;
+  legal_acceptances_at: string | null;
   created_at: string;
 }
 
 export type AgencyStatus = "En Revisión" | "Activo" | "Suspendido por Pago";
-export type SubscriptionTier = "Gratuito" | "Comercial" | "Corporativo";
+export type PlanType = "Básico" | "Intermedio" | "Premium" | "Fundador";
+export type VerificationStatus = "pending" | "verified" | "rejected";
 
 export interface CustomRolePermission {
   role_id: string;
@@ -290,7 +307,7 @@ export interface SaasSubscription {
   tenant_id: string;
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
-  plan_tier: SubscriptionTier;
+  plan_tier: PlanType;
   billing_cycle: "monthly" | "annual";
   status: "active" | "past_due" | "cancelled" | "trialing";
   current_period_start: string | null;
@@ -379,6 +396,7 @@ export interface FiscalIncomeRecord {
   stripe_fee_iva: number;
   cfdi_status: "pending" | "issued" | "cancelled";
   cfdi_uuid: string | null;
+  commission_rate_applied: number | null;
   recorded_at: string;
   fiscal_period_id: string | null;
 }

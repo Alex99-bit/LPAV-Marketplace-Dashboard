@@ -83,15 +83,15 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const PLAN_LIMITS: Record<string, number> = { Gratuito: 0, Comercial: 1, Corporativo: 3 };
+  const PLAN_LIMITS: Record<string, number> = { Básico: 0, Intermedio: 1, Premium: 3, Fundador: 3 };
 
   const { data: tenant } = await supabase
     .from("agencies_tenants")
-    .select("subscription_tier")
+    .select("plan_type")
     .eq("tenant_id", profile!.tenant_id!)
     .single();
 
-  const maxRoles = PLAN_LIMITS[tenant?.subscription_tier ?? "Gratuito"] ?? 0;
+  const maxRoles = PLAN_LIMITS[tenant?.plan_type ?? "Básico"] ?? 0;
 
   const { count } = await supabase
     .from("custom_roles_permissions")
@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
 
   if ((count ?? 0) >= maxRoles) {
     return new Response(
-      JSON.stringify({ error: `Limite alcanzado para plan ${tenant?.subscription_tier}` }),
+      JSON.stringify({ error: `Limite alcanzado para plan ${tenant?.plan_type}` }),
       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
