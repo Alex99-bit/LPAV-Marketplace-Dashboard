@@ -824,18 +824,19 @@ CREATE TABLE agencies\_tenants (
     certification\_key VARCHAR(100) NOT NULL, \-- Clave de certificación turística  
     stripe\_account\_id VARCHAR(255), \-- ID de Cuenta Express/Custom de Stripe Connect  
     stripe\_customer\_id VARCHAR(255), \-- ID de Cliente para Stripe Billing (SaaS)  
-    status VARCHAR(50) DEFAULT 'En Revisión', \-- En Revisión, Activo, Suspendido por Pago  
-    plan\_type VARCHAR(50) DEFAULT 'Intermedio', \-- Básico, Intermedio, Premium, Fundador  
-    commission\_rate NUMERIC(5,2) NOT NULL DEFAULT 18.00, \-- Tasa de comisión vigente (IVA incluido). 18% para Intermedio por defecto.  
-    conversion\_window\_leads INTEGER DEFAULT 0, \-- Leads generados en plataforma en la ventana de 3 meses  
-    conversion\_window\_sales INTEGER DEFAULT 0, \-- Ventas efectivas en la ventana de 3 meses  
-    conversion\_rate NUMERIC(5,2), \-- Tasa de conversión calculada: (ventas / leads) × 100  
-    preferential\_rate\_active BOOLEAN DEFAULT FALSE, \-- TRUE si goza de tasa preferencial por conversión  
-    consecutive\_months\_below\_threshold INTEGER DEFAULT 0, \-- Meses consecutivos bajo el umbral de conversión. Al llegar a 2, se revierte a tasa base.  
-    verification\_status VARCHAR(50) DEFAULT 'pending', \-- pending, verified, rejected (requisitos adicionales 1.1.2)  
-    contract\_signed\_at TIMESTAMP WITH TIME ZONE, \-- Fecha de firma de contrato con la plataforma  
-    contract\_pdf\_url TEXT, \-- Contrato firmado en bucket privado  
-    created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
+    status VARCHAR(50) DEFAULT 'En Revisión', \-- En Revisión, Activo, Suspendido por Pago, Suspendido por Fraude
+    plan_type VARCHAR(50) DEFAULT 'Intermedio', \-- Básico, Intermedio, Premium, Fundador
+    commission_rate NUMERIC(5,2) NOT NULL DEFAULT 18.00, \-- Tasa de comisión vigente (IVA incluido). 18% para Intermedio por defecto.
+    conversion_window_leads INTEGER DEFAULT 0, \-- Leads generados en plataforma en la ventana de 3 meses
+    conversion_window_sales INTEGER DEFAULT 0, \-- Ventas efectivas (plataforma + externas) en la ventana de 3 meses
+    conversion_rate NUMERIC(5,2), \-- Tasa de conversión calculada: (ventas totales / leads) × 100. Incluye ventas externas registradas.
+    preferential_rate_active BOOLEAN DEFAULT FALSE, \-- TRUE si goza de tasa preferencial por conversión
+    consecutive_months_below_threshold INTEGER DEFAULT 0, \-- Meses consecutivos bajo el umbral de conversión. Al llegar a 2, se revierte a tasa base.
+    verification_status VARCHAR(50) DEFAULT 'pending', \-- pending, verified, rejected (requisitos adicionales 1.1.2)
+    contract_signed_at TIMESTAMP WITH TIME ZONE, \-- Fecha de firma de contrato con la plataforma
+    contract_pdf_url TEXT, \-- Contrato firmado en bucket privado
+    overbooking_incidents INTEGER DEFAULT 0, \-- Contador de incidentes de sobreventa. ≥3 → suspensión por fraude (Sección 8.6)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
 #### **Tabla: custom\_roles\_permissions**
@@ -870,9 +871,11 @@ CREATE TABLE travel\_packages (
     url\_flyer\_storage TEXT NOT NULL, \-- URL de imagen vertical optimizada en WebP/AVIF (Alta definición)  
     url\_thumbnail\_storage TEXT NOT NULL, \-- URL de imagen miniatura para listados rápidos  
     has\_coordinator BOOLEAN DEFAULT FALSE, \-- Inyecta etiqueta visual Con/Sin Coordinador  
-    publication\_status VARCHAR(50) DEFAULT 'draft', \-- draft, published, archived, concluded  
-    departure\_date TIMESTAMP WITH TIME ZONE NOT NULL, \-- Almacenado estrictamente en UTC  
-    created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
+    publication\_status VARCHAR(50) DEFAULT 'draft', \-- draft, published, archived, concluded
+    departure\_date TIMESTAMP WITH TIME ZONE NOT NULL, \-- Almacenado estrictamente en UTC
+    total\_rooms INTEGER DEFAULT 0, \-- Total de habitaciones/cupos declarados. 0 = sin límite (retrocompatible)
+    available\_rooms INTEGER DEFAULT 0, \-- Habitaciones disponibles. Se decrementa en cada venta (plataforma o externa)
+    created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
 #### **Tabla: transactions\_orders**
@@ -950,4 +953,288 @@ CREATE TABLE user\_saved\_packages (
   * **Lógica:** Invoca al SDK de Supabase Storage para generar una dirección URL de subida directa con firma criptográfica simétrica y expiración de 300 segundos, evitando la transferencia de binarios pesados a través del servidor central de la plataforma.  
 * POST /api/v1/payments/checkout-session  
   * **Acceso:** Privado (EndUser registrado y autenticado).  
-  * **Lógica:** Configura e inicializa una sesión de Stripe Checkout inyectando los parámetros de Stripe Connect. Procesa la compra en el siguiente orden: (1) Valida y aplica los puntos canjeados por el viajero (mínimo 200 puntos, máximo 20% del total de la compra), descontándolos del subtotal. (2) Calcula el subtotal remanente a pagar con tarjeta u otro método de pago. (3) Calcula la comisión según el plan y tasa vigente de la agencia (`commission_rate` en `agencies_tenants`) sobre el remanente pagado con tarjeta y configura el split de Stripe Connect reteniendo ese monto hacia la plataforma, dispersando el resto a la cuenta Express de la agencia. (4) Calcula los puntos a ganar por esta compra (1 punto por cada $100 MXN del total de la compra, independientemente de los puntos canjeados). (5) Si el pago es diferido en plazos, programa las alertas de cobro mensual manual en el sistema de mensajería omnicanal con recordatorios y links exclusivos de Stripe Checkout.
+  * **Lógica:** Configura e inicializa una sesión de Stripe Checkout inyectando los parámetros de Stripe Connect. Procesa la compra en el siguiente orden: (1) Valida disponibilidad de inventario: si el paquete tiene `total_rooms > 0` y `available_rooms <= 0`, rechaza con error "Paquete agotado". (2) Si el paquete tiene inventario limitado, crea un hold temporal de 15 minutos mediante `create_inventory_hold` para prevenir race conditions. El hold_id se transmite en los metadatos de Stripe para su consumo en el webhook. (3) Valida y aplica los puntos canjeados por el viajero (mínimo 200 puntos, máximo 20% del total de la compra), descontándolos del subtotal. (4) Calcula el subtotal remanente a pagar con tarjeta u otro método de pago. (5) Calcula la comisión según el plan y tasa vigente de la agencia (`commission_rate` en `agencies_tenants`) sobre el remanente pagado con tarjeta y configura el split de Stripe Connect reteniendo ese monto hacia la plataforma, dispersando el resto a la cuenta Express de la agencia. (6) Calcula los puntos a ganar por esta compra (1 punto por cada $100 MXN del total de la compra, independientemente de los puntos canjeados). (7) Si el pago es diferido en plazos, programa las alertas de cobro mensual manual en el sistema de mensajería omnicanal con recordatorios y links exclusivos de Stripe Checkout.
+* POST /api/v1/inventory/sync
+  * **Acceso:** Privado (Agencia autenticada con JWT). Edge Function: `sync-inventory`.
+  * **Lógica (action=sync):** Permite a la agencia sincronizar manualmente o vía API externa el inventario de un paquete. Valida que `package_id` pertenezca al `tenant_id` del usuario autenticado. Actualiza `total_rooms` y `available_rooms` en `travel_packages` mediante la RPC `sync_inventory_external`. Registra automáticamente el cambio en `inventory_audit_log` con tipo `sync` y origen configurable (default: `external_pms`). Rechaza si `available_rooms > total_rooms`.
+  * **Lógica (action=external_sale):** Permite a la agencia registrar una venta realizada fuera de la plataforma. Requiere `rooms_sold ≥ 1`, opcionalmente `package_id`, `total_amount`, `currency` y `notes`. Ejecuta la RPC `register_external_sale` que inserta en `external_sales_log`, decrementa `available_rooms` del paquete asociado, y registra en `inventory_audit_log` con tipo `external_sale`. Retorna el `sale_id` generado. El panel de conciliación en `AgencyFinance` consume este endpoint.
+
+## **8\. PARTE 7: CONTROL DE INVENTARIO, VENTAS EXTERNAS Y MITIGACIÓN DE SOBREVENTA**
+
+La plataforma implementa un sistema integral de control de inventario para prevenir la sobreventa (overbooking) —el principal riesgo cuando las agencias venden habitaciones fuera de la plataforma sin reflejarlo en el sistema—. El diseño abarca desde la declaración de cupos por paquete hasta la conciliación de ventas externas, auditoría completa de cambios, y mecanismos automáticos de suspensión por fraude.
+
+### **8.1 Modelo de Inventario por Paquete**
+
+Cada paquete turístico (`travel_packages`) incorpora dos nuevos campos:
+
+| Campo | Tipo | Descripción |
+|:---|:---|:---|
+| `total_rooms` | INTEGER DEFAULT 0 | Total de habitaciones/cupos declarados por la agencia al crear el flyer. `0` = sin límite (retrocompatible con paquetes existentes). |
+| `available_rooms` | INTEGER DEFAULT 0 | Habitaciones disponibles en tiempo real. Se decrementa en cada venta confirmada (plataforma o externa). Se incrementa en reversiones por disputa. |
+
+**Reglas de integridad:**
+
+- `CHECK (total_rooms >= 0 AND available_rooms >= 0 AND (total_rooms = 0 OR available_rooms <= total_rooms))`
+- Al crear un flyer desde `AgencyFlyers`, `available_rooms` se inicializa igual a `total_rooms`.
+- Si `total_rooms = 0`, el paquete se considera de disponibilidad ilimitada (sin control de inventario).
+- El trigger `enforce_inventory_first` impide publicar (`published`) un paquete con `total_rooms > 0` y `available_rooms <= 0`.
+
+**Visualización en la interfaz:**
+
+- **Marketplace (FlyerCard):** Badge "Agotado" en rojo si `available_rooms <= 0`. Badge "¡X disponibles!" en amarillo si quedan ≤ 5 unidades. Tarjeta con opacidad reducida si está agotado.
+- **PackageDetailPage:** Indicador textual "X de Y habitaciones disponibles" o "Agotado". Botones "Agregar al carrito" y "Solicitar información" deshabilitados cuando el paquete está agotado.
+- **AgencyFlyers (tabla de gestión):** Columna "Disp." muestra `available_rooms/total_rooms` o "Ilimitado". El botón de publicar valida que haya disponibilidad antes de permitir la acción.
+
+### **8.2 Registro de Ventas Externas y Conciliación**
+
+Para que las agencias puedan reportar ventas realizadas fuera de la plataforma (ventas directas en oficina, telefónicas, etc.) y mantener el inventario sincronizado, se implementa el subsistema de conciliación:
+
+#### **Tabla: external_sales_log**
+
+```
+CREATE TABLE external_sales_log (
+    sale_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES agencies_tenants(tenant_id) ON DELETE CASCADE,
+    package_id UUID REFERENCES travel_packages(package_id) ON DELETE SET NULL,
+    rooms_sold INTEGER NOT NULL DEFAULT 1,
+    total_amount NUMERIC(12,2),
+    currency VARCHAR(3) DEFAULT 'MXN',
+    sale_date TIMESTAMPTZ DEFAULT timezone('utc', now()),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT timezone('utc', now())
+);
+```
+
+**RLS:** Acceso exclusivo a la propia agencia con rol `Agency_Admin` o permiso `can_manage_finance`. SuperAdmin tiene visibilidad total.
+
+#### **RPC: register_external_sale**
+
+```
+register_external_sale(
+  p_tenant_id UUID,
+  p_package_id UUID,
+  p_rooms_sold INTEGER DEFAULT 1,
+  p_total_amount NUMERIC DEFAULT NULL,
+  p_currency VARCHAR DEFAULT 'MXN',
+  p_notes TEXT DEFAULT NULL
+) RETURNS UUID
+```
+
+1. Inserta el registro en `external_sales_log`.
+2. Si se asocia a un `package_id` con `total_rooms > 0`, decrementa `available_rooms` en el paquete.
+3. Registra el cambio en `inventory_audit_log` con tipo `external_sale`.
+4. Retorna el `sale_id` generado.
+
+#### **Panel de Conciliación (ExternalSalesPanel)**
+
+Integrado en la página `AgencyFinance` como nueva sección. Permite a la agencia:
+
+- Visualizar el historial completo de ventas externas registradas (paquete, habitaciones, monto, fecha, notas).
+- Registrar nuevas ventas externas mediante un modal con campos: paquete (opcional), habitaciones vendidas, monto total, divisa, notas.
+- La llamada se realiza a través del endpoint `sync-inventory?action=external_sale` que consume la RPC.
+
+### **8.3 Pools de Inventario Compartido (Fase 3)**
+
+Para agencias que gestionan bloques de habitaciones repartidos entre múltiples paquetes (ej. 50 habitaciones de un mismo hotel distribuidas en 3 flyers distintos), se introducen los pools de inventario:
+
+#### **Tabla: inventory_pools**
+
+```
+CREATE TABLE inventory_pools (
+    pool_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES agencies_tenants(tenant_id) ON DELETE CASCADE,
+    pool_name VARCHAR(255) NOT NULL,
+    total_units INTEGER NOT NULL CHECK (total_units > 0),
+    available_units INTEGER NOT NULL CHECK (available_units >= 0),
+    created_at TIMESTAMPTZ DEFAULT timezone('utc', now()),
+    CONSTRAINT inventory_pools_units_check CHECK (available_units <= total_units)
+);
+```
+
+#### **Tabla: package_inventory_link**
+
+```
+CREATE TABLE package_inventory_link (
+    link_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    package_id UUID NOT NULL REFERENCES travel_packages(package_id) ON DELETE CASCADE,
+    pool_id UUID NOT NULL REFERENCES inventory_pools(pool_id) ON DELETE CASCADE,
+    allocated_units INTEGER NOT NULL DEFAULT 0 CHECK (allocated_units >= 0),
+    UNIQUE(package_id, pool_id)
+);
+```
+
+**RLS mínimo privilegio:** Agencias solo ven y gestionan sus propios pools. Vínculos paquete-pool visibles solo si el pool pertenece a su tenant. SuperAdmin tiene visibilidad global.
+
+### **8.4 Sistema de Holds y Prevención de Race Conditions (Fase 4)**
+
+Durante el proceso de checkout, existe una ventana de tiempo entre que el usuario inicia el pago en Stripe y este se confirma. Para evitar que dos usuarios compren la misma habitación simultáneamente, se implementa un sistema de reservas temporales (holds):
+
+#### **Tabla: inventory_holds**
+
+```
+CREATE TABLE inventory_holds (
+    hold_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    package_id UUID NOT NULL REFERENCES travel_packages(package_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    units_held INTEGER NOT NULL DEFAULT 1 CHECK (units_held > 0),
+    expires_at TIMESTAMPTZ NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'released', 'consumed')),
+    stripe_session_id VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT timezone('utc', now())
+);
+```
+
+**Flujo completo del hold:**
+
+1. **Creación (`create_inventory_hold`):** Al iniciar checkout en `create-checkout`, si el paquete tiene `total_rooms > 0`, se invoca `create_inventory_hold(p_package_id, p_user_id, p_units, p_hold_minutes=15)`. La RPC usa `SELECT ... FOR UPDATE` para bloquear la fila y evitar race conditions. Decrementa `available_rooms` inmediatamente y retorna un `hold_id`. El `hold_id` se transmite en los metadatos de la sesión de Stripe.
+
+2. **Consumo (`consume_inventory_hold`):** Al recibir `checkout.session.completed` en `stripe-webhook`, se invoca `consume_inventory_hold(p_hold_id, p_stripe_session_id)`. Marca el hold como `consumed`. El inventario ya fue decrementado en el paso 1, por lo que no se requiere acción adicional.
+
+3. **Liberación (`release_inventory_hold`):** Si el usuario abandona el checkout o la sesión expira, el hold se libera automáticamente. Restaura `available_rooms` y registra el cambio en `inventory_audit_log`.
+
+4. **Limpieza automática:** Cron job `cleanup-expired-holds` se ejecuta cada minuto y libera todos los holds con `status = 'active'` y `expires_at <= now()`.
+
+**RLS:** Usuarios solo ven sus propios holds. SuperAdmin tiene visibilidad total.
+
+### **8.5 Auditoría de Inventario y Cumplimiento (Fase 3)**
+
+Toda modificación de inventario —ya sea por venta en plataforma, venta externa, ajuste manual o sincronización— queda registrada de forma inmutable:
+
+#### **Tabla: inventory_audit_log**
+
+```
+CREATE TABLE inventory_audit_log (
+    audit_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    package_id UUID NOT NULL REFERENCES travel_packages(package_id) ON DELETE CASCADE,
+    pool_id UUID REFERENCES inventory_pools(pool_id) ON DELETE SET NULL,
+    change_type VARCHAR(50) NOT NULL CHECK (
+        change_type IN ('booking', 'external_sale', 'manual_adjustment', 'sync', 'dispute_reversal')
+    ),
+    rooms_before INTEGER NOT NULL,
+    rooms_after INTEGER NOT NULL,
+    changed_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT timezone('utc', now())
+);
+```
+
+**Tipos de cambio registrados:**
+
+| Tipo | Origen | Disparador |
+|:---|:---|:---|
+| `booking` | Venta en plataforma | `stripe-webhook` → `decrement_available_rooms` / `consume_inventory_hold` |
+| `external_sale` | Venta externa reportada | `sync-inventory?action=external_sale` → `register_external_sale` |
+| `manual_adjustment` | Hold creado/liberado | `create_inventory_hold` / `release_inventory_hold` |
+| `sync` | Sincronización externa (PMS) | `sync-inventory?action=sync` → `sync_inventory_external` |
+| `dispute_reversal` | Disputa bancaria | `stripe-webhook` (charge.dispute.created) → `increment_available_rooms` |
+
+**RLS:** Agencias solo ven auditoría de paquetes de su tenant. SuperAdmin tiene visibilidad total.
+
+### **8.6 Automatización y Ciclo de Vida del Inventario**
+
+La plataforma ejecuta 4 cron jobs y 1 trigger para mantener la integridad del inventario sin intervención manual:
+
+#### **Cron Jobs (pg_cron)**
+
+| Job | Frecuencia | Función | Descripción |
+|:---|:---|:---|:---|
+| `auto-conclude-exhausted` | Diario 01:00 UTC | `auto_conclude_exhausted_packages()` | Paquetes `published` con `total_rooms > 0` y `available_rooms <= 0` → `concluded` |
+| `evaluate-overbooking-suspension` | Diario 02:00 UTC | `evaluate_overbooking_suspension()` | Agencias con `overbooking_incidents >= 3` → `Suspendido por Fraude`. Sus paquetes `published` pasan a `draft`. |
+| `notify-low-inventory` | Diario 08:00 UTC | `notify_low_inventory()` | Notifica al `owner_user_id` de la agencia cuando un paquete tiene ≤ 5 habitaciones disponibles. Inserta en `notifications`. |
+| `cleanup-expired-holds` | Cada minuto | `cleanup_expired_holds()` | Libera todos los holds activos cuyo `expires_at` ya pasó, restaurando el inventario. |
+
+#### **Trigger: enforce_inventory_first**
+
+```
+BEFORE UPDATE ON travel_packages
+FOR EACH ROW
+WHEN (NEW.publication_status = 'published')
+EXECUTE FUNCTION enforce_inventory_first()
+```
+
+Rechaza la publicación si `total_rooms > 0 AND available_rooms <= 0` con código de error `CK002`.
+
+#### **Validaciones en Edge Functions**
+
+| Edge Function | Validación | Error |
+|:---|:---|:---|
+| `create-checkout` | `total_rooms > 0 AND available_rooms <= 0` | "Paquete agotado" (400) |
+| `create-checkout` | `create_inventory_hold` falla por insuficiencia | "Error reservando inventario" (400) |
+| `create-lead` | `total_rooms > 0 AND available_rooms <= 0` | "Este paquete ya no tiene disponibilidad" (400) |
+| `stripe-webhook` | Pago exitoso + `hold_id` en metadata | Consume hold vía `consume_inventory_hold` |
+| `stripe-webhook` | Pago exitoso sin `hold_id` | Decrementa vía `decrement_available_rooms` (retrocompatible) |
+| `stripe-webhook` | Disputa + `package_id` en metadata | Incrementa vía `increment_available_rooms` + registra auditoría |
+
+#### **Impacto en Métricas de Conversión**
+
+La función `evaluate_conversion_rates` (ejecutada mensualmente) ahora incluye las ventas externas registradas en `external_sales_log` dentro del cómputo de `conversion_window_sales`. Esto corrige la distorsión que ocurría cuando una agencia cerraba leads en plataforma pero concretaba la venta externamente, resultando en una tasa de conversión falsamente baja y la pérdida de la tasa preferencial.
+
+**Fórmula actualizada:**
+
+```
+ventas_totales = ventas_plataforma (transactions_orders) + ventas_externas (external_sales_log)
+conversion_rate = (ventas_totales / leads_plataforma) × 100
+```
+
+### **8.7 Tabla Resumen de Nuevas Tablas y RPCs**
+
+| Tabla / RPC | Fase | Propósito |
+|:---|:---|:---|
+| `travel_packages.total_rooms` / `available_rooms` | 1 | Control de inventario por paquete |
+| `external_sales_log` | 2 | Registro de ventas fuera de plataforma |
+| `agencies_tenants.overbooking_incidents` | 2 | Contador para suspensión por fraude |
+| `decrement_available_rooms(package_id)` | 1-2 | Decrementar inventario en venta |
+| `increment_available_rooms(package_id)` | 2 | Restaurar inventario en disputa |
+| `register_external_sale(...)` | 2 | Registrar venta externa + decrementar |
+| `auto_conclude_exhausted_packages()` | 2 | Auto-concluir paquetes agotados |
+| `notify_low_inventory()` | 2 | Alertar inventario bajo (≤ 5) |
+| `evaluate_overbooking_suspension()` | 2 | Suspender agencias con ≥ 3 incidentes |
+| `inventory_pools` / `package_inventory_link` | 3 | Pools de inventario compartido |
+| `inventory_audit_log` | 3 | Trazabilidad inmutable de cambios |
+| `sync_inventory_external(pkg, total, avail, src)` | 3 | Sincronización desde PMS externo |
+| `inventory_holds` | 4 | Reservas temporales anti race-condition |
+| `create_inventory_hold(...)` | 4 | Crear hold con SELECT FOR UPDATE |
+| `consume_inventory_hold(hold_id, session)` | 4 | Consumir hold tras pago exitoso |
+| `release_inventory_hold(hold_id)` | 4 | Liberar hold (timeout/cancelación) |
+| `cleanup_expired_holds()` | 4 | Limpiar holds expirados cada minuto |
+| `enforce_inventory_first` (trigger) | 4 | Bloquear publicación sin inventario |
+
+### **8.8 Diagrama de Flujo: Compra con Control de Inventario**
+
+```
+Viajero inicia checkout
+       │
+       ▼
+create-checkout: ¿total_rooms > 0?
+       │                │
+      SÍ               NO
+       │                │
+       ▼                ▼
+¿available_rooms > 0?   Continuar sin hold
+       │                │
+      SÍ               NO
+       │                │
+       ▼                ▼
+create_inventory_hold  Error: "Paquete agotado"
+(lock fila, decrementa)
+       │
+       ▼
+Crear sesión Stripe
+(metadata incluye hold_id)
+       │
+       ├──► Usuario paga ──► stripe-webhook: consume_inventory_hold
+       │
+       └──► Timeout/Abandono ──► cleanup_expired_holds (cron 1min)
+                                  ──► release_inventory_hold
+                                      (restaura available_rooms)
+```
+
+### **8.9 Consideraciones de Seguridad**
+
+- **RLS mínimo privilegio:** Cada tabla nueva (`external_sales_log`, `inventory_pools`, `package_inventory_link`, `inventory_audit_log`, `inventory_holds`) tiene políticas RLS que restringen el acceso al tenant propietario. Solo SuperAdmin tiene visibilidad transversal.
+- **SECURITY DEFINER:** Todas las RPCs de inventario operan con `SECURITY DEFINER` para garantizar atomicidad y evitar manipulación directa de las tablas por usuarios no privilegiados.
+- **SELECT FOR UPDATE:** `create_inventory_hold` utiliza bloqueo de fila a nivel PostgreSQL para eliminar race conditions durante el checkout concurrente.
+- **Auditoría inmutable:** `inventory_audit_log` es append-only desde la perspectiva del usuario (solo INSERT por triggers/RPCs, sin UPDATE/DELETE desde la capa de aplicación).
+- **Validación de ownership:** El endpoint `sync-inventory` verifica que el `package_id` pertenezca al `tenant_id` del usuario autenticado antes de ejecutar cualquier operación.
+- **Sin secretos hardcodeados:** Las edge functions acceden a `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y `STRIPE_SECRET_KEY` exclusivamente mediante `Deno.env.get()`.
