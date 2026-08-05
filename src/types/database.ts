@@ -27,10 +27,11 @@ export interface AgencyTenant {
   accept_nda: boolean;
   accept_iva_disclaimer: boolean;
   legal_acceptances_at: string | null;
+  overbooking_incidents: number;
   created_at: string;
 }
 
-export type AgencyStatus = "En Revisión" | "Activo" | "Suspendido por Pago";
+export type AgencyStatus = "En Revisión" | "Activo" | "Suspendido por Pago" | "Suspendido por Fraude";
 export type PlanType = "Básico" | "Intermedio" | "Premium" | "Fundador";
 export type VerificationStatus = "pending" | "verified" | "rejected";
 
@@ -91,6 +92,8 @@ export interface TravelPackage {
   publication_status: PublicationStatus;
   departure_date: string;
   description?: string;
+  total_rooms: number;
+  available_rooms: number;
   created_at: string;
 }
 
@@ -459,6 +462,56 @@ export interface WalletTransaction {
   created_at: string;
 }
 
+export interface ExternalSale {
+  sale_id: string;
+  tenant_id: string;
+  package_id: string | null;
+  rooms_sold: number;
+  total_amount: number | null;
+  currency: string;
+  sale_date: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface InventoryPool {
+  pool_id: string;
+  tenant_id: string;
+  pool_name: string;
+  total_units: number;
+  available_units: number;
+  created_at: string;
+}
+
+export interface PackageInventoryLink {
+  link_id: string;
+  package_id: string;
+  pool_id: string;
+  allocated_units: number;
+}
+
+export interface InventoryAuditLog {
+  audit_id: string;
+  package_id: string;
+  pool_id: string | null;
+  change_type: "booking" | "external_sale" | "manual_adjustment" | "sync" | "dispute_reversal";
+  rooms_before: number;
+  rooms_after: number;
+  changed_by: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface InventoryHold {
+  hold_id: string;
+  package_id: string;
+  user_id: string;
+  units_held: number;
+  expires_at: string;
+  status: "active" | "released" | "consumed";
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -491,6 +544,11 @@ export interface Database {
       fiscal_income_records: { Row: FiscalIncomeRecord; Insert: Partial<FiscalIncomeRecord>; Update: Partial<FiscalIncomeRecord> };
       fiscal_expense_records: { Row: FiscalExpenseRecord; Insert: Partial<FiscalExpenseRecord>; Update: Partial<FiscalExpenseRecord> };
       fiscal_periods: { Row: FiscalPeriod; Insert: Partial<FiscalPeriod>; Update: Partial<FiscalPeriod> };
+      external_sales_log: { Row: ExternalSale; Insert: Partial<ExternalSale>; Update: Partial<ExternalSale> };
+      inventory_pools: { Row: InventoryPool; Insert: Partial<InventoryPool>; Update: Partial<InventoryPool> };
+      package_inventory_link: { Row: PackageInventoryLink; Insert: Partial<PackageInventoryLink>; Update: Partial<PackageInventoryLink> };
+      inventory_audit_log: { Row: InventoryAuditLog; Insert: Partial<InventoryAuditLog>; Update: Partial<InventoryAuditLog> };
+      inventory_holds: { Row: InventoryHold; Insert: Partial<InventoryHold>; Update: Partial<InventoryHold> };
     };
   };
 }

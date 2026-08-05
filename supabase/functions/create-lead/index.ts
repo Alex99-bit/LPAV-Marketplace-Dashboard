@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
   try {
     const { data: pkg, error: pkgError } = await supabase
       .from("travel_packages")
-      .select("package_id, tenant_id, title, region, price, currency")
+      .select("package_id, tenant_id, title, region, price, currency, total_rooms, available_rooms")
       .eq("package_id", packageId)
       .eq("publication_status", "published")
       .single();
@@ -46,6 +46,14 @@ Deno.serve(async (req: Request) => {
     if (pkgError || !pkg) {
       return new Response(JSON.stringify({ error: "Paquete no encontrado o no disponible" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const pkgRooms = pkg as unknown as { total_rooms: number; available_rooms: number };
+    if (pkgRooms.total_rooms > 0 && pkgRooms.available_rooms <= 0) {
+      return new Response(JSON.stringify({ error: "Este paquete ya no tiene disponibilidad" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

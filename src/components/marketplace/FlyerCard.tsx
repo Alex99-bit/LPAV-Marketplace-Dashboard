@@ -9,10 +9,13 @@ interface FlyerCardProps {
 }
 
 export default function FlyerCard({ pkg, agencyName }: FlyerCardProps) {
+  const soldOut = pkg.total_rooms > 0 && pkg.available_rooms <= 0;
+  const lowStock = pkg.total_rooms > 0 && pkg.available_rooms > 0 && pkg.available_rooms <= 5;
+
   return (
     <Link
       to={`/package/${pkg.package_id}`}
-      className="group block overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      className={`group block overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${soldOut ? "opacity-60" : ""}`}
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
         <img
@@ -49,6 +52,16 @@ export default function FlyerCard({ pkg, agencyName }: FlyerCardProps) {
         {pkg.publication_status === "pending_review" && (
           <div className="absolute top-3 right-3">
             <Badge variant="danger">En Revisión</Badge>
+          </div>
+        )}
+        {soldOut && (
+          <div className="absolute top-3 left-3">
+            <Badge variant="danger">Agotado</Badge>
+          </div>
+        )}
+        {lowStock && !soldOut && (
+          <div className="absolute top-3 left-3">
+            <Badge variant="warning">¡{pkg.available_rooms} disponibles!</Badge>
           </div>
         )}
       </div>

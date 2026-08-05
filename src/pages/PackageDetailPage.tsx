@@ -35,6 +35,7 @@ export default function PackageDetailPage() {
   const [requestInfoError, setRequestInfoError] = useState("");
 
   const isInCart = items.some((i) => i.package_id === id);
+  const isSoldOut = pkg && pkg.total_rooms > 0 && pkg.available_rooms <= 0;
 
   useEffect(() => {
     if (!id) return;
@@ -226,6 +227,16 @@ export default function PackageDetailPage() {
             </p>
           )}
 
+          {pkg.total_rooms > 0 && (
+            <div className="rounded-xl border border-gray-100 p-3">
+              <p className="text-sm text-text-muted">
+                {pkg.available_rooms > 0
+                  ? `${pkg.available_rooms} de ${pkg.total_rooms} habitaciones disponibles`
+                  : "Agotado"}
+              </p>
+            </div>
+          )}
+
           <div className="rounded-2xl bg-surface p-5">
             <div className="flex items-baseline justify-between">
               <span className="text-sm text-text-muted">Precio desde</span>
@@ -242,15 +253,17 @@ export default function PackageDetailPage() {
             <Button
               size="lg"
               className="w-full"
-              disabled={isInCart || pkg.publication_status !== "published"}
+              disabled={isInCart || pkg.publication_status !== "published" || isSoldOut}
               onClick={handleAddToCart}
             >
               <ShoppingCart className="h-5 w-5" />
               {isInCart
                 ? "Ya está en tu carrito"
-                : pkg.publication_status !== "published"
-                  ? "No disponible"
-                  : "Agregar al carrito"}
+                : isSoldOut
+                  ? "Agotado"
+                  : pkg.publication_status !== "published"
+                    ? "No disponible"
+                    : "Agregar al carrito"}
             </Button>
             <Button
               variant="secondary"
@@ -268,7 +281,7 @@ export default function PackageDetailPage() {
               className="w-full"
               loading={requestingInfo}
               onClick={handleRequestInfo}
-              disabled={pkg.publication_status !== "published"}
+              disabled={pkg.publication_status !== "published" || isSoldOut}
             >
               <MessageCircle className="h-5 w-5" />
               Solicitar información

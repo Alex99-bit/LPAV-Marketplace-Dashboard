@@ -36,6 +36,7 @@ export default function AgencyFlyers() {
     deposit_percent: "20",
     max_installments: "0",
     description: "",
+    total_rooms: "0",
   });
   const [_imagePath, setImagePath] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -65,9 +66,6 @@ export default function AgencyFlyers() {
       region: form.region,
       price: Number(form.price),
       currency: form.currency,
-      // TODO(F4-flyer-imagen): nunca persistir placehold.co en BD. Hacer la
-      // imagen obligatoria en el wizard de creación o generar thumbnail real.
-      // El placeholder en producción es contenido falso en el marketplace.
       url_flyer_storage: imageUrl ?? "https://placehold.co/600x800/3B82F6/white?text=Flyer",
       url_thumbnail_storage: imageUrl ?? "https://placehold.co/300x400/3B82F6/white?text=Flyer",
       departure_date: new Date(form.departure_date).toISOString(),
@@ -76,6 +74,8 @@ export default function AgencyFlyers() {
       deposit_percent: Number(form.deposit_percent) / 100,
       max_installments: Number(form.max_installments),
       description: form.description || null,
+      total_rooms: Number(form.total_rooms),
+      available_rooms: Number(form.total_rooms),
     });
 
     if (!error) {
@@ -91,6 +91,7 @@ export default function AgencyFlyers() {
         deposit_percent: "20",
         max_installments: "0",
         description: "",
+        total_rooms: "0",
       });
       setImagePath(null);
       setImageUrl(null);
@@ -103,12 +104,14 @@ export default function AgencyFlyers() {
   };
 
   const handlePublish = async (pkg: TravelPackage) => {
+    const newStatus = pkg.publication_status === "published" ? "draft" : "published";
+    if (newStatus === "published" && pkg.total_rooms > 0 && pkg.available_rooms <= 0) {
+      addToast("error", "No se puede publicar", "El paquete no tiene habitaciones disponibles. Actualiza el inventario primero.");
+      return;
+    }
     await supabase
       .from("travel_packages")
-      .update({
-        publication_status:
-          pkg.publication_status === "published" ? "draft" : "published",
-      })
+      .update({ publication_status: newStatus })
       .eq("package_id", pkg.package_id);
     fetchPackages();
   };
@@ -159,6 +162,7 @@ export default function AgencyFlyers() {
               <th className="px-4 py-3 font-medium text-text-muted">Estado</th>
               <th className="px-4 py-3 font-medium text-text-muted">Precio</th>
               <th className="px-4 py-3 font-medium text-text-muted">Salida</th>
+              <th className="px-4 py-3 font-medium text-text-muted">Disp.</th>
               <th className="px-4 py-3 font-medium text-text-muted">Acciones</th>
             </tr>
           </thead>
@@ -191,6 +195,11 @@ export default function AgencyFlyers() {
                   </td>
                   <td className="px-4 py-3 text-text-muted">
                     {formatDate(pkg.departure_date)}
+                  </td>
+                  <td className="px-4 py-3 text-text">
+                    {pkg.total_rooms > 0
+                      ? `${pkg.available_rooms}/${pkg.total_rooms}`
+                      : "Ilimitado"}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
@@ -289,6 +298,14 @@ export default function AgencyFlyers() {
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-text transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none resize-y"
             />
           </div>
+          <Input
+            label="Habitaciones / Cupos disponibles"
+            type="number"
+            min="0"
+            placeholder="0 = sin límite"
+            value={form.total_rooms}
+            onChange={(e) => setForm({ ...form, total_rooms: e.target.value })}
+          />
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="% Anticipo"

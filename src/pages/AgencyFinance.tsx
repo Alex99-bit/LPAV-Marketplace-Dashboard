@@ -7,6 +7,7 @@ import StripeConnectStatus from "@/components/agency/StripeConnectStatus";
 import RevenueOverview from "@/components/agency/RevenueOverview";
 import ProfitabilityTable from "@/components/agency/ProfitabilityTable";
 import CfdiInvoices from "@/components/agency/CfdiInvoices";
+import ExternalSalesPanel from "@/components/agency/ExternalSalesPanel";
 
 interface CurrencyGroup {
   totalRevenue: number;
@@ -181,6 +182,8 @@ export default function AgencyFinance() {
         />
 
         <CfdiInvoices tenantId={profile?.tenant_id!} />
+
+        <ExternalSalesPanel />
       </div>
     </div>
   );

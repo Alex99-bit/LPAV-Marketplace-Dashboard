@@ -103,6 +103,17 @@ Deno.serve(async (req: Request) => {
       }).select().single();
 
       if (order) {
+        if (metadata.hold_id) {
+          await supabase.rpc("consume_inventory_hold", {
+            p_hold_id: metadata.hold_id,
+            p_stripe_session_id: session.id,
+          });
+        } else {
+          await supabase.rpc("decrement_available_rooms", {
+            p_package_id: metadata.package_id,
+          });
+        }
+
         if (pointsEarned > 0) {
           await supabase.rpc("credit_points", {
             p_user_id: userId,
@@ -200,14 +211,26 @@ Deno.serve(async (req: Request) => {
             .eq("stripe_checkout_session_id", sessions.data[0].id)
             .single();
 
-          if (order && order.points_earned > 0) {
-            await supabase.rpc("debit_points", {
-              p_user_id: order.user_id,
-              p_points: order.points_earned,
-              p_type: "reversal",
-              p_description: `Disputa: ${dispute.id}`,
-              p_reference_order_id: order.id,
-            });
+          if (order) {
+            const pi = await stripe.paymentIntents.retrieve(
+              dispute.payment_intent as string,
+            );
+            const restorePkgId = pi.metadata?.package_id;
+            if (restorePkgId) {
+              await supabase.rpc("increment_available_rooms", {
+                p_package_id: restorePkgId,
+              });
+            }
+
+            if (order.points_earned > 0) {
+              await supabase.rpc("debit_points", {
+                p_user_id: order.user_id,
+                p_points: order.points_earned,
+                p_type: "reversal",
+                p_description: `Disputa: ${dispute.id}`,
+                p_reference_order_id: order.id,
+              });
+            }
           }
         }
       }

@@ -45,6 +45,13 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  const pkgRooms = pkg as unknown as { total_rooms: number; available_rooms: number };
+  if (pkgRooms.total_rooms > 0 && pkgRooms.available_rooms <= 0) {
+    return new Response(JSON.stringify({ error: "Paquete agotado" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const agency = pkg.agencies_tenants as unknown as {
     stripe_account_id: string;
     business_name: string;
@@ -103,6 +110,22 @@ Deno.serve(async (req: Request) => {
   const pointsOffset = pointsToRedeem * 100;
   const totalCharge = Math.max(0, depositAmount - pointsOffset);
 
+  let holdId: string | null = null;
+  if (pkgRooms.total_rooms > 0) {
+    const { data: createdHoldId, error: holdError } = await supabase.rpc("create_inventory_hold", {
+      p_package_id: body.package_id,
+      p_user_id: user.id,
+      p_units: 1,
+      p_hold_minutes: 15,
+    });
+    if (holdError) {
+      return new Response(JSON.stringify({ error: holdError.message || "Error reservando inventario" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    holdId = createdHoldId as string;
+  }
+
   const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
   const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-04-30.basil" });
 
@@ -137,6 +160,7 @@ Deno.serve(async (req: Request) => {
         package_iva: packageIVA.toFixed(2),
         agency_name: agency.business_name,
         plan_type: agency.plan_type,
+        ...(holdId ? { hold_id: holdId } : {}),
       },
     },
     metadata: {
@@ -152,6 +176,7 @@ Deno.serve(async (req: Request) => {
       package_iva: packageIVA.toFixed(2),
       agency_name: agency.business_name,
       plan_type: agency.plan_type,
+      ...(holdId ? { hold_id: holdId } : {}),
     },
   }, { stripeAccount: agency.stripe_account_id });
 
@@ -163,6 +188,7 @@ Deno.serve(async (req: Request) => {
     platform_fee: platformFee / 100,
     agency_commission: agencyCommission / 100,
     commission_rate: commissionRate,
+    ...(holdId ? { hold_id: holdId } : {}),
     ...(pointsToRedeem > 0 ? { points_redeemed: pointsToRedeem } : {}),
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
