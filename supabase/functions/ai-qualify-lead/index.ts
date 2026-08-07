@@ -74,6 +74,29 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createServiceClient();
 
+  // Verificar que la agencia tiene un plan con pre-calificación IA
+  // Plan Básico no cuenta con agente de IA
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("tenant_id")
+    .eq("id", user.id)
+    .single();
+
+  if (profileData?.tenant_id) {
+    const { data: tenant } = await supabase
+      .from("agencies_tenants")
+      .select("plan_type")
+      .eq("tenant_id", profileData.tenant_id)
+      .single();
+
+    if (tenant?.plan_type === "Básico") {
+      return new Response(JSON.stringify({ error: "Tu plan no incluye pre-calificación con IA. Actualiza a Plan Intermedio o superior para acceder a esta funcionalidad." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   try {
     const { data: lead, error: leadError } = await supabase
       .from("crm_leads")

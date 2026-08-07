@@ -21,7 +21,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { mapAuthError, mapSupabaseError } from "@/lib/errors";
-import { PLAN_DETAILS, PLAN_LIMITS } from "@/lib/constants";
+import { PLAN_DETAILS } from "@/lib/constants";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Select from "@/components/ui/Select";
@@ -534,7 +534,20 @@ export default function AgencyAuth() {
   // ── Step: Plan Selection ────────────────────────────────────
 
   const StepPlan = () => (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="space-y-4">
+      {selectedPlan === "Fundador" && (
+        <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200">
+          <p className="font-semibold">Plan Fundador — Sujeto a aprobación</p>
+          <p className="mt-1 text-xs text-amber-700">
+            El Plan Fundador requiere aprobación del SuperAdmin. Ingresarás como{" "}
+            <strong>Plan Básico</strong> temporalmente. Una vez aprobada tu
+            solicitud, se activarán automáticamente todos los beneficios
+            (comisión 7.5%, sin mensualidad por 1 año). Cupo limitado a 10
+            agencias.
+          </p>
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {Object.entries(PLAN_DETAILS).map(([key, plan]) => {
         const isSelected = key === selectedPlan;
         const Icon = PLAN_ICONS[key as PlanType];
@@ -594,6 +607,7 @@ export default function AgencyAuth() {
           </button>
         );
       })}
+    </div>
     </div>
   );
 

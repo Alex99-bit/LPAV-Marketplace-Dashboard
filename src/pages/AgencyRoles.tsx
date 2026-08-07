@@ -31,20 +31,28 @@ export default function AgencyRoles() {
     can_manage_chat: false,
   });
 
-  const planLimit =
-    PLAN_LIMITS[
-      (profile as unknown as { subscription_tier?: string })
-        ?.subscription_tier as keyof typeof PLAN_LIMITS
-    ] ?? PLAN_LIMITS.Básico;
+  const [planType, setPlanType] = useState<keyof typeof PLAN_LIMITS>("Básico");
+
+  const planLimit = PLAN_LIMITS[planType] ?? PLAN_LIMITS.Básico;
 
   const fetchRoles = async () => {
     if (!profile?.tenant_id) return;
-    const { data } = await supabase
-      .from("custom_roles_permissions")
-      .select("*")
-      .eq("tenant_id", profile.tenant_id!)
-      .order("created_at", { ascending: true });
-    setRoles(data ?? []);
+    const [rolesRes, tenantRes] = await Promise.all([
+      supabase
+        .from("custom_roles_permissions")
+        .select("*")
+        .eq("tenant_id", profile.tenant_id!)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("agencies_tenants")
+        .select("plan_type")
+        .eq("tenant_id", profile.tenant_id!)
+        .single(),
+    ]);
+    setRoles(rolesRes.data ?? []);
+    if (tenantRes.data?.plan_type) {
+      setPlanType(tenantRes.data.plan_type as keyof typeof PLAN_LIMITS);
+    }
     setLoading(false);
   };
 

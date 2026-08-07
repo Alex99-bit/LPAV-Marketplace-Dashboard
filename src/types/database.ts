@@ -28,12 +28,16 @@ export interface AgencyTenant {
   accept_iva_disclaimer: boolean;
   legal_acceptances_at: string | null;
   overbooking_incidents: number;
+  fundador_request_status: FundadorRequestStatus;
+  fundador_requested_at: string | null;
+  fundador_activated_at: string | null;
   created_at: string;
 }
 
 export type AgencyStatus = "En Revisión" | "Activo" | "Suspendido por Pago" | "Suspendido por Fraude";
 export type PlanType = "Básico" | "Intermedio" | "Premium" | "Fundador";
 export type VerificationStatus = "pending" | "verified" | "rejected";
+export type FundadorRequestStatus = "none" | "pending" | "approved" | "rejected";
 
 export interface CustomRolePermission {
   role_id: string;

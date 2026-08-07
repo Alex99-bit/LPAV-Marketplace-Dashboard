@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
-import type { AgencyTenant, SaasSubscription } from "@/types";
+import type { AgencyTenant } from "@/types";
 import Spinner from "@/components/ui/Spinner";
 import Tabs from "@/components/ui/Tabs";
 import CompanyProfileForm from "@/components/agency/CompanyProfileForm";
@@ -21,20 +21,19 @@ export default function AgencySettings() {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tenant, setTenant] = useState<AgencyTenant | null>(null);
-  const [subscription, setSubscription] = useState<SaasSubscription | null>(null);
   const [activeTab, setActiveTab] = useState("profile");
 
   const fetchData = async () => {
     if (!profile?.tenant_id) return;
     const tenantId = profile.tenant_id!;
 
-    const [tenantRes, subRes] = await Promise.all([
-      supabase.from("agencies_tenants").select("*").eq("tenant_id", tenantId).single(),
-      supabase.from("saas_subscriptions").select("*").eq("tenant_id", tenantId).single(),
-    ]);
+    const { data } = await supabase
+      .from("agencies_tenants")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .single();
 
-    setTenant(tenantRes.data as AgencyTenant | null);
-    setSubscription(subRes.data as SaasSubscription | null);
+    setTenant(data as AgencyTenant | null);
     setLoading(false);
   };
 
@@ -73,8 +72,9 @@ export default function AgencySettings() {
         )}
         {activeTab === "plan" && (
           <PlanManagement
-            subscription={subscription}
-            currentTier={tenant.subscription_tier}
+            currentTier={tenant.plan_type}
+            currentCommissionRate={tenant.commission_rate}
+            preferentialRateActive={tenant.preferential_rate_active}
           />
         )}
       </div>

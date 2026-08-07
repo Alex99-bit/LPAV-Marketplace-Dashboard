@@ -71,22 +71,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Básico y Fundador: sin cobro, cambio inmediato
-    if (plan === "Básico" || plan === "Fundador") {
-      if (plan === "Fundador") {
-        const { count } = await supabase
-          .from("agencies_tenants")
-          .select("*", { count: "exact", head: true })
-          .eq("plan_type", "Fundador")
-          .eq("verification_status", "verified");
-
-        if ((count ?? 0) >= 10) {
-          return new Response(JSON.stringify({ error: "Plan Fundador agotado (10 plazas)" }), {
-            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
-
+    // Básico: sin cobro, cambio inmediato.
+    // Fundador: solo asignable por SuperAdmin. Bloquear auto-upgrade.
+    if (plan === "Básico") {
       const { error: updateError } = await supabase
         .from("agencies_tenants")
         .update({
@@ -104,6 +91,12 @@ Deno.serve(async (req: Request) => {
 
       return new Response(JSON.stringify({ success: true, plan_type: plan, commission_rate: COMMISSION_RATES[plan] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (plan === "Fundador") {
+      return new Response(JSON.stringify({ error: "El Plan Fundador solo es asignable por el SuperAdmin. Solicítalo durante el registro o contacta a soporte." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

@@ -19,6 +19,7 @@ type Tab = "resumen" | "agencias" | "usuarios" | "moderacion" | "fiscal";
 
 type PendingAction =
   | { type: "agency-status"; tenantId: string; newStatus: string; label: string }
+  | { type: "fundador-approval"; tenantId: string; approved: boolean; label: string }
   | { type: "ban-package"; reportId: string }
   | null;
 
@@ -159,7 +160,27 @@ export default function SuperAdminDashboard() {
     fetchData();
   };
 
+  const handleFundadorApproval = (tenantId: string, approved: boolean) => {
+    setPendingAction({
+      type: "fundador-approval",
+      tenantId,
+      approved,
+      label: approved ? "Aprobar Plan Fundador" : "Rechazar Plan Fundador",
+    });
+  };
+
+  const confirmFundadorApproval = async () => {
+    if (!pendingAction || pendingAction.type !== "fundador-approval") return;
+    await supabase.rpc("approve_fundador", {
+      p_tenant_id: pendingAction.tenantId,
+      p_approved: pendingAction.approved,
+    });
+    setPendingAction(null);
+    fetchData();
+  };
+
   const filteredAgencies = agencies.filter((a) => {
+    if (statusFilter === "fundador") return a.fundador_request_status === "pending";
     if (statusFilter !== "all" && a.status !== statusFilter) return false;
     if (search && !a.business_name.toLowerCase().includes(search.toLowerCase()) &&
         !a.rfc.toLowerCase().includes(search.toLowerCase())) return false;
@@ -269,6 +290,7 @@ export default function SuperAdminDashboard() {
             statusFilter={statusFilter}
             onFilterChange={setStatusFilter}
             onStatusChange={handleAgencyStatus}
+            onFundadorApproval={handleFundadorApproval}
           />
         )}
         {tab === "usuarios" && (
@@ -304,18 +326,36 @@ export default function SuperAdminDashboard() {
       <ConfirmDialog
         open={pendingAction !== null}
         onClose={() => setPendingAction(null)}
-        title={pendingAction?.type === "agency-status" ? "Cambiar estado de agencia" : "Banear paquete"}
+        title={
+          pendingAction?.type === "agency-status" ? "Cambiar estado de agencia" :
+          pendingAction?.type === "fundador-approval" ? "Aprobación Plan Fundador" :
+          "Banear paquete"
+        }
         description={
           pendingAction?.type === "agency-status"
-            ? `¿Estás seguro de que quieres cambiar el estado de esta agencia?`
+            ? "¿Estás seguro de que quieres cambiar el estado de esta agencia?"
+            : pendingAction?.type === "fundador-approval"
+              ? (pendingAction.approved
+                ? "¿Apruebas la solicitud de Plan Fundador? La agencia recibirá comisión 7.5% y todos los beneficios Premium sin costo por 1 año."
+                : "¿Rechazas la solicitud de Plan Fundador? La agencia continuará en su plan actual.")
             : "¿Estás seguro de que quieres banear este paquete? Esta acción lo retirará del catálogo."
         }
-        confirmLabel={pendingAction?.type === "agency-status" ? "Confirmar" : "Banear"}
-        variant="danger"
+        confirmLabel={
+          pendingAction?.type === "agency-status" ? "Confirmar" :
+          pendingAction?.type === "fundador-approval" ? (pendingAction.approved ? "Aprobar Fundador" : "Rechazar") :
+          "Banear"
+        }
+        variant={
+          pendingAction?.type === "fundador-approval" && !pendingAction.approved ? "danger" :
+          pendingAction?.type === "ban-package" ? "danger" :
+          undefined
+        }
         onConfirm={
           pendingAction?.type === "agency-status"
             ? confirmAgencyStatus
-            : confirmBan
+            : pendingAction?.type === "fundador-approval"
+              ? confirmFundadorApproval
+              : confirmBan
         }
       />
     </div>
@@ -358,18 +398,20 @@ function ResumenTab({ metrics }: { metrics: Metrics }) {
 // ── Tab: Agencias ────────────────────────────────────────────
 
 function AgenciasTab({
-  agencies, statusFilter, onFilterChange, onStatusChange,
+  agencies, statusFilter, onFilterChange, onStatusChange, onFundadorApproval,
 }: {
   agencies: AgencyTenant[];
   statusFilter: string;
   onFilterChange: (v: string) => void;
   onStatusChange: (tenantId: string, status: string) => void;
+  onFundadorApproval: (tenantId: string, approved: boolean) => void;
 }) {
   const STATUS_OPTIONS = [
     { value: "all", label: "Todas" },
     { value: "Activo", label: "Activas" },
     { value: "En Revisión", label: "En Revisión" },
     { value: "Suspendido por Pago", label: "Suspendidas" },
+    { value: "fundador", label: "Fundador Pendientes" },
   ];
 
   return (
@@ -423,13 +465,31 @@ function AgenciasTab({
                         {agency.status}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-text-muted">{agency.subscription_tier}</td>
+                    <td className="px-4 py-3 text-text-muted">
+                      <Badge variant={
+                        agency.plan_type === "Fundador" ? "success" :
+                        agency.plan_type === "Premium" ? "info" :
+                        agency.plan_type === "Intermedio" ? "warning" : "default"
+                      }>
+                        {agency.plan_type}
+                      </Badge>
+                    </td>
                     <td className="px-4 py-3 text-text-muted text-xs">
                       {new Date(agency.created_at).toLocaleDateString("es-MX")}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        {agency.status === "En Revisión" && (
+                        {agency.fundador_request_status === "pending" && (
+                          <>
+                            <Button size="sm" onClick={() => onFundadorApproval(agency.tenant_id, true)}>
+                              <CheckCircle className="h-3.5 w-3.5" /> Fundador ✓
+                            </Button>
+                            <Button size="sm" variant="danger" onClick={() => onFundadorApproval(agency.tenant_id, false)}>
+                              <XCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        {agency.status === "En Revisión" && agency.fundador_request_status !== "pending" && (
                           <Button size="sm" onClick={() => onStatusChange(agency.tenant_id, "Activo")}>
                             <CheckCircle className="h-3.5 w-3.5" /> Aprobar
                           </Button>
