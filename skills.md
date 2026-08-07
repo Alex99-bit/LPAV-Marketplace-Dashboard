@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS public.saas_subscriptions (
     tenant_id UUID REFERENCES public.agencies_tenants(tenant_id) ON DELETE CASCADE NOT NULL,
     stripe_subscription_id VARCHAR(255),
     stripe_customer_id VARCHAR(255),
-    plan_tier VARCHAR(50) NOT NULL,
+    plan_type VARCHAR(50) NOT NULL,
     billing_cycle VARCHAR(50) DEFAULT 'monthly',
     status VARCHAR(50) DEFAULT 'active',
     current_period_start TIMESTAMP WITH TIME ZONE,
@@ -783,8 +783,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { getUser, createServiceClient } from "../_shared/auth.ts";
 
 const PLAN_PRICES: Record<string, { monthly: string; annual: string }> = {
-  Comercial: { monthly: "price_comercial_monthly", annual: "price_comercial_annual" },
-  Corporativo: { monthly: "price_corporativo_monthly", annual: "price_corporativo_annual" },
+  Intermedio: { monthly: "price_intermedio_monthly", annual: "price_intermedio_annual" },
+  Premium: { monthly: "price_premium_monthly", annual: "price_premium_annual" },
 };
 
 Deno.serve(async (req: Request) => {
@@ -1246,7 +1246,7 @@ export interface SaasSubscription {
   tenant_id: string;
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
-  plan_tier: SubscriptionTier;
+  plan_type: PlanType;
   billing_cycle: "monthly" | "annual";
   status: "active" | "past_due" | "cancelled" | "trialing";
   current_period_start: string | null;
@@ -1401,7 +1401,7 @@ Replace `src/pages/AgencyDashboard.tsx` with a complete implementation:
 
 **Recent Activity section:** Replace placeholder with real-time notifications feed using Supabase Realtime subscription on `notifications` table filtered by agency users.
 
-**SaaS Status Banner:** Persistent top banner showing plan tier, subscription status, and renewal date. If `status === "Suspendido por Pago"`, show warning with link to billing portal.
+**SaaS Status Banner:** Persistent top banner showing plan type, subscription status, and renewal date. If `status === "Suspendido por Pago"`, show warning with link to billing portal.
 
 **Components to create:**
 - `src/components/agency/KpiCard.tsx` — Reusable metric card with icon, value, label, trend indicator
@@ -1660,23 +1660,23 @@ Create `supabase/functions/chat-offline-check/index.ts`:
 - If offline, dispatch email notification via `dispatch-notification` Edge Function
 - Rate limit: max 1 email per agent per hour
 
-### 5.4 AI Agent Toggle (Plan Corporativo)
+### 5.4 AI Agent Toggle (Plan Premium y Fundador)
 
-In `src/pages/Chat.tsx`, add a toggle switch for `Agency_Admin` users on Corporativo plan:
+In `src/pages/Chat.tsx`, add a toggle switch for `Agency_Admin` users on Premium o Fundador plan:
 - When enabled, the AI bot handles the conversation automatically
 - When disabled, the human agent takes control
 - The toggle calls `transfer-lead-to-human` Edge Function when switching from AI to human
 
 ### 5.5 Behavior Analytics Dashboard
 
-Create `src/pages/AgencyAnalytics.tsx` (Corporativo plan only):
+Create `src/pages/AgencyAnalytics.tsx` (Premium y Fundador):
 
 - Funnel visualization: views → leads → qualified → won
 - Average agent response time
 - Lead source distribution
 - Revenue by package
 
-**Route:** Add `/agency/analytics` with `<AuthGuard requireAgency>` and plan check
+**Route:** Add `/agency/analytics` with `<AuthGuard requireAgency>` and plan check (Premium y Fundador)
 
 ### 5.6 Verification
 
@@ -1927,9 +1927,10 @@ POST /v1/checkout/sessions
 **Plans:**
 | Plan | Monthly Price | Annual Price (20% discount) |
 |---|---|---|
-| Gratuito | Free | Free |
-| Comercial | Set in Stripe Dashboard | Set in Stripe Dashboard |
-| Corporativo | Set in Stripe Dashboard | Set in Stripe Dashboard |
+| Básico | Free | Free |
+| Intermedio | $1,799 MXN | Set in Stripe Dashboard |
+| Premium | $2,999 MXN | Set in Stripe Dashboard |
+| Fundador | Free (Año 1), $2,999 MXN (Año 2+) | N/A |
 
 **Checkout Session (Subscription):**
 ```
@@ -2127,7 +2128,7 @@ Agency (Protected):
   /agency/finance             Stripe Connect + Revenue + CFDI
   /agency/logistics           Documents + Rooming + Incidents
   /agency/settings            Profile + Team + Plan + Stripe
-  /agency/analytics           Commercial Analytics (Corporativo)
+  /agency/analytics           Commercial Analytics (Premium y Fundador)
   /agency/roles               RBAC Management
 
 SuperAdmin:

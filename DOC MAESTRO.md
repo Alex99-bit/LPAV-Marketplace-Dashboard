@@ -19,27 +19,31 @@ La plataforma ofrece cuatro paquetes para agencias de viajes, cada uno con una t
 | **Límite de Flyers Activos** | 50 flyers | 50 flyers | 50 flyers | 50 flyers |
 | **Límite de Usuarios / Empleados** | 1 usuario administrador | 3 a 5 empleados por tenant | Ilimitados | Ilimitados |
 | **Roles Personalizados (RBAC)** | 0 (solo Agency\_Admin) | 1 rol personalizado adicional | 3 roles personalizados | 3 roles personalizados |
-| **Gestión de Leads (CRM)** | Bandeja única sin asignación | Asignación round-robin; filtros por status | Dashboard avanzado con KPIs y pipeline | Dashboard avanzado con KPIs y pipeline |
-| **Pre-calificación de Leads** | Tradicional (formularios al CRM) | Bots guiados por reglas lógicas | Bots guiados por reglas lógicas | Bots guiados por reglas lógicas |
-| **Agente de IA de Seguimiento** | No disponible | Habilitado | Habilitado | Habilitado |
+| **Gestión de Leads (CRM)** | Bandeja única, sin pre-calificación IA | Asignación round-robin; filtros por status | Dashboard avanzado con KPIs y pipeline | Dashboard avanzado con KPIs y pipeline (idéntico a Premium) |
+| **Pre-calificación de Leads** | Tradicional (formularios al CRM, sin IA) | Bots guiados por reglas lógicas | Bots guiados por reglas lógicas | Bots guiados por reglas lógicas (idéntico a Premium) |
+| **Agente de IA de Seguimiento** | No disponible | Habilitado | Habilitado | Habilitado (idéntico a Premium) |
 | **Logo Distintivo en Marketplace** | — | Sí | Sí | Sí |
 | **Referidos Directos por Avimo** | — | Sí | Sí | Sí |
 | **Apartado Completo en Marketplace** | — | — | Sí | Sí |
 | **Soporte** | Estándar | Estándar | 24/7 | 24/7 |
 | **Comunicación Agencia-Cliente** | Chat interno en plataforma | Chat interno en plataforma | Chat interno en plataforma | Chat interno en plataforma |
 
-**Regla de Asignación de Paquete:** Todas las agencias de nueva creación ingresan por defecto al **Plan Intermedio**, sin opción a elegir otro nivel. La agencia podrá solicitar cambio de plan una vez completado el proceso de verificación (Sección 1.1.2). La facturación recurrente de Stripe Billing aplica exclusivamente a los planes Intermedio y Premium. El Plan Básico y el Plan Fundador no generan cobros de suscripción mensual.
+**Regla de Asignación de Paquete:** La agencia puede seleccionar el plan de su preferencia (Básico, Intermedio, Premium o Fundador) durante el flujo de registro. El **Plan Fundador** requiere aprobación manual del SuperAdmin (ver Sección 1.1.1); la agencia ingresa temporalmente como Plan Básico hasta que la solicitud sea aprobada. El Plan Intermedio es el plan recomendado y viene preseleccionado por defecto. La facturación recurrente de Stripe Billing aplica exclusivamente a los planes Intermedio y Premium. El Plan Básico y el Plan Fundador no generan cobros de suscripción mensual.
 
 **Comunicación con Clientes:** Las agencias se comunican con los viajeros **exclusivamente a través del chat interno integrado en la plataforma** (web y aplicación móvil), accesible desde el Portal de Agencia y el Marketplace. No se habilita comunicación externa por email, WhatsApp ni ningún otro canal para la gestión de leads y ventas. Todo el historial de comunicación queda registrado y trazable en el CRM para garantizar transparencia y control de calidad.
 
 #### **1.1.1 Fase Inicial y Límite de Agencias (Plan Fundador)**
 
-La plataforma operará bajo un esquema de acceso controlado durante su primera fase:
+La plataforma operará bajo un esquema de acceso controlado para el Plan Fundador:
 
-* El **Plan Fundador** está limitado a las primeras **10 agencias** que completen el proceso de registro y verificación.  
+* El **Plan Fundador** está limitado a las primeras **10 agencias** que completen el proceso de registro, verificación y aprobación por el SuperAdmin.  
+* El Plan Fundador **no es seleccionable directamente** por la agencia durante el registro. La agencia puede solicitarlo en el flujo de registro, pero ingresa temporalmente como **Plan Básico** hasta que el SuperAdmin apruebe la solicitud desde el panel de administración.  
+* Al ser aprobada, el sistema cambia automáticamente el plan de la agencia a **Plan Fundador**, aplicando la tasa de comisión preferencial del 7.5% y todos los beneficios del plan.  
+* La **duración del Plan Fundador es de 1 año** calendario a partir de la fecha de activación. Durante este año, la agencia no paga mensualidad ($0 MXN) y goza de la tasa de comisión fija del 7.5%.  
 * Una vez cubiertas las 10 plazas del Plan Fundador, este paquete **se cierra de forma permanente** para nuevas agencias. No se habilitarán plazas adicionales ni listas de espera.  
 * Las agencias que ingresen posteriormente podrán optar únicamente por los planes Básico, Intermedio o Premium.  
-* El límite de 10 agencias no aplica a los demás planes (Básico, Intermedio y Premium), que permanecen abiertos sin restricción de cupo.
+* El límite de 10 agencias no aplica a los demás planes (Básico, Intermedio y Premium), que permanecen abiertos sin restricción de cupo.  
+* **Transición post-año:** Ver Sección 1.1.5 para las reglas de continuidad al cumplirse el año del Plan Fundador.
 
 #### **1.1.2 Requisitos de Verificación Adicionales**
 
@@ -48,7 +52,8 @@ Además de los requisitos fiscales y legales estándar detallados en la Sección
 * **Mínimo 3 años de servicio comprobable:** La agencia debe acreditar al menos 3 años de operación continua en el sector turístico mediante documentación oficial (acta constitutiva, registros de actividad, certificaciones turísticas con antigüedad verificable). No se aceptan agencias con menos de 3 años de trayectoria.  
 * **Lugar físico verificable:** La agencia debe contar con una oficina, sucursal o local comercial físico verificable. No se aceptan agencias que operen exclusivamente de forma virtual o sin domicilio comercial comprobable. Se requiere evidencia documental (comprobante de domicilio, contrato de arrendamiento o escritura) con antigüedad no mayor a 3 meses.  
 * **RFC validado contra el SAT:** El RFC proporcionado en el registro es validado en tiempo real contra el servicio de verificación del SAT a través de la API de Facturama. RFCs no localizados, suspendidos o con estatus irregular son rechazados automáticamente.  
-* **Contrato firmado con la plataforma:** La agencia debe firmar electrónicamente un contrato de prestación de servicios con Avimo que establece los términos de operación, la tasa de comisión aplicable según su plan, las condiciones de facturación de suscripción (si aplica), y las obligaciones fiscales de emisión de CFDI. El contrato se gestiona mediante firma electrónica dentro del flujo de registro y se almacena en el bucket privado del tenant.
+* **Contrato firmado con la plataforma:** La agencia debe firmar electrónicamente un contrato de prestación de servicios con Avimo que establece los términos de operación, la tasa de comisión aplicable según su plan, las condiciones de facturación de suscripción (si aplica), y las obligaciones fiscales de emisión de CFDI. El contrato se gestiona mediante firma electrónica dentro del flujo de registro y se almacena en el bucket privado del tenant.  
+* **Aprobación manual del SuperAdmin (solo Plan Fundador):** Las agencias que soliciten el Plan Fundador requieren aprobación manual del SuperAdmin desde el panel de administración. La aprobación verifica que la agencia cumple con todos los requisitos de verificación y que existen plazas disponibles (máximo 10). Hasta que la solicitud sea aprobada, la agencia opera como Plan Básico.
 
 > **Nota:** Estos requisitos son adicionales e independientes del registro estándar descrito en la Sección 2.4.1. Una agencia puede completar su registro corporativo pero no será activada en el marketplace hasta que todos los requisitos de verificación adicionales hayan sido aprobados.
 
@@ -73,7 +78,8 @@ Tasa de Conversión = (Ventas efectivas en 3 meses / Leads generados en platafor
 | Intermedio | 18% | 17% | ≥ 5% de leads → ventas | −1 punto porcentual |
 | Premium | 15% | 12% | ≥ 8% de leads → ventas | −3 puntos porcentuales |
 
-* El Plan Básico y el Plan Fundador tienen **tasas fijas** (20% y 7.5% respectivamente) y no participan en el esquema de tasas preferenciales por conversión.
+* El Plan Básico y el Plan Fundador tienen **tasas fijas** (20% y 7.5% respectivamente) y no participan en el esquema de tasas preferenciales por conversión.  
+* **Excepción Plan Fundador Año 2+:** Al cumplir el año y migrar a la modalidad de pago (Continuidad Fundador, $2,999/mes), la agencia mantiene la tasa fija del 7.5% de forma permanente. Si la agencia opta por migrar a Premium estándar, aplican las tasas base (15%) y preferencial (12%) del Plan Premium.
 
 **Mecanismo de Evaluación y Ajuste:**
 
@@ -98,6 +104,16 @@ Avimo utiliza canales de comunicación externa (**email y WhatsApp**) de forma e
 * **Email Marketing:** Avimo envía newsletters periódicas a viajeros registrados con paquetes destacados, ofertas especiales y agencias recomendadas. Las agencias de planes Premium y Fundador reciben colocación prioritaria en estas campañas.  
 * **WhatsApp Marketing:** Avimo utiliza WhatsApp para campañas promocionales segmentadas por intereses de viaje (basadas en el perfil de intereses del viajero — Sección 4.2), notificaciones de nuevos paquetes que coinciden con preferencias guardadas, y recordatorios de viajes guardados en wishlist.  
 * **Notificaciones Push In-App:** Las notificaciones push dentro de la plataforma se utilizan para alertas transaccionales (estado de compra, mensajes nuevos en chat, recordatorios de pago) tanto para viajeros como para agencias.
+
+#### **1.1.5 Transición Post-Año del Plan Fundador**
+
+Al cumplirse el año calendario del Plan Fundador, la agencia recibe una notificación automática con 30 días de anticipación informando las siguientes opciones:
+
+* **Opción A — Continuidad Fundador (recomendada):** La agencia conserva todos los beneficios del Plan Fundador (comisión 7.5%, soporte 24/7, roles ilimitados, dashboard avanzado con KPIs) pero comienza a pagar la mensualidad del Plan Premium: **$2,999 MXN/mes**. La tasa de comisión preferencial del 7.5% se mantiene de forma permanente mientras la agencia permanezca en este plan.  
+* **Opción B — Migrar a Premium estándar:** La agencia pasa al Plan Premium con tasa de comisión base del 15% y opción a tasa preferencial del 12% (≥8% de conversión).  
+* **Opción C — Migrar a Intermedio o Básico:** La agencia puede solicitar downgrade a Plan Intermedio ($1,799/mes, comisión 18%) o Plan Básico ($0/mes, comisión 20%), perdiendo los beneficios del Plan Fundador de forma irreversible.  
+
+> **Nota:** Si la agencia no selecciona una opción dentro de los 30 días posteriores al vencimiento del año, el sistema la migra automáticamente a la **Opción A (Continuidad Fundador)** y comienza la facturación recurrente de $2,999 MXN/mes. La agencia puede cambiar de plan posteriormente desde su Panel de Configuración.
 
 ### **1.2 Regla de Negocio ante Fallos de Pago B2B (Periodo de Gracia)**
 
@@ -173,6 +189,8 @@ El CRM fue diseñado como un módulo nativo de la plataforma en lugar de integra
 * **Cero Latencia:** Todas las consultas se ejecutan directamente sobre PostgreSQL sin saltos de red a servicios externos. Un agente visualiza leads, aplica filtros y abre detalles en milisegundos.
 * **Multi-Tenant Nativo:** Cada fila de `crm_leads` pertenece a un `tenant_id`. Las políticas RLS garantizan que una agencia nunca vea leads de otra, sin necesidad de un gateway de proxy externo.
 * **Integración Profunda con Chat:** El CRM y el chat en tiempo real comparten la misma base de datos. La columna `crm_leads.conversation_id` vincula directamente un lead con su conversación en Supabase Realtime, permitiendo que el agente tome control del chat con un solo clic.
+
+**Disponibilidad por Plan:** El módulo CRM está disponible para todos los planes. La funcionalidad de **pre-calificación automatizada con IA (Gemini 2.5 Flash)** descrita en la Sección 2.5.5 está disponible exclusivamente para los planes **Intermedio, Premium y Fundador**. El **Plan Básico** opera con formularios tradicionales de captura de leads sin agente de IA; los leads ingresan al CRM con datos básicos y son asignados manualmente por el administrador de la agencia.
 
 El CRM se compone de **4 tablas PostgreSQL**, **3 triggers automatizados**, **1 función PL/pgSQL de asignación round-robin**, **6 Edge Functions** y **6 componentes React** en el frontend.
 
@@ -271,6 +289,8 @@ new ──> contacted ──> qualified ──> proposal_sent ──> won
 Los estados `won` y `lost` son terminales. Al alcanzarlos, cualquier sesión de IA activa se cierra automáticamente (`completed` para won, `abandoned` para lost).
 
 #### **2.5.5 Pre-Calificación Automatizada con IA (Gemini 2.5 Flash)**
+
+> **Disponibilidad:** Esta funcionalidad de pre-calificación con IA está disponible exclusivamente para los planes **Intermedio, Premium y Fundador**. El Plan Básico no cuenta con agente de IA; los leads se capturan mediante formularios tradicionales y se asignan manualmente.
 
 El CRM incorpora un agente conversacional de IA que califica leads de forma autónoma antes de que intervenga un agente humano. El flujo completo es:
 
@@ -634,7 +654,7 @@ Monto Avimo (application_fee_amount) = Comisión Total
 
 * **Upgrade (subir de plan):** Una agencia puede solicitar upgrade de plan en cualquier momento desde su Panel de Finanzas. El cambio es inmediato una vez aprobado, y la nueva tasa de comisión aplica a partir de la siguiente venta. Si el upgrade implica un aumento de mensualidad (ej. Básico → Intermedio, Intermedio → Premium), la diferencia proporcional del ciclo de facturación se cobra al momento del cambio.  
 * **Downgrade (bajar de plan):** El downgrade se aplica al final del ciclo de facturación vigente (fin de mes). Durante el ciclo en curso, la agencia mantiene su plan y tasa actuales. Al iniciar el nuevo ciclo, se aplica la tasa del plan inferior y se ajusta la mensualidad.  
-* **Plan Fundador:** Cerrado de forma permanente una vez que las 10 plazas hayan sido ocupadas. No se permiten upgrades ni downgrades hacia o desde el Plan Fundador. Las agencias Fundadoras pueden solicitar cambio a otro plan, pero pierden su plaza de Fundador de forma irreversible.  
+* **Plan Fundador:** El Plan Fundador se asigna exclusivamente por aprobación del SuperAdmin desde el panel de administración. La agencia no puede hacer upgrade hacia Plan Fundador desde el portal de autoservicio. Una agencia Fundador puede solicitar cambio a otro plan (Básico, Intermedio o Premium), pero pierde su plaza de Fundador de forma irreversible y no podrá recuperarla. Una vez que las 10 plazas han sido ocupadas, el Plan Fundador se cierra de forma permanente. Ver Sección 1.1.5 para las reglas de transición al cumplirse el año del Plan Fundador.
 * **Periodo de prueba:** Las agencias nuevas en Plan Intermedio gozan de los primeros 30 días sin cobro de mensualidad (periodo de prueba). A partir del día 31, inicia la facturación recurrente mensual. Durante el periodo de prueba, la tasa de comisión base (18%) aplica normalmente.
 
 #### **6.1.6 Absorción de Tarifas de Stripe**

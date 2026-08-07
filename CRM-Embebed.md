@@ -23,6 +23,8 @@ El CRM integrado es un sistema de gestión de relaciones con clientes embebido d
 
 Automatizar el proceso de cualificación de leads mediante IA conversacional, reduciendo el tiempo de respuesta inicial y asegurando que cada lead llegue al agente humano con la información esencial ya recopilada.
 
+> **Disponibilidad por Plan:** La funcionalidad de pre-calificación automatizada con IA está disponible para los planes **Intermedio, Premium y Fundador**. El **Plan Básico** no cuenta con agente de IA; en su lugar, los leads se reciben mediante formularios tradicionales y se asignan manualmente a los agentes. El resto de las funcionalidades del CRM (bandeja de leads, pipeline de estados, actividades, notas, filtros) están disponibles para todos los planes sin distinción.
+
 ### Beneficios Clave
 
 - **Reducción del tiempo de respuesta**: La IA responde inmediatamente cuando un viajero solicita información, sin importar la hora del día.
