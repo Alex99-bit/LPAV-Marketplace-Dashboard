@@ -7,6 +7,7 @@ import Hero from "@/components/marketplace/Hero";
 import CatalogGrid from "@/components/marketplace/CatalogGrid";
 import PriceFilter from "@/components/marketplace/PriceFilter";
 import RegionFilter from "@/components/marketplace/RegionFilter";
+import DepartureCityFilter from "@/components/marketplace/DepartureCityFilter";
 import OnboardingModal from "@/components/marketplace/OnboardingModal";
 
 // TODO(F3-home-pagination): la Home carga el catálogo completo sin paginación.
@@ -20,6 +21,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState("");
+  const [departureCity, setDepartureCity] = useState("");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 200000]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -54,12 +56,16 @@ export default function Home() {
 
     if (debouncedSearch) {
       query = query.or(
-        `title.ilike.%${debouncedSearch}%,region.ilike.%${debouncedSearch}%`,
+        `title.ilike.%${debouncedSearch}%,region.ilike.%${debouncedSearch}%,departure_city.ilike.%${debouncedSearch}%`,
       );
     }
 
     if (region) {
       query = query.eq("region", region);
+    }
+
+    if (departureCity) {
+      query = query.eq("departure_city", departureCity);
     }
 
     query = query
@@ -74,7 +80,7 @@ export default function Home() {
 
     setPackages(data ?? []);
     setLoading(false);
-  }, [debouncedSearch, region, debouncedPriceRange]);
+  }, [debouncedSearch, region, departureCity, debouncedPriceRange]);
 
   useEffect(() => {
     fetchPackages();
@@ -110,6 +116,9 @@ export default function Home() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="w-48">
               <RegionFilter value={region} onChange={setRegion} />
+            </div>
+            <div className="w-56">
+              <DepartureCityFilter value={departureCity} onChange={setDepartureCity} />
             </div>
             <div className="w-64">
               <PriceFilter

@@ -49,6 +49,33 @@ export const REGIONS = [
   "Otro",
 ] as const;
 
+export const DEPARTURE_CITIES = [
+  "Ciudad de México (CDMX)",
+  "Monterrey (MTY)",
+  "Guadalajara (GDL)",
+  "San Luis Potosí (SLP)",
+  "Cancún (CUN)",
+  "Mérida (MID)",
+  "Tijuana (TIJ)",
+  "Puebla (PBC)",
+  "Querétaro (QRO)",
+  "León / Bajío (BJX)",
+  "Toluca (TLC)",
+  "Veracruz (VER)",
+  "Villahermosa (VSA)",
+  "Hermosillo (HMO)",
+  "Culiacán (CUL)",
+  "Chihuahua (CUU)",
+  "Aguascalientes (AGU)",
+  "Morelia (MLM)",
+  "Oaxaca (OAX)",
+  "Tuxtla Gutiérrez (TGZ)",
+  "La Paz (LAP)",
+  "Puerto Vallarta (PVR)",
+  "Los Cabos (SJD)",
+  "Otro",
+] as const;
+
 export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   new_message: "MessageSquare",
   payment_received: "CreditCard",

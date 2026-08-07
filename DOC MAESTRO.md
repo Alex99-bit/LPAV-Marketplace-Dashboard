@@ -126,7 +126,7 @@ El componente orientado al cliente se desarrollará como una **Single Page Appli
 * **Botón de Inspiración:** Elemento interactivo **"Inspiración ✨"** que sugiere destinos automáticos basándose en el estado de ánimo o el presupuesto explícitamente ingresado por el usuario.  
 * **Catálogo de Paquetes (Formato Flyer Estricto):** Cuadrícula dinámica responsiva optimizada para renderizar hasta 4 elementos por fila en pantallas de escritorio.  
 * **Diseño de Tarjetas de Viaje:** Las tarjetas utilizarán un **Formato Flyer estricto con una relación de aspecto vertical rígida de 3:4** (aspect-\[3/4\]). La imagen del flyer debe ser el elemento absoluto de la tarjeta; los datos esenciales del paquete (Título, Agencia, Precio base y Moneda) se renderizan superpuestos en la base mediante un degradado oscuro semitransparente (bg-gradient-to-t).  
-* **Filtros Interactivos:** El filtro de precios operará con actualización de estado local e inmediata en el cliente para evitar cualquier latencia de recarga de red.  
+* **Filtros Interactivos:** El filtro de precios operará con actualización de estado local e inmediata en el cliente para evitar cualquier latencia de recarga de red. Se incluyen filtros por región de destino, ciudad de salida (lista curada de aeropuertos principales de México) y rango de precios. La búsqueda textual abarca título, región y ciudad de salida.  
 * **Detalle con IA:** Un modal flotante premium se activa al hacer clic en un flyer, el cual integra el botón **"Generar Itinerario con IA ✨"** para renderizar un plan detallado día por día consumiendo inteligencia artificial.  
 * **Navegación Global:** Barra fija superior con efecto de *glassmorphism* activo mediante scroll. El menú de hamburguesa para resoluciones móviles implementará una animación nativa por CSS que transforma tres líneas físicas en una "X" al abrirse.
 * **Guardado de Paquetes (Wishlist):** Cada tarjeta de flyer incluye un ícono interactivo de corazón/guardar que permite al viajero añadir o remover el paquete de su lista de deseos personal. En modo invitado, los paquetes guardados se persisten en LocalStorage del navegador. Al autenticarse, el sistema fusiona los favoritos locales con la base de datos (`user_saved_packages`) y persiste cualquier cambio futuro en tiempo real. La lista de paquetes guardados es accesible desde el menú de navegación y el perfil del usuario, mostrando los flyers en formato compacto con acceso directo al detalle, al carrito y a la opción de eliminar de la lista.
@@ -873,6 +873,7 @@ CREATE TABLE travel\_packages (
     has\_coordinator BOOLEAN DEFAULT FALSE, \-- Inyecta etiqueta visual Con/Sin Coordinador  
     publication\_status VARCHAR(50) DEFAULT 'draft', \-- draft, published, archived, concluded
     departure\_date TIMESTAMP WITH TIME ZONE NOT NULL, \-- Almacenado estrictamente en UTC
+    departure\_city VARCHAR(150) DEFAULT '', \-- Ciudad de origen/salida del viaje (lista curada de aeropuertos principales)
     total\_rooms INTEGER DEFAULT 0, \-- Total de habitaciones/cupos declarados. 0 = sin límite (retrocompatible)
     available\_rooms INTEGER DEFAULT 0, \-- Habitaciones disponibles. Se decrementa en cada venta (plataforma o externa)
     created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())

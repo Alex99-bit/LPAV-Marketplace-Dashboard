@@ -91,6 +91,7 @@ export interface TravelPackage {
   has_coordinator: boolean;
   publication_status: PublicationStatus;
   departure_date: string;
+  departure_city: string;
   description?: string;
   total_rooms: number;
   available_rooms: number;

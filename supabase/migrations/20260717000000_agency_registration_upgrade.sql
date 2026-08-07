@@ -71,7 +71,6 @@ BEGIN
         accept_no_refunds,
         accept_ai_data_usage,
         accept_nda,
-        accept_iva_disclaimer,
         legal_acceptances_at
     ) VALUES (
         p_business_name,

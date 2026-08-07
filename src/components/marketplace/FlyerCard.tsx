@@ -31,6 +31,11 @@ export default function FlyerCard({ pkg, agencyName }: FlyerCardProps) {
           {agencyName && (
             <p className="mt-0.5 text-xs text-white/80">{agencyName}</p>
           )}
+          {pkg.departure_city && (
+            <p className="mt-0.5 text-xs text-white/70">
+              Sale desde {pkg.departure_city}
+            </p>
+          )}
           <div className="mt-2 flex items-center justify-between">
             <span className="text-lg font-bold text-white">
               {formatCurrency(pkg.price, pkg.currency)}

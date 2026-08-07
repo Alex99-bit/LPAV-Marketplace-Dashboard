@@ -167,31 +167,21 @@ ALTER TABLE public.external_sales_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "SuperAdmins ven todas las ventas externas" ON public.external_sales_log
   FOR ALL TO authenticated
-  USING ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin');
+  USING (public.get_current_user_role() = 'SuperAdmin');
 
 CREATE POLICY "Agencias ven y gestionan sus ventas externas" ON public.external_sales_log
   FOR ALL TO authenticated
   USING (
-    tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid())
+    tenant_id = public.get_current_user_tenant()
     AND (
-      (SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'Agency_Admin'
-      OR EXISTS (
-        SELECT 1 FROM public.custom_roles_permissions
-        WHERE tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid())
-          AND role_name = (SELECT role_name FROM public.profiles WHERE id = auth.uid())
-          AND can_manage_finance = TRUE
-      )
+      public.get_current_user_role() = 'Agency_Admin'
+      OR public.can_manage_finance()
     )
   )
   WITH CHECK (
-    tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid())
+    tenant_id = public.get_current_user_tenant()
     AND (
-      (SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'Agency_Admin'
-      OR EXISTS (
-        SELECT 1 FROM public.custom_roles_permissions
-        WHERE tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid())
-          AND role_name = (SELECT role_name FROM public.profiles WHERE id = auth.uid())
-          AND can_manage_finance = TRUE
-      )
+      public.get_current_user_role() = 'Agency_Admin'
+      OR public.can_manage_finance()
     )
   );

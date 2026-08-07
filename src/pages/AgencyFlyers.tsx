@@ -14,7 +14,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Switch from "@/components/ui/Switch";
-import { CURRENCIES, REGIONS } from "@/lib/constants";
+import { CURRENCIES, REGIONS, DEPARTURE_CITIES } from "@/lib/constants";
 import FlyerImageUpload from "@/components/agency/FlyerImageUpload";
 
 export default function AgencyFlyers() {
@@ -31,6 +31,8 @@ export default function AgencyFlyers() {
     region: "",
     price: "",
     currency: "MXN",
+    departure_city: "",
+    custom_departure_city: "",
     departure_date: "",
     has_coordinator: false,
     deposit_percent: "20",
@@ -60,6 +62,10 @@ export default function AgencyFlyers() {
     if (!profile?.tenant_id) return;
     setSaving(true);
 
+    const departureCityValue = form.departure_city === "Otro" && form.custom_departure_city
+      ? form.custom_departure_city
+      : form.departure_city;
+
     const { error } = await supabase.from("travel_packages").insert({
       tenant_id: profile.tenant_id,
       title: form.title,
@@ -68,6 +74,7 @@ export default function AgencyFlyers() {
       currency: form.currency,
       url_flyer_storage: imageUrl ?? "https://placehold.co/600x800/3B82F6/white?text=Flyer",
       url_thumbnail_storage: imageUrl ?? "https://placehold.co/300x400/3B82F6/white?text=Flyer",
+      departure_city: departureCityValue,
       departure_date: new Date(form.departure_date).toISOString(),
       has_coordinator: form.has_coordinator,
       publication_status: "draft",
@@ -86,6 +93,8 @@ export default function AgencyFlyers() {
         region: "",
         price: "",
         currency: "MXN",
+        departure_city: "",
+        custom_departure_city: "",
         departure_date: "",
         has_coordinator: false,
         deposit_percent: "20",
@@ -162,6 +171,7 @@ export default function AgencyFlyers() {
               <th className="px-4 py-3 font-medium text-text-muted">Estado</th>
               <th className="px-4 py-3 font-medium text-text-muted">Precio</th>
               <th className="px-4 py-3 font-medium text-text-muted">Salida</th>
+              <th className="px-4 py-3 font-medium text-text-muted">Sale de</th>
               <th className="px-4 py-3 font-medium text-text-muted">Disp.</th>
               <th className="px-4 py-3 font-medium text-text-muted">Acciones</th>
             </tr>
@@ -195,6 +205,9 @@ export default function AgencyFlyers() {
                   </td>
                   <td className="px-4 py-3 text-text-muted">
                     {formatDate(pkg.departure_date)}
+                  </td>
+                  <td className="px-4 py-3 text-text-muted">
+                    {pkg.departure_city || "—"}
                   </td>
                   <td className="px-4 py-3 text-text">
                     {pkg.total_rooms > 0
@@ -285,6 +298,21 @@ export default function AgencyFlyers() {
               setForm({ ...form, departure_date: e.target.value })
             }
           />
+          <Select
+            label="Ciudad de salida"
+            options={DEPARTURE_CITIES.map((c) => ({ value: c, label: c }))}
+            value={form.departure_city}
+            onChange={(e) => setForm({ ...form, departure_city: e.target.value, custom_departure_city: "" })}
+            placeholder="Selecciona la ciudad de origen"
+          />
+          {form.departure_city === "Otro" && (
+            <Input
+              label="Especificar ciudad"
+              placeholder="Ej: Mazatlán, Acapulco..."
+              value={form.custom_departure_city}
+              onChange={(e) => setForm({ ...form, custom_departure_city: e.target.value })}
+            />
+          )}
           <div className="w-full">
             <label className="mb-1.5 block text-sm font-medium text-text" htmlFor="flyer-desc">
               Descripción

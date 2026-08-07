@@ -270,19 +270,19 @@ ALTER TABLE public.inventory_audit_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Agencias gestionan sus pools" ON public.inventory_pools
   FOR ALL TO authenticated
-  USING (tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid()))
-  WITH CHECK (tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid()));
+  USING (tenant_id = public.get_current_user_tenant())
+  WITH CHECK (tenant_id = public.get_current_user_tenant());
 
 CREATE POLICY "SuperAdmins ven todos los pools" ON public.inventory_pools
   FOR SELECT TO authenticated
-  USING ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin');
+  USING (public.get_current_user_role() = 'SuperAdmin');
 
 CREATE POLICY "Agencias ven sus vinculos paquete-pool" ON public.package_inventory_link
   FOR SELECT TO authenticated
   USING (EXISTS (
     SELECT 1 FROM public.inventory_pools ip
     WHERE ip.pool_id = pool_id
-      AND ip.tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid())
+      AND ip.tenant_id = public.get_current_user_tenant()
   ));
 
 CREATE POLICY "Agencias ven su auditoria de inventario" ON public.inventory_audit_log
@@ -290,9 +290,9 @@ CREATE POLICY "Agencias ven su auditoria de inventario" ON public.inventory_audi
   USING (EXISTS (
     SELECT 1 FROM public.travel_packages tp
     WHERE tp.package_id = package_id
-      AND tp.tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid())
+      AND tp.tenant_id = public.get_current_user_tenant()
   ));
 
 CREATE POLICY "SuperAdmins ven toda la auditoria" ON public.inventory_audit_log
   FOR SELECT TO authenticated
-  USING ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin');
+  USING (public.get_current_user_role() = 'SuperAdmin');

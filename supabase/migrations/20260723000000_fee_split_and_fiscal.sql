@@ -103,18 +103,18 @@ ALTER TABLE public.fiscal_periods ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "SuperAdmin manages fiscal income"
 ON public.fiscal_income_records FOR ALL TO authenticated
-USING ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin')
-WITH CHECK ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin');
+USING (public.get_current_user_role() = 'SuperAdmin')
+WITH CHECK (public.get_current_user_role() = 'SuperAdmin');
 
 CREATE POLICY "SuperAdmin manages fiscal expenses"
 ON public.fiscal_expense_records FOR ALL TO authenticated
-USING ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin')
-WITH CHECK ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin');
+USING (public.get_current_user_role() = 'SuperAdmin')
+WITH CHECK (public.get_current_user_role() = 'SuperAdmin');
 
 CREATE POLICY "SuperAdmin manages fiscal periods"
 ON public.fiscal_periods FOR ALL TO authenticated
-USING ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin')
-WITH CHECK ((SELECT role_name FROM public.profiles WHERE id = auth.uid()) = 'SuperAdmin');
+USING (public.get_current_user_role() = 'SuperAdmin')
+WITH CHECK (public.get_current_user_role() = 'SuperAdmin');
 
 -- PARTE 6: RPCs fiscales
 CREATE OR REPLACE FUNCTION public.calculate_period_totals(

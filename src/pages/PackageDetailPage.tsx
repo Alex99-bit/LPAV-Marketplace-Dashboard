@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router";
-import { ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle, ArrowLeft } from "lucide-react";
+import { ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle, ArrowLeft, Plane } from "lucide-react";
 import type { TravelPackage, ItineraryData } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -219,6 +219,12 @@ export default function PackageDetailPage() {
               <Calendar className="h-4 w-4" />
               {formatDate(pkg.departure_date)}
             </div>
+            {pkg.departure_city && (
+              <div className="flex items-center gap-1.5 text-sm text-text-muted">
+                <Plane className="h-4 w-4" />
+                Sale desde {pkg.departure_city}
+              </div>
+            )}
           </div>
 
           {pkg.description && (
