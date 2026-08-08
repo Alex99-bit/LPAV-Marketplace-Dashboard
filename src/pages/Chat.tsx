@@ -1,13 +1,16 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router";
-import { MessageSquare, Send, AlertTriangle, Hand, Bot, ToggleLeft, ToggleRight } from "lucide-react";
+import { MessageSquare, Send, AlertTriangle, Hand, Bot, ToggleLeft, ToggleRight, DollarSign, CreditCard, CheckCircle } from "lucide-react";
 import type { ChatMessage } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/Toast";
-import { formatRelativeTime } from "@/lib/formatters";
+import { formatRelativeTime, formatCurrency } from "@/lib/formatters";
+import { validateChatMessage } from "@/lib/validation";
 import Spinner from "@/components/ui/Spinner";
 import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
+import Input from "@/components/ui/Input";
 
 export default function Chat() {
   const { user } = useAuth();
@@ -24,9 +27,23 @@ export default function Chat() {
   const [isAgencyChat, setIsAgencyChat] = useState(false);
   const [aiActive, setAiActive] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentConcept, setPaymentConcept] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const navState = location.state as { conversationId?: string; leadId?: string } | null;
+
+  // Detectar pago exitoso/cancelado desde URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("payment") === "success") {
+      addToast("success", "Pago procesado", "El pago ha sido confirmado exitosamente.");
+    } else if (params.get("payment") === "cancelled") {
+      addToast("warning", "Pago cancelado", "El pago no fue completado.");
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (navState?.conversationId) {
@@ -48,8 +65,6 @@ export default function Chat() {
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(50);
-      // Filtra mensajes de sistema: el viajero no debe ver jerga CRM interna
-      // ([SYSTEM] Nuevo lead creado…). El handler realtime ya los filtra (:72).
       const userMessages = (data ?? []).filter(
         (m) => !m.message_text.startsWith("[SYSTEM]"),
       );
@@ -166,11 +181,17 @@ export default function Chat() {
       addToast("warning", "No hay conversación activa", "Solicita información en un paquete para iniciar un chat.");
       return;
     }
-    
-    setSending(true);
-    setCensorWarning("");
 
     const messageText = newMessage.trim();
+
+    const validation = validateChatMessage(messageText);
+    if (!validation.valid) {
+      setCensorWarning(validation.violation!);
+      return;
+    }
+
+    setSending(true);
+    setCensorWarning("");
     setNewMessage("");
 
     const { error } = await supabase.from("chat_messages").insert({
@@ -182,7 +203,7 @@ export default function Chat() {
     if (error) {
       if (error.code === "CK001") {
         setCensorWarning(
-          "Tu mensaje fue bloqueado por contener datos de contacto. El uso de numeros de telefono, correos o intentos de evasion estan prohibidos.",
+          "Tu mensaje fue bloqueado por contener datos de contacto. Está prohibido compartir teléfonos, correos, enlaces, redes sociales o información bancaria.",
         );
       } else {
         setNewMessage(messageText);
@@ -215,10 +236,95 @@ export default function Chat() {
     setAiActive(false);
   };
 
+  const handlePaymentRequest = async () => {
+    const amount = parseFloat(paymentAmount);
+    if (!paymentConcept.trim() || isNaN(amount) || amount <= 0) return;
+
+    setPaymentLoading(true);
+    const { data, error } = await supabase.functions.invoke("create-chat-payment", {
+      body: {
+        conversation_id: conversationId,
+        amount,
+        currency: "MXN",
+        concept: paymentConcept.trim(),
+      },
+    });
+
+    if (error || !data?.url) {
+      addToast("error", "Error", "No se pudo crear la solicitud de pago.");
+      setPaymentLoading(false);
+      return;
+    }
+
+    setShowPaymentModal(false);
+    setPaymentAmount("");
+    setPaymentConcept("");
+    setPaymentLoading(false);
+    window.location.href = data.url;
+  };
+
+  const renderPaymentMessage = (msg: ChatMessage, isOwn: boolean) => {
+    let parsed: { amount: number; currency: string; concept: string; commission_applied?: number; commission_rate?: number } | null = null;
+    try { parsed = JSON.parse(msg.message_text); } catch { parsed = null; }
+
+    if (msg.message_type === "payment_request") {
+      return (
+        <div className={`rounded-2xl border-2 border-primary/20 bg-primary/5 px-4 py-3 max-w-[80%]`}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="rounded-lg bg-primary/15 p-1"><CreditCard className="h-4 w-4 text-primary" /></div>
+            <span className="text-sm font-semibold text-text">Solicitud de Pago</span>
+          </div>
+          <p className="text-lg font-bold text-text">{parsed ? formatCurrency(parsed.amount, parsed.currency as "MXN" | "USD" | "EUR") : ""}</p>
+          <p className="text-sm text-text-muted">{parsed?.concept || "Pago solicitado"}</p>
+          {!isAgencyChat && !isOwn && (msg.metadata?.stripe_session_id as string | undefined) && (
+            <a
+              href={`https://checkout.stripe.com/pay/${msg.metadata!.stripe_session_id as string}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark transition-colors"
+            >
+              <DollarSign className="h-4 w-4" /> Pagar ahora
+            </a>
+          )}
+          <p className={`mt-2 text-right text-[10px] text-text-muted`}>{formatRelativeTime(msg.created_at)}</p>
+        </div>
+      );
+    }
+
+    if (msg.message_type === "payment_confirmed") {
+      return (
+        <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 max-w-[80%]">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="rounded-lg bg-emerald-200 p-1"><CheckCircle className="h-4 w-4 text-emerald-600" /></div>
+            <span className="text-sm font-semibold text-emerald-700">Pago Confirmado</span>
+          </div>
+          <p className="text-lg font-bold text-emerald-700">{parsed ? formatCurrency(parsed.amount, parsed.currency as "MXN" | "USD" | "EUR") : ""}</p>
+          <p className="text-sm text-emerald-600">{parsed?.concept || "Pago recibido"}</p>
+          <p className="mt-2 text-right text-[10px] text-emerald-500">{formatRelativeTime(msg.created_at)}</p>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!conversationId) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
+        <MessageSquare className="h-16 w-16 text-text-muted/30" />
+        <h2 className="text-xl font-semibold text-text">Sin conversación activa</h2>
+        <p className="max-w-sm text-sm text-text-muted">
+          Explora paquetes y usa <strong>"Solicitar información"</strong> para
+          iniciar un chat con la agencia de viajes.
+        </p>
       </div>
     );
   }
@@ -237,31 +343,39 @@ export default function Chat() {
             </p>
           </div>
         </div>
-        {isAgencyChat && aiActive && (
-          <Button variant="outline" size="sm" onClick={handleTakeControl}>
-            <Hand className="h-3.5 w-3.5" />
-            Tomar control
-          </Button>
-        )}
-        {isAdmin && (
-          <button
-            onClick={() => {
-              if (aiActive) {
-                handleTakeControl();
-              } else {
-                setAiActive(true);
-              }
-            }}
-            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted hover:bg-gray-100 transition-colors"
-          >
-            {aiActive ? (
-              <ToggleRight className="h-5 w-5 text-primary" />
-            ) : (
-              <ToggleLeft className="h-5 w-5" />
-            )}
-            AI Agent
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAgencyChat && (
+            <Button variant="outline" size="sm" onClick={() => setShowPaymentModal(true)}>
+              <DollarSign className="h-3.5 w-3.5" />
+              Solicitar Pago
+            </Button>
+          )}
+          {isAgencyChat && aiActive && (
+            <Button variant="outline" size="sm" onClick={handleTakeControl}>
+              <Hand className="h-3.5 w-3.5" />
+              Tomar control
+            </Button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                if (aiActive) {
+                  handleTakeControl();
+                } else {
+                  setAiActive(true);
+                }
+              }}
+              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted hover:bg-gray-100 transition-colors"
+            >
+              {aiActive ? (
+                <ToggleRight className="h-5 w-5 text-primary" />
+              ) : (
+                <ToggleLeft className="h-5 w-5" />
+              )}
+              AI Agent
+            </button>
+          )}
+        </div>
       </div>
 
       {aiActive && isAgencyChat && (
@@ -274,20 +388,17 @@ export default function Chat() {
       <div className="flex-1 space-y-3 overflow-y-auto py-4">
         {messages.map((msg) => {
           const isOwn = msg.sender_id === user?.id;
-  if (!conversationId) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
-        <MessageSquare className="h-16 w-16 text-text-muted/30" />
-        <h2 className="text-xl font-semibold text-text">Sin conversación activa</h2>
-        <p className="max-w-sm text-sm text-text-muted">
-          Explora paquetes y usa <strong>"Solicitar información"</strong> para
-          iniciar un chat con la agencia de viajes.
-        </p>
-      </div>
-    );
-  }
+          const isPaymentMessage = msg.message_type === "payment_request" || msg.message_type === "payment_confirmed";
 
-  return (
+          if (isPaymentMessage) {
+            return (
+              <div key={msg.message_id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+                {renderPaymentMessage(msg, isOwn)}
+              </div>
+            );
+          }
+
+          return (
             <div
               key={msg.message_id}
               className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
@@ -356,6 +467,37 @@ export default function Chat() {
           <Send className="h-4 w-4" />
         </button>
       </div>
+
+      <Modal open={showPaymentModal} onClose={() => setShowPaymentModal(false)} title="Solicitar Pago">
+        <div className="space-y-4">
+          <Input
+            label="Monto (MXN)"
+            type="number"
+            value={paymentAmount}
+            onChange={(e) => setPaymentAmount(e.target.value)}
+            placeholder="Ej. 5000"
+          />
+          <Input
+            label="Concepto"
+            value={paymentConcept}
+            onChange={(e) => setPaymentConcept(e.target.value)}
+            placeholder="Ej. Abono a paquete Cancún"
+          />
+          <p className="text-xs text-text-muted">
+            La comisión de la plataforma se aplicará automáticamente según tu plan.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={() => setShowPaymentModal(false)}>Cancelar</Button>
+            <Button
+              onClick={handlePaymentRequest}
+              loading={paymentLoading}
+              disabled={!paymentAmount || !paymentConcept.trim()}
+            >
+              <CreditCard className="h-3.5 w-3.5 mr-1" /> Solicitar Pago
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

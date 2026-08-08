@@ -68,6 +68,92 @@ Deno.serve(async (req: Request) => {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = session.metadata!;
+
+      // Pago desde chat (solicitud de pago de agencia a viajero)
+      if (metadata.chat_payment === "true") {
+        const chatCommissionVal = parseFloat(metadata.agency_commission || "0");
+        const chatCommissionRate = parseFloat(metadata.commission_rate || "0");
+        const chatAmount = session.amount_total! / 100;
+        const chatCurrency = (session.currency || "mxn").toUpperCase();
+
+        const stripeFeeBase = (session.amount_total! * 0.041 / 100) + 3;
+        const stripeFeeIVA = stripeFeeBase * 0.16;
+        const commSubtotal = chatCommissionVal / (1 + IVA_RATE);
+        const commIVA = chatCommissionVal - commSubtotal;
+
+        // Si es abono a una orden existente (pago diferido)
+        if (metadata.order_id) {
+          const { data: existingOrder } = await supabase
+            .from("transactions_orders")
+            .select("remaining_balance, total_amount")
+            .eq("order_id", metadata.order_id)
+            .single();
+
+          if (existingOrder) {
+            const newRemaining = parseFloat((existingOrder.remaining_balance - chatAmount).toFixed(2));
+            const newStatus = newRemaining <= 0 ? "paid" : "partial_paid";
+
+            await supabase.from("transactions_orders").update({
+              remaining_balance: newRemaining,
+              payment_status: newStatus,
+              next_payment_due: newStatus === "paid" ? null
+                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            }).eq("order_id", metadata.order_id);
+          }
+        }
+
+        // Crear registro fiscal
+        await supabase.from("fiscal_income_records").insert({
+          order_id: metadata.order_id || null,
+          tenant_id: metadata.tenant_id,
+          concept: `Pago desde chat — ${metadata.concept || "Solicitud de pago"}`,
+          income_type: "agency_commission",
+          subtotal: parseFloat(commSubtotal.toFixed(2)),
+          iva_amount: parseFloat(commIVA.toFixed(2)),
+          total: chatCommissionVal,
+          currency: chatCurrency,
+          stripe_fee: parseFloat(stripeFeeBase.toFixed(2)),
+          stripe_fee_iva: parseFloat(stripeFeeIVA.toFixed(2)),
+          commission_rate_applied: chatCommissionRate,
+          recorded_at: new Date().toISOString(),
+        });
+
+        // Insertar mensaje payment_confirmed en el chat
+        await supabase.from("chat_messages").insert({
+          conversation_id: metadata.conversation_id,
+          sender_id: metadata.traveler_id || "00000000-0000-0000-0000-000000000000",
+          message_text: JSON.stringify({
+            amount: chatAmount,
+            currency: chatCurrency,
+            concept: metadata.concept,
+            commission_applied: chatCommissionVal,
+            commission_rate: chatCommissionRate,
+            session_id: session.id,
+          }),
+          message_type: "payment_confirmed",
+          metadata: {
+            amount: chatAmount,
+            currency: chatCurrency,
+            concept: metadata.concept,
+            stripe_session_id: session.id,
+            order_id: metadata.order_id || null,
+            confirmed_at: new Date().toISOString(),
+          },
+        });
+
+        // Notificar al viajero
+        if (metadata.traveler_id) {
+          await supabase.from("notifications").insert({
+            user_id: metadata.traveler_id,
+            type: "payment_received",
+            title: "Pago procesado",
+            message: `Tu pago de ${chatAmount} ${chatCurrency} ha sido confirmado.`,
+          });
+        }
+
+        break;
+      }
+
       const userId = metadata.user_id;
 
       const { data: pkg } = await supabase

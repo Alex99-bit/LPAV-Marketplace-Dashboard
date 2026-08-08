@@ -155,3 +155,42 @@ export interface DispatchNotificationRequest {
   message?: string;
   metadata?: Record<string, unknown>;
 }
+
+export interface CreateChatPaymentRequest {
+  conversation_id: string;
+  amount: number;
+  currency?: string;
+  concept: string;
+  order_id?: string;
+}
+
+export interface CreateChatPaymentResponse {
+  url: string;
+  stripe_session_id: string;
+  amount: number;
+  currency: string;
+  commission_applied: number;
+  commission_rate: number;
+}
+
+export interface AgencyTransfer {
+  id: string;
+  amount: number;
+  currency: string;
+  created: string;
+  destination_payment: string;
+}
+
+export interface GetAgencyTransfersResponse {
+  transfers: AgencyTransfer[];
+  has_more: boolean;
+}
+
+export interface GenerateCfdiForIncomeRequest {
+  income_id: string;
+}
+
+export interface ChatViolation {
+  valid: boolean;
+  violation: string | null;
+}

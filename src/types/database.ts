@@ -198,8 +198,12 @@ export interface ChatMessage {
   conversation_id: string;
   sender_id: string;
   message_text: string;
+  message_type: ChatMessageType;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }
+
+export type ChatMessageType = "text" | "payment_request" | "payment_confirmed";
 
 export interface PackageReport {
   report_id: string;
@@ -404,6 +408,8 @@ export interface FiscalIncomeRecord {
   stripe_fee_iva: number;
   cfdi_status: "pending" | "issued" | "cancelled";
   cfdi_uuid: string | null;
+  cfdi_pdf_url: string | null;
+  cfdi_xml_url: string | null;
   commission_rate_applied: number | null;
   recorded_at: string;
   fiscal_period_id: string | null;
@@ -424,6 +430,8 @@ export interface FiscalExpenseRecord {
   cfdi_pdf_url: string | null;
   notes: string | null;
   recorded_by: string | null;
+  tenant_id: string | null;
+  created_by: string | null;
   recorded_at: string;
   fiscal_period_id: string | null;
 }

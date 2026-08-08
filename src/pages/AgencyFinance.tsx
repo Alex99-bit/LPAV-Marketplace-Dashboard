@@ -8,6 +8,10 @@ import RevenueOverview from "@/components/agency/RevenueOverview";
 import ProfitabilityTable from "@/components/agency/ProfitabilityTable";
 import CfdiInvoices from "@/components/agency/CfdiInvoices";
 import ExternalSalesPanel from "@/components/agency/ExternalSalesPanel";
+import AgencyFiscalIncome from "@/components/agency/AgencyFiscalIncome";
+import AgencyExpenseTracking from "@/components/agency/AgencyExpenseTracking";
+import AgencyPnlStatement from "@/components/agency/AgencyPnlStatement";
+import AgencyConversionMetrics from "@/components/agency/AgencyConversionMetrics";
 
 interface CurrencyGroup {
   totalRevenue: number;
@@ -17,11 +21,9 @@ interface CurrencyGroup {
 
 interface FinanceData {
   stripeAccountId: string | null;
-  // Totales legacy (mix de divisas — mantenido por compatibilidad con RevenueOverview)
   totalRevenue: number;
   platformFees: number;
   netReceived: number;
-  // Totales agrupados por divisa
   byCurrency: Record<string, CurrencyGroup>;
   currencies: string[];
   profitability: {
@@ -34,9 +36,18 @@ interface FinanceData {
   }[];
 }
 
+const FINANCE_TABS = [
+  { key: "resumen", label: "Resumen" },
+  { key: "ingresos", label: "Ingresos Fiscales" },
+  { key: "gastos", label: "Gastos" },
+  { key: "pnl", label: "P&L" },
+  { key: "conversion", label: "Conversión" },
+];
+
 export default function AgencyFinance() {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("resumen");
   const [activeCurrency, setActiveCurrency] = useState("");
   const [data, setData] = useState<FinanceData>({
     stripeAccountId: null,
@@ -69,7 +80,6 @@ export default function AgencyFinance() {
 
       const orders = ordersRes.data ?? [];
 
-      // Agrupar ingresos por divisa (fix del bug que sumaba MXN+USD+EUR)
       const byCurrency: Record<string, CurrencyGroup> = {};
       for (const order of orders) {
         const cur = order.currency || "MXN";
@@ -81,7 +91,6 @@ export default function AgencyFinance() {
       }
       const currencies = Object.keys(byCurrency);
 
-      // Totales legacy (suma cruda, mantenido para RevenueOverview sin tabs)
       const totalRevenue = orders.reduce((sum, o) => sum + o.total_amount, 0);
       const platformFees = orders.reduce((sum, o) => sum + o.agency_commission_fee, 0);
 
@@ -152,38 +161,50 @@ export default function AgencyFinance() {
         </p>
       )}
 
-      <div className="space-y-6">
-        <StripeConnectStatus
-          stripeAccountId={data.stripeAccountId}
-        />
+      <Tabs tabs={FINANCE_TABS} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
 
-        {data.currencies.length > 1 && (
-          <Tabs
-            tabs={[
-              ...data.currencies.map((c) => ({ key: c, label: c })),
-              { key: "all", label: "Todas" },
-            ]}
-            activeTab={activeCurrency || "all"}
-            onChange={(key) => setActiveCurrency(key === "all" ? "" : key)}
-          />
+      <div className="space-y-6">
+        {activeTab === "resumen" && (
+          <>
+            <StripeConnectStatus stripeAccountId={data.stripeAccountId} />
+
+            {data.currencies.length > 1 && (
+              <Tabs
+                tabs={[
+                  ...data.currencies.map((c) => ({ key: c, label: c })),
+                  { key: "all", label: "Todas" },
+                ]}
+                activeTab={activeCurrency || "all"}
+                onChange={(key) => setActiveCurrency(key === "all" ? "" : key)}
+              />
+            )}
+
+            <RevenueOverview
+              totalRevenue={activeGroup?.totalRevenue ?? data.totalRevenue}
+              platformFees={activeGroup?.platformFees ?? data.platformFees}
+              netReceived={activeGroup?.netReceived ?? data.netReceived}
+              commissionRate={planInfo?.commission_rate}
+            />
+
+            <ProfitabilityTable
+              data={data.profitability.filter(
+                (p) => !activeCurrency || p.currency === activeCurrency,
+              )}
+            />
+
+            <CfdiInvoices tenantId={profile?.tenant_id!} />
+
+            <ExternalSalesPanel />
+          </>
         )}
 
-        <RevenueOverview
-          totalRevenue={activeGroup?.totalRevenue ?? data.totalRevenue}
-          platformFees={activeGroup?.platformFees ?? data.platformFees}
-          netReceived={activeGroup?.netReceived ?? data.netReceived}
-          commissionRate={planInfo?.commission_rate}
-        />
+        {activeTab === "ingresos" && <AgencyFiscalIncome />}
 
-        <ProfitabilityTable
-          data={data.profitability.filter(
-            (p) => !activeCurrency || p.currency === activeCurrency,
-          )}
-        />
+        {activeTab === "gastos" && <AgencyExpenseTracking />}
 
-        <CfdiInvoices tenantId={profile?.tenant_id!} />
+        {activeTab === "pnl" && <AgencyPnlStatement />}
 
-        <ExternalSalesPanel />
+        {activeTab === "conversion" && <AgencyConversionMetrics />}
       </div>
     </div>
   );

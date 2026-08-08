@@ -1,15 +1,33 @@
-import { useState } from "react";
-import { CheckCircle, XCircle, ExternalLink, ChevronDown, HelpCircle, Landmark } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle, XCircle, ExternalLink, ChevronDown, HelpCircle, Landmark, ArrowDownLeft } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import Button from "@/components/ui/Button";
 
 interface StripeConnectStatusProps {
   stripeAccountId: string | null;
 }
 
+interface TransferInfo {
+  id: string;
+  amount: number;
+  currency: string;
+  created: string;
+}
+
 export default function StripeConnectStatus({ stripeAccountId }: StripeConnectStatusProps) {
   const [loading, setLoading] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [transfers, setTransfers] = useState<TransferInfo[]>([]);
+
+  useEffect(() => {
+    if (!stripeAccountId) return;
+    supabase.functions.invoke("get-agency-transfers")
+      .then(({ data }) => {
+        setTransfers((data as { transfers: TransferInfo[] })?.transfers ?? []);
+      })
+      .catch(() => {});
+  }, [stripeAccountId]);
 
   const handleConnect = async () => {
     setLoading(true);
@@ -89,6 +107,26 @@ export default function StripeConnectStatus({ stripeAccountId }: StripeConnectSt
           </p>
         </div>
       </div>
+
+      {transfers.length > 0 && (
+        <div className="mt-6 border-t border-gray-100 pt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ArrowDownLeft className="h-4 w-4 text-text-muted" />
+            <h4 className="text-sm font-semibold text-text">Últimas Transferencias Recibidas</h4>
+          </div>
+          <div className="space-y-2">
+            {transfers.slice(0, 5).map((t) => (
+              <div key={t.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium text-text">{formatCurrency(t.amount, t.currency as "MXN" | "USD" | "EUR")}</p>
+                  <p className="text-xs text-text-muted">{formatDate(t.created)}</p>
+                </div>
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

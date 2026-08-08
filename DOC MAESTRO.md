@@ -178,6 +178,16 @@ Es obligatorio proporcionar los datos legales de la empresa a través del formul
 * **Dashboard de Control Interno:** Panel privado que renderiza métricas limpias y aisladas (clics en flyers, leads generados, estado del flujo de ingresos de Stripe Connect y facturación SaaS de Stripe Billing) basados exclusivamente en el contexto de la agencia autenticada\[cite: 1, 3\].  
 * **Formulario de Nuevo Flyer:** Componente con validación estricta en el cliente. Campos requeridos: Título del viaje, Región/Destino, Precio Base, selector de divisa, área de arrastre (*drop-zone*) conectada a almacenamiento en la nube y un selector binario (Switch) para **"Coordinador"**\[cite: 1, 3\]. Al activarse, inyecta en el catálogo público una etiqueta verde "Con Coordinador"; de lo contrario, renderiza una etiqueta gris "Sin Coordinador".
 
+##### 2.4.2 Dashboard Contable de Agencia
+
+La plataforma proporciona un dashboard contable completo dentro del Portal de Agencia (`/agency/finance`), organizado en cinco pestañas para que la agencia gestione sus finanzas sin necesidad de herramientas externas:
+
+* **Resumen:** KPIs principales de ingresos (RevenueOverview), rentabilidad por paquete (ProfitabilityTable), estado de Stripe Connect, conciliación de ventas externas y generación manual de CFDI.  
+* **Ingresos Fiscales:** Tabla con el historial completo de ingresos fiscales (comisiones retenidas, tarifas de servicio). Cada registro muestra fecha, concepto, subtotal, IVA, total y estatus CFDI. La agencia puede **timbrar CFDI bajo demanda** para cualquier registro pendiente (Sección 6.3.1) y descargar PDF/XML una vez emitido. Incluye exportación CSV.  
+* **Gastos Operativos:** La agencia puede registrar sus propios gastos categorizados (infraestructura, nómina, renta, marketing, software, etc.) con proveedor, RFC, subtotal, IVA y notas. Estos gastos alimentan el estado de resultados (P&L).  
+* **P&L (Estado de Resultados):** Panel con cuatro KPIs: Ingresos Brutos, Comisiones Pagadas, Gastos Operativos y Utilidad Neta con porcentaje de margen. Filtro por mes actual, mes anterior o año acumulado.  
+* **Conversión:** Métricas de desempeño comercial: leads generados en ventana de 3 meses, ventas cerradas, tasa de conversión actual, progreso hacia el umbral de tasa preferencial y estimación de leads/ventas faltantes para activar el beneficio.
+
 ### **2.5 CRM Integrado — Arquitectura, Diseño y Funcionamiento**
 
 La plataforma incorpora un sistema de gestión de relaciones con clientes (CRM) integrado nativamente en PostgreSQL, eliminando la dependencia de sistemas externos. Este CRM está diseñado específicamente para agencias de viajes y opera sobre las mismas tablas y políticas RLS que el resto de la plataforma, garantizando aislamiento multi-tenant y cero latencia de red externa.
@@ -398,6 +408,18 @@ El backend del CRM se compone de 6 Edge Functions (Deno/TypeScript) que orquesta
 | `/functions/v1/transfer-lead-to-human` | POST | Agente toma control del chat. Abandona sesión IA. Inserta mensaje `[SYSTEM]`. Notifica al viajero. | Agente click en "Tomar control del chat" |
 | `/functions/v1/add-lead-activity` | POST | Agrega nota o actividad manual al timeline del lead. | Agente escribe nota en LeadDetailModal |
 
+#### **2.5.11 Solicitud de Pago en Chat**
+
+La plataforma permite que la agencia solicite pagos directamente al viajero dentro de la conversación del chat, sin salir de la plataforma. El flujo completo es:
+
+* **Inicio de solicitud:** En la barra superior del chat, la agencia ve un botón **"Solicitar Pago"** ($). Al hacer clic, se abre un modal donde ingresa el monto y el concepto (ej. "Abono a paquete Cancún", "Liquidación final").  
+* **Cálculo de comisión:** El endpoint `create-chat-payment` calcula automáticamente la comisión de la plataforma según el `plan_type` y `commission_rate` vigente de la agencia. La comisión se descuenta del monto total mediante `application_fee_amount` de Stripe.  
+* **Integración con pagos diferidos:** Si el pago corresponde a un abono de una orden existente (`order_id` en metadata), el sistema valida que no exceda el saldo pendiente ni el plazo máximo de 4 meses. Al completarse el pago, se actualiza `remaining_balance` de la orden. Si el saldo llega a cero, la orden se marca como `paid`.  
+* **Sesión Stripe:** Se crea una sesión de Stripe Checkout (`mode: payment`) con `transfer_data.destination` hacia la cuenta Connect de la agencia. El viajero es redirigido a la pasarela de pago.  
+* **Mensaje visual en chat:** Al crearse la solicitud, se inserta un mensaje tipo `payment_request` en la conversación, visible como una tarjeta especial con el monto, concepto y botón "Pagar ahora".  
+* **Confirmación automática:** El webhook de Stripe (`checkout.session.completed`) detecta pagos con `metadata.chat_payment = "true"`. Al confirmarse, inserta automáticamente un mensaje tipo `payment_confirmed` en el chat (tarjeta verde con checkmark) y crea el registro fiscal correspondiente en `fiscal_income_records`.  
+* **Notificaciones:** Tanto el viajero como la agencia reciben notificaciones push de la confirmación del pago.
+
 ## **3\. PARTE 2: COMUNICACIÓN, NOTIFICACIONES Y CHAT IN-APP**
 
 La plataforma carece intencionalmente de medios de comunicación expuestos públicamente; se obliga al viajero y a la agencia a interactuar de manera exclusiva dentro de la SPA para resguardar la retención del usuario.
@@ -411,11 +433,28 @@ La plataforma carece intencionalmente de medios de comunicación expuestos públ
 
 ### **3.2 Motor de Censura de Datos de Contacto (Backend Middleware)**
 
-Para salvaguardar las normas de la comunidad y forzar la transaccionalidad in-app, el backend implementa un middleware de inspección obligatoria de paquetes de texto antes de persistir cualquier mensaje en la base de datos o transmitirlo al receptor:
+Para salvaguardar las normas de la comunidad y forzar la transaccionalidad in-app, el backend implementa un middleware de inspección obligatoria (trigger `BEFORE INSERT` en PostgreSQL) y validación en cliente antes de persistir o transmitir cualquier mensaje:
 
-* **Filtro de Expresiones Regulares (Regex):** El sistema escaneará el texto buscando patrones correspondientes a números telefónicos (ej: \\+?\\d{10,13}), direcciones de correo electrónico, o intentos semánticos de evasión (escribir números con caracteres alfabéticos como "cinco cinco...").  
-* **Censura en el Servidor:** Todo dato de contacto detectado será sustituido de forma irreversible por una cadena de asteriscos (\*\*\*) y el sistema inyectará un aviso automático dentro del chat indicando la infracción de los acuerdos de usuario.  
-* **Política de Reincidencia Escalada:** La tabla de perfiles de usuario mantendrá un contador de infracciones. Al acumular exactamente **5 intentos de evasión de filtro**, el backend bloqueará temporalmente la facultad de enviar mensajes en el chat para ese usuario y despachará una alerta de auditoría inmediata al panel de control del SuperAdmin.
+**Detección en Servidor (Trigger `sanitize_chat_message`):**
+
+* **Teléfonos:** Patrones de 10-13 dígitos, con o sin código de país (+52).  
+* **Correos electrónicos:** Formato estándar RFC 5322 (`usuario@dominio.ext`).  
+* **URLs y dominios:** `https://`, `http://`, `www.` y dominios detectados sin protocolo (`.com`, `.mx`, `.org`, etc.).  
+* **CLABE y tarjetas bancarias:** 18 dígitos consecutivos (CLABE mexicana), 16 dígitos en grupos de 4, y menciones de "cuenta", "transferencia", "depósito", "banco", "tarjeta" seguidas de números.  
+* **Redes sociales:** Menciones estilo `@usuario`, URLs de Facebook, Instagram, TikTok, WhatsApp (`wa.me`), Telegram (`t.me`), Twitter/X, LinkedIn. Palabras clave "facebook", "instagram", "whatsapp", "whats", "telegram" seguidas de texto.  
+* **Evasión semántica:** Números escritos con palabras en español (4+ secuenciales), dígitos espaciados con guiones/puntos (9+ en secuencia), frases de contacto como "escríbeme al", "márcame al", "mi correo es", "mi número", "agrégame", "búscame" seguidas de dígitos.
+
+**Validación en Cliente (`validateChatMessage`):**
+
+* El frontend ejecuta los mismos patrones regex antes de enviar el mensaje al servidor.  
+* Si se detecta una violación, el mensaje **no se envía** y se muestra una advertencia específica al usuario indicando qué tipo de contenido está prohibido (ej. "No se permiten enlaces externos", "No se permiten números de cuenta").  
+* Esto proporciona feedback inmediato sin necesidad de esperar el error de la base de datos.
+
+**Censura en el Servidor:** Todo dato de contacto detectado por el trigger es sustituido de forma irreversible por `***` y el contador de infracciones se incrementa.
+
+**Política de Reincidencia Escalada:** La tabla de perfiles mantiene un contador `censorship_strikes`. Al acumular **5 intentos de evasión**, el backend bloquea permanentemente la facultad de enviar mensajes (error `CK001`) y despacha una alerta al SuperAdmin.
+
+**Objetivo:** Evitar que agencias y viajeros compartan datos de contacto para realizar transacciones fuera de la plataforma, garantizando que la comisión correspondiente se aplique en cada pago.
 
 ### **3.3 Orquestación de la Omnicanalidad (Triggers de Alerta)**
 
@@ -686,6 +725,16 @@ Las agencias tienen la facultad de habilitar planes de financiamiento con un **p
 * **Facturación de la Plataforma (B2B):** El backend automatizará el timbrado fiscal de facturas electrónicas (CFDI para el mercado de México) consumiendo la API externa de **Facturama**. El sistema emitirá los comprobantes fiscales correspondientes dirigidos a las agencias exclusivamente por el concepto de las comisiones retenidas según el plan contratado y la tasa vigente al momento de cada transacción (Sección 6.1.1).  
 * **Facturación del Viaje (B2C):** La emisión de facturas fiscales CFDI por el monto total del paquete de viaje o los anticipos aportados por los viajeros queda **100% bajo la responsabilidad operativa y legal de la agencia de viajes contratada** (siguiendo estrictamente el modelo de transacciones descentralizadas de Amazon). La plataforma SaaS no intervendrá en el timbrado ni en la conciliación fiscal de los servicios turísticos comercializados entre agencias y consumidores finales.
 
+#### **6.3.1 Timbrado de CFDI Bajo Demanda**
+
+La plataforma genera automáticamente registros de ingresos fiscales (`fiscal_income_records`) por cada comisión retenida, pero el timbrado del CFDI ante el SAT se realiza **exclusivamente bajo demanda de la agencia** desde el Dashboard Contable:
+
+* **Flujo:** La agencia navega a Finanzas → Ingresos Fiscales, identifica el registro pendiente y hace clic en **"Timbrar CFDI"**.  
+* **Procesamiento:** El endpoint `generate-cfdi` construye el payload CFDI 3.3 (tipo Ingreso, uso G03, régimen 601) con los datos fiscales de la agencia (RFC, razón social, dirección) y lo envía a la API de Facturama.  
+* **Persistencia:** Al recibir respuesta exitosa de Facturama, el sistema actualiza el registro fiscal con `cfdi_uuid`, `cfdi_status = 'issued'`, `cfdi_pdf_url` y `cfdi_xml_url`.  
+* **Descarga:** Una vez timbrado, la agencia puede descargar el PDF y XML directamente desde la tabla de ingresos fiscales.  
+* **CFDI ya emitido:** Si el registro ya tiene un CFDI timbrado, el sistema retorna los URLs existentes sin volver a timbrar.
+
 ### **6.4 Sistema de Lealtad y Cartera Virtual (Avimo Puntos)**
 
 La plataforma cuenta con un programa de lealtad donde los viajeros acumulan puntos por cada compra realizada en el marketplace. Los puntos se almacenan en una cartera virtual personal y pueden canjearse como método de pago parcial para nuevas compras. El valor de los puntos canjeados es absorbido por las arcas de la empresa (Avimo), sin impacto financiero para la agencia vendedora.
@@ -801,8 +850,8 @@ La pestaña "Periodos" muestra tarjetas mensuales con los totales, el IVA a decl
 
 | Tabla | Propósito | Acceso |
 | :--- | :--- | :--- |
-| `fiscal_income_records` | Ingresos automáticos por cada pago exitoso | Solo SuperAdmin (RLS) |
-| `fiscal_expense_records` | Egresos manuales registrados por SuperAdmin | Solo SuperAdmin (RLS) |
+| `fiscal_income_records` | Ingresos automáticos por cada pago exitoso | Agencia (lectura) + SuperAdmin |
+| `fiscal_expense_records` | Egresos registrados por agencias y SuperAdmin | Agencia (lectura/escritura propia) + SuperAdmin |
 | `fiscal_periods` | Periodos mensuales/trimestrales/anuales con totales | Solo SuperAdmin (RLS) |
 
 **RPCs disponibles:**
@@ -816,6 +865,17 @@ La pestaña "Periodos" muestra tarjetas mensuales con los totales, el IVA a decl
 - Stripe emite CFDI por sus fees, cuyo IVA es acreditable para Avimo.
 - La diferencia neta (IVA cobrado − IVA acreditable) es lo que se declara y paga al SAT en cada periodo.
 - Las agencias reciben CFDI por las comisiones retenidas (según plan y tasa vigente), que acreditan contra sus propios impuestos.
+
+### **6.6 Registro de Gastos Operativos de Agencia**
+
+Además del panel de egresos del SuperAdmin (Sección 6.5.2), **cada agencia puede registrar sus propios gastos operativos** desde el Dashboard Contable (Finanzas → Gastos), permitiendo un control contable autogestionado:
+
+* **Categorías disponibles:** Infraestructura, API/IA, Nómina, Renta, Software, Marketing, Legal/Contable, Comisiones Stripe, Otro.  
+* **Campos del gasto:** Concepto, categoría, proveedor (nombre y RFC opcional), subtotal, IVA, notas.  
+* **Cálculo automático de IVA:** Si no se especifica, el sistema calcula el IVA como 16% del subtotal. El total se calcula como subtotal + IVA.  
+* **Propiedad:** Cada gasto se asocia al `tenant_id` de la agencia que lo registró. Las políticas RLS garantizan que cada agencia solo vea y gestione sus propios gastos.  
+* **Visibilidad dual:** El SuperAdmin puede ver todos los gastos de todas las agencias en el panel de egresos fiscales, consolidados por tenant. La agencia solo ve los suyos.  
+* **Integración con P&L:** Los gastos registrados alimentan automáticamente el Estado de Resultados (P&L) en el Dashboard Contable de la agencia.
 
 ## **7\. PARTE 6: ARQUITECTURA DE PERSISTENCIA E ENDPOINTS INTERNACIONALIZABLES**
 

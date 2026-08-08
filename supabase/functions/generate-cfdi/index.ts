@@ -83,10 +83,28 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  const cfdiUuid = data.Complement?.TaxStamp?.Uuid || null;
+  const pdfUrl = data.PdfUrl || null;
+  const xmlUrl = data.XmlUrl || null;
+
+  // Persistir resultado en fiscal_income_records si se proporciono income_id
+  const incomeId = body.income_id;
+  if (incomeId && cfdiUuid) {
+    await supabase
+      .from("fiscal_income_records")
+      .update({
+        cfdi_uuid: cfdiUuid,
+        cfdi_status: "issued",
+        cfdi_pdf_url: pdfUrl,
+        cfdi_xml_url: xmlUrl,
+      })
+      .eq("income_id", incomeId);
+  }
+
   return new Response(JSON.stringify({
     cfdi_id: data.Id,
-    uuid: data.Complement?.TaxStamp?.Uuid,
-    pdf_url: data.PdfUrl,
-    xml_url: data.XmlUrl,
+    uuid: cfdiUuid,
+    pdf_url: pdfUrl,
+    xml_url: xmlUrl,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
