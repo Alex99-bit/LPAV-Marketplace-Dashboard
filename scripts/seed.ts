@@ -33,6 +33,11 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 const PASSWORD = env.SEED_PASSWORD || "Test1234!";
 
+// Si se setea SEED_SKIP_STRIPE=1 (en el entorno o en .env), no se crean cuentas
+// Stripe fake, para permitir el onboarding real de Stripe Connect en local.
+const SKIP_STRIPE =
+  process.env.SEED_SKIP_STRIPE === "1" || env.SEED_SKIP_STRIPE === "1";
+
 // ── Test users definition ────────────────────────────────────
 
 interface TestUser {
@@ -326,21 +331,25 @@ async function seed() {
   console.log();
 
   // 7. Create Stripe accounts
-  console.log("💰 Creando cuentas Stripe...");
-  for (let i = 0; i < AGENCIES.length; i++) {
-    const tid = tenantIds[i];
-    if (!tid) continue;
+  if (SKIP_STRIPE) {
+    console.log("⏭️  Omitiendo cuentas Stripe fake (SEED_SKIP_STRIPE=1)");
+  } else {
+    console.log("💰 Creando cuentas Stripe...");
+    for (let i = 0; i < AGENCIES.length; i++) {
+      const tid = tenantIds[i];
+      if (!tid) continue;
 
-    await supabase.from("stripe_accounts").insert({
-      tenant_id: tid,
-      stripe_account_id: `acct_test_${i + 1}_${Date.now()}`,
-      account_type: "express",
-      charges_enabled: i === 0, // only first agency has charges enabled
-      payouts_enabled: i === 0,
-      onboarding_status: i === 0 ? "completed" : "pending",
-    });
+      await supabase.from("stripe_accounts").insert({
+        tenant_id: tid,
+        stripe_account_id: `acct_test_${i + 1}_${Date.now()}`,
+        account_type: "express",
+        charges_enabled: i === 0, // only first agency has charges enabled
+        payouts_enabled: i === 0,
+        onboarding_status: i === 0 ? "completed" : "pending",
+      });
 
-    console.log(`   Stripe ${i === 0 ? "completo" : "pendiente"} para agencia ${i + 1}`);
+      console.log(`   Stripe ${i === 0 ? "completo" : "pendiente"} para agencia ${i + 1}`);
+    }
   }
   console.log();
 

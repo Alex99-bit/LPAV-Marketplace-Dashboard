@@ -106,7 +106,7 @@ export default function AgencyDashboard() {
         supabase.from("agency_team_members").select("member_id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
         supabase.from("saas_subscriptions").select("*").eq("tenant_id", tenantId).single(),
         supabase.from("agencies_tenants").select("status, plan_type, business_name").eq("tenant_id", tenantId).single(),
-        supabase.from("stripe_accounts").select("*").eq("tenant_id", tenantId).single(),
+        supabase.from("stripe_accounts").select("*").eq("tenant_id", tenantId).maybeSingle(),
       ]);
 
       const packages = packagesRes.data ?? [];

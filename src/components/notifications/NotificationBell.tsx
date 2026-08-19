@@ -18,7 +18,13 @@ const ICON_MAP = {
   order_cancelled: Ban,
 };
 
-export default function NotificationBell() {
+interface NotificationBellProps {
+  /* Dirección en la que se abre el panel: "right" (default, para barras a la
+     derecha) o "left" (para barras laterales ancladas a la izquierda). */
+  align?: "left" | "right";
+}
+
+export default function NotificationBell({ align = "right" }: NotificationBellProps) {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
@@ -123,6 +129,7 @@ export default function NotificationBell() {
       trigger={triggerButton}
       open={open}
       onClose={() => setOpen(false)}
+      align={align}
       className="w-80"
     >
       <div className="flex items-center justify-between border-b border-border px-3 py-2">

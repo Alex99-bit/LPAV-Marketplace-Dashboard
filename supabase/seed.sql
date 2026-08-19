@@ -1,0 +1,3 @@
+-- Seed local vacío.
+-- Los datos de prueba se cargan con `node scripts/seed.ts` (no vía supabase db seed).
+-- Este archivo existe para que `supabase db reset` no falle (config.toml lo referencia).

@@ -56,7 +56,7 @@ export default function AgencySidebar({ isMobileOpen = false, onMobileClose }: A
           >
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <NotificationBell />
+          <NotificationBell align="left" />
           <button
             onClick={onMobileClose}
             className="rounded-lg p-1.5 text-text-muted hover:bg-surface lg:hidden"
