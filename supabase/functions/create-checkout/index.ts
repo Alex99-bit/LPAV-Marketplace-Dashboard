@@ -1,6 +1,6 @@
-import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getUser, createServiceClient } from "../_shared/auth.ts";
+import { getStripeClient } from "../_shared/stripe/client.ts";
 
 const IVA_RATE = 0.16;
 
@@ -126,27 +126,44 @@ Deno.serve(async (req: Request) => {
     holdId = createdHoldId as string;
   }
 
-  const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
-  const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-04-30.basil" });
+  const stripe = getStripeClient();
 
   const origin = req.headers.get("origin") || "http://localhost:5173";
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    line_items: [{
-      price_data: {
-        currency: (pkg.currency || "mxn").toLowerCase(),
-        product_data: { name: pkg.title },
-        unit_amount: totalCharge,
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [{
+        price_data: {
+          currency: (pkg.currency || "mxn").toLowerCase(),
+          product_data: { name: pkg.title },
+          unit_amount: totalCharge,
+        },
+        quantity: 1,
+      }],
+      mode: "payment",
+      success_url: `${origin}/orders?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout`,
+      payment_intent_data: {
+        application_fee_amount: platformFee,
+        transfer_data: { destination: agency.stripe_account_id },
+        metadata: {
+          package_id: pkg.package_id,
+          tenant_id: pkg.tenant_id,
+          user_id: user.id,
+          order_type: "deposit",
+          points_redeemed: String(pointsToRedeem),
+          package_total: String(packageBasePrice),
+          agency_commission: String(agencyCommission / 100),
+          commission_rate: String(commissionRate),
+          package_subtotal: packageSubtotal.toFixed(2),
+          package_iva: packageIVA.toFixed(2),
+          agency_name: agency.business_name,
+          plan_type: agency.plan_type,
+          ...(holdId ? { hold_id: holdId } : {}),
+        },
       },
-      quantity: 1,
-    }],
-    mode: "payment",
-    success_url: `${origin}/orders?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/checkout`,
-    payment_intent_data: {
-      application_fee_amount: platformFee,
-      transfer_data: { destination: agency.stripe_account_id },
       metadata: {
         package_id: pkg.package_id,
         tenant_id: pkg.tenant_id,
@@ -162,23 +179,22 @@ Deno.serve(async (req: Request) => {
         plan_type: agency.plan_type,
         ...(holdId ? { hold_id: holdId } : {}),
       },
-    },
-    metadata: {
-      package_id: pkg.package_id,
-      tenant_id: pkg.tenant_id,
-      user_id: user.id,
-      order_type: "deposit",
-      points_redeemed: String(pointsToRedeem),
-      package_total: String(packageBasePrice),
-      agency_commission: String(agencyCommission / 100),
-      commission_rate: String(commissionRate),
-      package_subtotal: packageSubtotal.toFixed(2),
-      package_iva: packageIVA.toFixed(2),
-      agency_name: agency.business_name,
-      plan_type: agency.plan_type,
-      ...(holdId ? { hold_id: holdId } : {}),
-    },
-  }, { stripeAccount: agency.stripe_account_id });
+    });
+  } catch (err) {
+    const e = err as { raw?: { code?: string; message?: string }; message?: string };
+    if (e?.raw?.code === "insufficient_capabilities_for_transfer") {
+      return new Response(JSON.stringify({
+        error: "La agencia aún no completó su onboarding de Stripe. Completa el registro de la cuenta bancaria antes de cobrar.",
+      }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({
+      error: e?.raw?.message || e?.message || "Error creando el checkout",
+    }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   return new Response(JSON.stringify({
     id: session.id,

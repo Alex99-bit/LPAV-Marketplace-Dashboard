@@ -1,6 +1,21 @@
-import Stripe from "https://esm.sh/stripe@17?target=deno";
+// ============================================================================
+// create-connect-account
+// Crea una cuenta Express de Stripe (API V2) para la agencia y genera el
+// enlace de onboarding (account link V2).
+//
+// NOTA: Stripe deshabilitó la creación de cuentas vía Accounts V1
+// (stripe.accounts.create con type: 'express'), por lo que usamos la API V2:
+//   - v2.core.accounts.create  (dashboard: 'express', configuración recipient)
+//   - v2.core.accountLinks.create (use_case account_onboarding)
+//
+// La capability `stripe_balance.stripe_transfers` habilita a la agencia para
+// recibir transferencias (destination charges). No requiere card_payments:
+// el cobro lo procesa la PLATAFORMA.
+// ============================================================================
+
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getUser, createServiceClient } from "../_shared/auth.ts";
+import { getStripeClient } from "../_shared/stripe/client.ts";
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -39,44 +54,81 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2025-04-30.basil" });
+  const stripe = getStripeClient();
+  const origin = req.headers.get("origin") ?? "http://localhost:5173";
 
+  const refreshUrl = `${origin}/agency/settings?stripe=refresh`;
+  const returnUrl = `${origin}/agency/settings?stripe=return`;
+
+  // Si la agencia ya tiene cuenta, solo regeneramos el enlace de onboarding.
   if (tenant.stripe_account_id) {
-    const accountLink = await stripe.accountLinks.create({
+    const accountLink = await stripe.v2.core.accountLinks.create({
       account: tenant.stripe_account_id,
-      refresh_url: `${req.headers.get("origin")}/agency/settings?stripe=refresh`,
-      return_url: `${req.headers.get("origin")}/agency/settings?stripe=return`,
-      type: "account_onboarding",
+      use_case: {
+        type: "account_onboarding",
+        account_onboarding: {
+          configurations: ["recipient"],
+          refresh_url: refreshUrl,
+          return_url: returnUrl,
+        },
+      },
     });
     return new Response(JSON.stringify({ url: accountLink.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const account = await stripe.accounts.create({
-    type: "express",
-    country: "MX",
-    email: user.email,
-    capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-    business_profile: { name: tenant.business_name, url: (tenant as unknown as { website_url?: string }).website_url || undefined },
+  // Crear cuenta Express (V2). La plataforma recauda comisiones y asume pérdidas.
+  const account = await stripe.v2.core.accounts.create({
+    display_name: tenant.business_name ?? "Agencia",
+    contact_email: user.email ?? "",
+    identity: { country: "mx" },
+    dashboard: "express",
+    defaults: {
+      responsibilities: {
+        fees_collector: "application",
+        losses_collector: "application",
+      },
+    },
+    configuration: {
+      recipient: {
+        capabilities: {
+          stripe_balance: {
+            stripe_transfers: { requested: true },
+          },
+        },
+      },
+    },
   });
 
+  // Guardar el mapeo agencia -> cuenta Stripe.
   await supabase
     .from("agencies_tenants")
     .update({ stripe_account_id: account.id })
     .eq("tenant_id", tenant.tenant_id);
 
-  await supabase.from("stripe_accounts").insert({
-    stripe_account_id: account.id,
-    tenant_id: tenant.tenant_id,
-    onboarding_status: "pending",
-  });
+  await supabase
+    .from("stripe_accounts")
+    .upsert(
+      {
+        stripe_account_id: account.id,
+        tenant_id: tenant.tenant_id,
+        account_type: "express",
+        onboarding_status: "pending",
+      },
+      { onConflict: "tenant_id" },
+    );
 
-  const accountLink = await stripe.accountLinks.create({
+  const accountLink = await stripe.v2.core.accountLinks.create({
     account: account.id,
-    refresh_url: `${req.headers.get("origin")}/agency/settings?stripe=refresh`,
-    return_url: `${req.headers.get("origin")}/agency/settings?stripe=return`,
-    type: "account_onboarding",
+    use_case: {
+      type: "account_onboarding",
+      account_onboarding: {
+        configurations: ["recipient"],
+        refresh_url: refreshUrl,
+        return_url: returnUrl,
+      },
+    },
   });
 
   return new Response(JSON.stringify({ url: accountLink.url, account_id: account.id }), {

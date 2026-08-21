@@ -449,6 +449,7 @@ async function seed() {
       tenant_id: tid,
       stripe_checkout_session_id: `cs_test_seed_${i}_${Date.now()}`,
       user_id: travelerId,
+      package_id: pkgId,
       total_amount: amount,
       remaining_balance: status === "paid" ? 0 : Math.round(amount * 0.6 * 100) / 100,
       currency: "MXN",

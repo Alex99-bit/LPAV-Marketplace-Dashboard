@@ -175,6 +175,7 @@ Deno.serve(async (req: Request) => {
         tenant_id: metadata.tenant_id,
         stripe_checkout_session_id: session.id,
         user_id: userId,
+        package_id: metadata.package_id || null,
         total_amount: session.amount_total! / 100,
         remaining_balance: (session.amount_total! / 100) * (1 / 0.2 - 1),
         currency: (session.currency || "mxn").toUpperCase() as "MXN",
