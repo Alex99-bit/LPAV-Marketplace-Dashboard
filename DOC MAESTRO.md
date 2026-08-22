@@ -37,7 +37,7 @@ La plataforma ofrece cuatro paquetes para agencias de viajes, cada uno con una t
 La plataforma operará bajo un esquema de acceso controlado para el Plan Fundador:
 
 * El **Plan Fundador** está limitado a las primeras **10 agencias** que completen el proceso de registro, verificación y aprobación por el SuperAdmin.  
-* El Plan Fundador **no es seleccionable directamente** por la agencia durante el registro. La agencia puede solicitarlo en el flujo de registro, pero ingresa temporalmente como **Plan Básico** hasta que el SuperAdmin apruebe la solicitud desde el panel de administración.  
+* El Plan Fundador **no se asigna directamente** durante el registro: la agencia puede **solicitarlo** en el flujo de registro (botón "Solicitar"), pero ingresa temporalmente como **Plan Básico** hasta que el SuperAdmin apruebe la solicitud desde el panel de administración. La tarjeta de solicitud del Plan Fundador puede ser **activada o desactivada por el SuperAdmin** desde el panel de administración (configuración `fundador_requests_enabled`).  
 * Al ser aprobada, el sistema cambia automáticamente el plan de la agencia a **Plan Fundador**, aplicando la tasa de comisión preferencial del 7.5% y todos los beneficios del plan.  
 * La **duración del Plan Fundador es de 1 año** calendario a partir de la fecha de activación. Durante este año, la agencia no paga mensualidad ($0 MXN) y goza de la tasa de comisión fija del 7.5%.  
 * Una vez cubiertas las 10 plazas del Plan Fundador, este paquete **se cierra de forma permanente** para nuevas agencias. No se habilitarán plazas adicionales ni listas de espera.  
@@ -69,7 +69,7 @@ Tasa de Conversión = (Ventas efectivas en 3 meses / Leads generados en platafor
 
 * Un lead se considera "generado en plataforma" cuando un viajero solicita información sobre un paquete de la agencia a través del chat interno, botón de contacto en flyer, o formulario de interés en el marketplace.  
 * Una venta se considera "efectiva" cuando el pago del viajero ha sido confirmado exitosamente por Stripe (`checkout.session.completed`).  
-* Leads y ventas fuera de la plataforma (contacto directo, teléfono, canales externos) **no cuentan** para esta métrica.
+* Leads y ventas fuera de la plataforma (contacto directo, teléfono, canales externos) **no cuentan** para esta métrica. **Excepción:** las ventas externas registradas por la agencia en el módulo de conciliación (`external_sales_log`) **sí se incluyen** en el numerador de la conversión, para no penalizar a las agencias que cierran leads generados en plataforma pero concretan la venta fuera de línea (ver Sección de Conciliación de Ventas Externas).
 
 **Umbrales y Tasas:**
 
@@ -113,7 +113,7 @@ Al cumplirse el año calendario del Plan Fundador, la agencia recibe una notific
 * **Opción B — Migrar a Premium estándar:** La agencia pasa al Plan Premium con tasa de comisión base del 15% y opción a tasa preferencial del 12% (≥8% de conversión).  
 * **Opción C — Migrar a Intermedio o Básico:** La agencia puede solicitar downgrade a Plan Intermedio ($1,799/mes, comisión 18%) o Plan Básico ($0/mes, comisión 20%), perdiendo los beneficios del Plan Fundador de forma irreversible.  
 
-> **Nota:** Si la agencia no selecciona una opción dentro de los 30 días posteriores al vencimiento del año, el sistema la migra automáticamente a la **Opción A (Continuidad Fundador)** y comienza la facturación recurrente de $2,999 MXN/mes. La agencia puede cambiar de plan posteriormente desde su Panel de Configuración.
+> **Nota:** Si la agencia no selecciona una opción dentro de los 30 días posteriores al vencimiento del año, el sistema la migra automáticamente a la **Opción A (Continuidad Fundador)** mediante la creación de una suscripción Stripe Billing de $2,999 MXN/mes (`Continuidad Fundador`), conservando la comisión del 7.5%. Si la agencia no tiene un método de pago registrado, el cobro falla y aplica el periodo de gracia de 15 días (Sección 1.2); si al finalizar no se liquida, el tenant pasa a Suspendido por Pago. La agencia puede cambiar de plan posteriormente desde su Panel de Configuración.
 
 ### **1.2 Regla de Negocio ante Fallos de Pago B2B (Periodo de Gracia)**
 
@@ -694,7 +694,7 @@ Monto Avimo (application_fee_amount) = Comisión Total
 * **Upgrade (subir de plan):** Una agencia puede solicitar upgrade de plan en cualquier momento desde su Panel de Finanzas. El cambio es inmediato una vez aprobado, y la nueva tasa de comisión aplica a partir de la siguiente venta. Si el upgrade implica un aumento de mensualidad (ej. Básico → Intermedio, Intermedio → Premium), la diferencia proporcional del ciclo de facturación se cobra al momento del cambio.  
 * **Downgrade (bajar de plan):** El downgrade se aplica al final del ciclo de facturación vigente (fin de mes). Durante el ciclo en curso, la agencia mantiene su plan y tasa actuales. Al iniciar el nuevo ciclo, se aplica la tasa del plan inferior y se ajusta la mensualidad.  
 * **Plan Fundador:** El Plan Fundador se asigna exclusivamente por aprobación del SuperAdmin desde el panel de administración. La agencia no puede hacer upgrade hacia Plan Fundador desde el portal de autoservicio. Una agencia Fundador puede solicitar cambio a otro plan (Básico, Intermedio o Premium), pero pierde su plaza de Fundador de forma irreversible y no podrá recuperarla. Una vez que las 10 plazas han sido ocupadas, el Plan Fundador se cierra de forma permanente. Ver Sección 1.1.5 para las reglas de transición al cumplirse el año del Plan Fundador.
-* **Periodo de prueba:** Las agencias nuevas en Plan Intermedio gozan de los primeros 30 días sin cobro de mensualidad (periodo de prueba). A partir del día 31, inicia la facturación recurrente mensual. Durante el periodo de prueba, la tasa de comisión base (18%) aplica normalmente.
+* **Periodo de prueba:** Las agencias nuevas en los planes de paga (Plan Intermedio y Plan Premium) gozan de los primeros 30 días sin cobro de mensualidad (periodo de prueba, gestionado mediante `trial_period_days` de Stripe Billing). El periodo de prueba es de **una sola vez por agencia**: si ya se consumió en uno de los dos planes, no se otorga nuevamente al cambiarse al otro. A partir del día 31, inicia la facturación recurrente mensual. Durante el periodo de prueba, la tasa de comisión base del plan (18% Intermedio / 15% Premium) aplica normalmente.
 
 #### **6.1.6 Absorción de Tarifas de Stripe**
 
