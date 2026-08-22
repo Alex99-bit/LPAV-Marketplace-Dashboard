@@ -454,8 +454,6 @@ async function seed() {
       remaining_balance: status === "paid" ? 0 : Math.round(amount * 0.6 * 100) / 100,
       currency: "MXN",
       platform_commission_fee: agencyCommission,
-      traveler_service_fee: 0,
-      agency_commission_fee: agencyCommission,
       package_subtotal: packageSubtotal,
       package_iva: packageIVA,
       payment_status: status,

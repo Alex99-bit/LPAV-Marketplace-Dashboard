@@ -1,10 +1,17 @@
-import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getUser, createServiceClient } from "../_shared/auth.ts";
+import { getStripeClient } from "../_shared/stripe/client.ts";
 
+// Precios reales de Stripe (test). Sobrescribibles por entorno para producción.
 const PLAN_PRICES: Record<string, { monthly: string; annual: string }> = {
-  Intermedio: { monthly: "price_intermedio_monthly", annual: "price_intermedio_annual" },
-  Premium: { monthly: "price_premium_monthly", annual: "price_premium_annual" },
+  Intermedio: {
+    monthly: Deno.env.get("STRIPE_PRICE_INTERMEDIO_MONTHLY") || "price_1U1htg0Fcaofr3eiDSlvaSgj",
+    annual: Deno.env.get("STRIPE_PRICE_INTERMEDIO_ANNUAL") || "price_1U1htg0Fcaofr3ei3XqqLPIP",
+  },
+  Premium: {
+    monthly: Deno.env.get("STRIPE_PRICE_PREMIUM_MONTHLY") || "price_1U1huB0Fcaofr3eid0ynTayJ",
+    annual: Deno.env.get("STRIPE_PRICE_PREMIUM_ANNUAL") || "price_1U1hvx0Fcaofr3eihlvRrRAR",
+  },
 };
 
 const COMMISSION_RATES: Record<string, number> = {
@@ -13,6 +20,8 @@ const COMMISSION_RATES: Record<string, number> = {
   Premium: 15.00,
   Fundador: 7.50,
 };
+
+const TRIAL_PERIOD_DAYS = 30;
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -48,7 +57,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2025-04-30.basil" });
+  const stripe = getStripeClient();
   const origin = req.headers.get("origin") || "http://localhost:5173";
 
   if (body.action === "change_plan") {
@@ -61,7 +70,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: tenant } = await supabase
       .from("agencies_tenants")
-      .select("plan_type, stripe_customer_id")
+      .select("plan_type, stripe_customer_id, trial_used_at")
       .eq("tenant_id", profile.tenant_id)
       .single();
 
@@ -115,11 +124,23 @@ Deno.serve(async (req: Request) => {
       await supabase.from("agencies_tenants").update({ stripe_customer_id: customerId }).eq("tenant_id", profile.tenant_id);
     }
 
+    // Trial de 30 días: disponible una sola vez por tenant (Intermedio o Premium).
+    const trialUsed = !!(tenant as unknown as { trial_used_at?: string | null }).trial_used_at;
+    const offerTrial = !trialUsed && (plan === "Intermedio" || plan === "Premium");
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceKey, quantity: 1 }],
+      subscription_data: {
+        ...(offerTrial ? { trial_period_days: TRIAL_PERIOD_DAYS } : {}),
+        metadata: {
+          tenant_id: profile.tenant_id,
+          plan,
+          ...(offerTrial ? { trial_offered: "true" } : {}),
+        },
+      },
       success_url: `${origin}/agency/settings?subscription=success`,
       cancel_url: `${origin}/agency/settings?subscription=cancelled`,
       metadata: { tenant_id: profile.tenant_id, plan, billing_cycle: body.billing_cycle || "monthly" },

@@ -67,9 +67,6 @@ export default function FiscalIncomeTab() {
           className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm"
         >
           <option value="all">Todos</option>
-          {/* Ambos tipos se conservan para datos históricos.
-              Nuevas órdenes solo generan registros agency_commission. */}
-          <option value="service_fee">Tarifa de Servicio</option>
           <option value="agency_commission">Comisión Agencia</option>
         </select>
         <span className="text-xs text-text-muted">{filtered.length} registros</span>
@@ -97,9 +94,7 @@ export default function FiscalIncomeTab() {
                 </td>
                 <td className="px-4 py-2.5 text-text font-medium max-w-[200px] truncate">{r.concept}</td>
                 <td className="px-4 py-2.5">
-                  <Badge variant={r.income_type === "service_fee" ? "info" : "success"}>
-                    {r.income_type === "service_fee" ? "Service Fee" : "Comisión"}
-                  </Badge>
+                  <Badge variant="success">Comisión</Badge>
                 </td>
                 <td className="px-4 py-2.5 text-right text-text">{formatCurrency(r.subtotal)}</td>
                 <td className="px-4 py-2.5 text-right text-amber-600">{formatCurrency(r.iva_amount)}</td>

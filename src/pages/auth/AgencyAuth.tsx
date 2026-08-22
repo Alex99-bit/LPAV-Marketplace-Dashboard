@@ -74,6 +74,21 @@ export default function AgencyAuth() {
     }
   }, [user, isAgency, authLoading, navigate, mode]);
 
+  // Leer si el SuperAdmin tiene habilitadas las solicitudes del Plan Fundador
+  useEffect(() => {
+    const loadFundadorSetting = async () => {
+      const { data, error } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "fundador_requests_enabled")
+        .maybeSingle();
+      if (!error && data) {
+        setFundadorRequestsEnabled((data.value as unknown as boolean) !== false);
+      }
+    };
+    loadFundadorSetting();
+  }, []);
+
   // Auth fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -90,6 +105,7 @@ export default function AgencyAuth() {
 
   // Plan selection
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("Intermedio");
+  const [fundadorRequestsEnabled, setFundadorRequestsEnabled] = useState(true);
 
   // Fiscal document
   const [fiscalFile, setFiscalFile] = useState<File | null>(null);
@@ -548,8 +564,11 @@ export default function AgencyAuth() {
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {Object.entries(PLAN_DETAILS).map(([key, plan]) => {
+      {Object.entries(PLAN_DETAILS)
+        .filter(([key]) => key !== "Fundador" || fundadorRequestsEnabled)
+        .map(([key, plan]) => {
         const isSelected = key === selectedPlan;
+        const isFundador = key === "Fundador";
         const Icon = PLAN_ICONS[key as PlanType];
         return (
           <button
@@ -602,7 +621,9 @@ export default function AgencyAuth() {
                   : "bg-gray-100 text-text"
               }`}
             >
-              {isSelected ? "Seleccionado" : "Seleccionar"}
+              {isFundador
+                ? (isSelected ? "Solicitado" : "Solicitar")
+                : (isSelected ? "Seleccionado" : "Seleccionar")}
             </div>
           </button>
         );

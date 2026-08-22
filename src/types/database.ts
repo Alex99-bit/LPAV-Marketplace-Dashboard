@@ -31,6 +31,9 @@ export interface AgencyTenant {
   fundador_request_status: FundadorRequestStatus;
   fundador_requested_at: string | null;
   fundador_activated_at: string | null;
+  fundador_continuity_pending: boolean;
+  fundador_continuity_active: boolean;
+  trial_used_at: string | null;
   created_at: string;
 }
 
@@ -120,8 +123,6 @@ export interface TransactionOrder {
   remaining_balance: number;
   currency: Currency;
   platform_commission_fee: number;
-  traveler_service_fee: number;
-  agency_commission_fee: number;
   package_subtotal: number;
   package_iva: number;
   points_earned: number;
@@ -399,7 +400,7 @@ export interface FiscalIncomeRecord {
   order_id: string | null;
   tenant_id: string | null;
   concept: string;
-  income_type: "service_fee" | "agency_commission";
+  income_type: "agency_commission";
   subtotal: number;
   iva_amount: number;
   total: number;
@@ -562,6 +563,13 @@ export interface Database {
       package_inventory_link: { Row: PackageInventoryLink; Insert: Partial<PackageInventoryLink>; Update: Partial<PackageInventoryLink> };
       inventory_audit_log: { Row: InventoryAuditLog; Insert: Partial<InventoryAuditLog>; Update: Partial<InventoryAuditLog> };
       inventory_holds: { Row: InventoryHold; Insert: Partial<InventoryHold>; Update: Partial<InventoryHold> };
+      platform_settings: { Row: PlatformSetting; Insert: Partial<PlatformSetting>; Update: Partial<PlatformSetting> };
     };
   };
+}
+
+export interface PlatformSetting {
+  key: string;
+  value: unknown;
+  updated_at: string;
 }

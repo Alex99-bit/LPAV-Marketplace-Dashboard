@@ -135,6 +135,10 @@ export default function PlanManagement({
 
               {isCurrent ? (
                 <Badge variant="info" className="w-full justify-center">Plan Actual</Badge>
+              ) : tier === "Fundador" ? (
+                <p className="w-full text-center text-xs text-text-muted">
+                  Asignado por SuperAdmin
+                </p>
               ) : (
                 <Button
                   className="w-full"

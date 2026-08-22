@@ -1,6 +1,6 @@
-import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getUser, createServiceClient } from "../_shared/auth.ts";
+import { getStripeClient } from "../_shared/stripe/client.ts";
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2025-04-30.basil" });
+  const stripe = getStripeClient();
 
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "10"), 50);

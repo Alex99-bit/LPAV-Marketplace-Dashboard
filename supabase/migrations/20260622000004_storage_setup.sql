@@ -1,6 +1,7 @@
 -- 1. INICIALIZAR BUCKET PRIVADO PARA FLYERS MULTIMEDIA
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('flyers', 'flyers', false);
+VALUES ('flyers', 'flyers', false)
+ON CONFLICT (id) DO NOTHING;
 
 -- 2. POLÍTICA DE CARGA PARA FRONTEND MEDIANTE URLS FIRMADAS
 CREATE POLICY "Agencias cargan flyers en su directorio asignado"

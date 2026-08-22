@@ -1,13 +1,13 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createServiceClient } from "../_shared/auth.ts";
-import Stripe from "https://esm.sh/stripe@17?target=deno";
+import { getStripeClient } from "../_shared/stripe/client.ts";
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const supabase = createServiceClient();
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2025-04-30.basil" });
+  const stripe = getStripeClient();
 
   const now = new Date();
   const { data: dueInstallments } = await supabase

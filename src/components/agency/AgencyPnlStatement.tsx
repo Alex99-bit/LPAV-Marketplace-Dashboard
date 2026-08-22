@@ -38,7 +38,7 @@ export default function AgencyPnlStatement() {
 
     Promise.all([
       supabase.from("transactions_orders")
-        .select("total_amount, platform_commission_fee, agency_commission_fee")
+        .select("total_amount, platform_commission_fee")
         .eq("tenant_id", profile.tenant_id)
         .gte("created_at", startDate)
         .in("payment_status", ["paid", "partial_paid"]),
@@ -50,7 +50,7 @@ export default function AgencyPnlStatement() {
       const orders = ordersRes.data ?? [];
       const expenses = expensesRes.data ?? [];
       const totalRevenue = orders.reduce((s, o) => s + (o.total_amount || 0), 0);
-      const platformCommissions = orders.reduce((s, o) => s + ((o.agency_commission_fee || o.platform_commission_fee) || 0), 0);
+      const platformCommissions = orders.reduce((s, o) => s + (o.platform_commission_fee || 0), 0);
       const agencyExpenses = expenses.reduce((s, e) => s + (e.total || 0), 0);
       const netProfit = totalRevenue - platformCommissions - agencyExpenses;
       const marginPercent = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;

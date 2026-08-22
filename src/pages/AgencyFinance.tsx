@@ -74,7 +74,7 @@ export default function AgencyFinance() {
         supabase.from("agencies_tenants").select("stripe_account_id, plan_type, commission_rate, preferential_rate_active").eq("tenant_id", tenantId).single(),
         supabase
           .from("transactions_orders")
-          .select("total_amount, platform_commission_fee, agency_commission_fee, currency, travel_packages(package_id, title)")
+          .select("total_amount, platform_commission_fee, currency, travel_packages(package_id, title)")
           .eq("tenant_id", tenantId),
       ]);
 
@@ -85,14 +85,14 @@ export default function AgencyFinance() {
         const cur = order.currency || "MXN";
         const group = byCurrency[cur] ?? { totalRevenue: 0, platformFees: 0, netReceived: 0 };
         group.totalRevenue += order.total_amount;
-        group.platformFees += order.agency_commission_fee;
+        group.platformFees += order.platform_commission_fee;
         group.netReceived = group.totalRevenue - group.platformFees;
         byCurrency[cur] = group;
       }
       const currencies = Object.keys(byCurrency);
 
       const totalRevenue = orders.reduce((sum, o) => sum + o.total_amount, 0);
-      const platformFees = orders.reduce((sum, o) => sum + o.agency_commission_fee, 0);
+      const platformFees = orders.reduce((sum, o) => sum + o.platform_commission_fee, 0);
 
       const pkgMap = new Map<string, { title: string; gross: number; fee: number; currency: string }>();
       for (const order of orders) {
@@ -100,7 +100,7 @@ export default function AgencyFinance() {
         if (!pkg) continue;
         const existing = pkgMap.get(pkg.package_id) ?? { title: pkg.title, gross: 0, fee: 0, currency: order.currency };
         existing.gross += order.total_amount;
-        existing.fee += order.agency_commission_fee;
+        existing.fee += order.platform_commission_fee;
         pkgMap.set(pkg.package_id, existing);
       }
 

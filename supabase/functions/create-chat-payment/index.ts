@@ -1,6 +1,6 @@
-import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getUser, createServiceClient } from "../_shared/auth.ts";
+import { getStripeClient } from "../_shared/stripe/client.ts";
 
 const IVA_RATE = 0.16;
 
@@ -123,7 +123,7 @@ Deno.serve(async (req: Request) => {
   const participantIds = (participants ?? []).map((p: { user_id: string }) => p.user_id);
   const travelerId = participantIds.find((id: string) => id !== user.id);
 
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2025-04-30.basil" });
+  const stripe = getStripeClient();
   const origin = req.headers.get("origin") || "http://localhost:5173";
 
   const session = await stripe.checkout.sessions.create({

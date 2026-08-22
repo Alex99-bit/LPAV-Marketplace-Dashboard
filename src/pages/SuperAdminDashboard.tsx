@@ -52,6 +52,7 @@ export default function SuperAdminDashboard() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [fundadorRequestsEnabled, setFundadorRequestsEnabled] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -116,6 +117,28 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    const loadSetting = async () => {
+      const { data, error } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "fundador_requests_enabled")
+        .maybeSingle();
+      if (!error && data) {
+        setFundadorRequestsEnabled((data.value as unknown as boolean) !== false);
+      }
+    };
+    loadSetting();
+  }, []);
+
+  const toggleFundadorRequests = async () => {
+    const next = !fundadorRequestsEnabled;
+    setFundadorRequestsEnabled(next);
+    await supabase
+      .from("platform_settings")
+      .upsert({ key: "fundador_requests_enabled", value: next }, { onConflict: "key" });
+  };
 
   const handleReview = async (reportId: string, decision: "approve" | "ban") => {
     if (decision === "ban") {
@@ -285,13 +308,35 @@ export default function SuperAdminDashboard() {
           <ResumenTab metrics={metrics} />
         )}
         {tab === "agencias" && (
-          <AgenciasTab
-            agencies={filteredAgencies}
-            statusFilter={statusFilter}
-            onFilterChange={setStatusFilter}
-            onStatusChange={handleAgencyStatus}
-            onFundadorApproval={handleFundadorApproval}
-          />
+          <>
+            <div className="mb-6 flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-4">
+              <div>
+                <p className="text-sm font-semibold text-text">Solicitudes de Plan Fundador</p>
+                <p className="text-xs text-text-muted">
+                  Permite que las agencias soliciten el Plan Fundador durante el registro.
+                </p>
+              </div>
+              <button
+                onClick={toggleFundadorRequests}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  fundadorRequestsEnabled ? "bg-primary" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    fundadorRequestsEnabled ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+            <AgenciasTab
+              agencies={filteredAgencies}
+              statusFilter={statusFilter}
+              onFilterChange={setStatusFilter}
+              onStatusChange={handleAgencyStatus}
+              onFundadorApproval={handleFundadorApproval}
+            />
+          </>
         )}
         {tab === "usuarios" && (
           <UsuariosTab users={filteredUsers} agencies={agencies} />

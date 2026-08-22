@@ -1,5 +1,6 @@
-import Stripe from "https://esm.sh/stripe@17?target=deno";
+import type Stripe from "https://esm.sh/stripe@22?target=deno";
 import { createServiceClient } from "../_shared/auth.ts";
+import { getStripeClient, getWebhookSecret } from "../_shared/stripe/client.ts";
 
 const IVA_RATE = 0.16;
 
@@ -49,9 +50,8 @@ function generateReceiptHtml(data: ReceiptData): string {
 }
 
 Deno.serve(async (req: Request) => {
-  const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
-  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
-  const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-04-30.basil" });
+  const stripe = getStripeClient();
+  const webhookSecret = getWebhookSecret();
   const supabase = createServiceClient();
 
   const body = await req.text();
@@ -180,8 +180,6 @@ Deno.serve(async (req: Request) => {
         remaining_balance: (session.amount_total! / 100) * (1 / 0.2 - 1),
         currency: (session.currency || "mxn").toUpperCase() as "MXN",
         platform_commission_fee: agencyCommissionVal,
-        traveler_service_fee: 0,
-        agency_commission_fee: agencyCommissionVal,
         package_subtotal: parseFloat(metadata.package_subtotal || "0"),
         package_iva: parseFloat(metadata.package_iva || "0"),
         payment_status: "partial_paid",
@@ -332,8 +330,39 @@ Deno.serve(async (req: Request) => {
       break;
     }
 
+    case "customer.subscription.created": {
+      const sub = event.data.object as Stripe.Subscription;
+      const tenantId = sub.metadata?.tenant_id;
+      const plan = sub.metadata?.plan;
+
+      if (tenantId) {
+        await supabase
+          .from("saas_subscriptions")
+          .upsert({
+            tenant_id: tenantId,
+            stripe_subscription_id: sub.id,
+            stripe_customer_id: sub.customer as string,
+            plan_tier: plan || "Intermedio",
+            billing_cycle: "monthly",
+            status: sub.status,
+            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          }, { onConflict: "tenant_id" });
+
+        // Marcar el uso del trial (una sola vez por tenant)
+        if (sub.status === "trialing" || sub.metadata?.trial_offered === "true") {
+          await supabase
+            .from("agencies_tenants")
+            .update({ trial_used_at: new Date().toISOString() })
+            .eq("tenant_id", tenantId);
+        }
+      }
+      break;
+    }
+
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
+      const tenantId = sub.metadata?.tenant_id;
+
       await supabase
         .from("saas_subscriptions")
         .update({
@@ -341,6 +370,14 @@ Deno.serve(async (req: Request) => {
           current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
         })
         .eq("stripe_subscription_id", sub.id);
+
+      // Si es una suscripción en trial, marcar el uso del trial
+      if (sub.status === "trialing" && tenantId) {
+        await supabase
+          .from("agencies_tenants")
+          .update({ trial_used_at: new Date().toISOString() })
+          .eq("tenant_id", tenantId);
+      }
       break;
     }
 
