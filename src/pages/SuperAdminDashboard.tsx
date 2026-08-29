@@ -203,8 +203,11 @@ export default function SuperAdminDashboard() {
   };
 
   const filteredAgencies = agencies.filter((a) => {
-    if (statusFilter === "fundador") return a.fundador_request_status === "pending";
-    if (statusFilter !== "all" && a.status !== statusFilter) return false;
+    if (statusFilter === "fundador") {
+      if (a.fundador_request_status !== "pending") return false;
+    } else if (statusFilter !== "all" && a.status !== statusFilter) {
+      return false;
+    }
     if (search && !a.business_name.toLowerCase().includes(search.toLowerCase()) &&
         !a.rfc.toLowerCase().includes(search.toLowerCase())) return false;
     return true;

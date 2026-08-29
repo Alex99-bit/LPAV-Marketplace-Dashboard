@@ -159,7 +159,7 @@ DECLARE
     v_fundador_count INTEGER;
 BEGIN
     -- Verificar que el llamante es SuperAdmin
-    IF NOT (SELECT is_super_admin FROM public.profiles WHERE id = auth.uid()) THEN
+    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role_name = 'SuperAdmin') THEN
         RAISE EXCEPTION 'Solo el SuperAdmin puede aprobar solicitudes Fundador';
     END IF;
 

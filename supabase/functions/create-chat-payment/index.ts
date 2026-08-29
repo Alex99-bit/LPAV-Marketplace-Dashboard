@@ -50,6 +50,14 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Verificar que el usuario tiene rol de agencia
+  const agencyRoles = ["Agency_Admin", "Agency_Agent", "Agency_Collaborator"];
+  if (!profile.role_name || !agencyRoles.includes(profile.role_name)) {
+    return new Response(JSON.stringify({ error: "Solo usuarios de agencia pueden solicitar pagos" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const { data: tenant } = await supabase
     .from("agencies_tenants")
     .select("stripe_account_id, business_name, plan_type, commission_rate")
@@ -70,7 +78,7 @@ Deno.serve(async (req: Request) => {
   if (body.order_id) {
     const { data: order } = await supabase
       .from("transactions_orders")
-      .select("remaining_balance, total_amount, next_payment_due, payment_status")
+      .select("remaining_balance, total_amount, next_payment_due, payment_status, created_at")
       .eq("order_id", body.order_id)
       .eq("tenant_id", profile.tenant_id)
       .single();
@@ -180,6 +188,7 @@ Deno.serve(async (req: Request) => {
       currency,
       concept: body.concept,
       stripe_session_id: session.id,
+      stripe_session_url: session.url || "",
       order_id: body.order_id || null,
     },
   });

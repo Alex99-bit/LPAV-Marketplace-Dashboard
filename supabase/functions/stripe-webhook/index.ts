@@ -71,6 +71,19 @@ Deno.serve(async (req: Request) => {
 
       // Pago desde chat (solicitud de pago de agencia a viajero)
       if (metadata.chat_payment === "true") {
+        // Idempotencia: verificar si ya se procesó este pago
+        const { data: existingMsg } = await supabase
+          .from("chat_messages")
+          .select("message_id")
+          .eq("message_type", "payment_confirmed")
+          .like("message_text", `%${session.id}%`)
+          .limit(1);
+
+        if (existingMsg && existingMsg.length > 0) {
+          // Ya procesado, saltar
+          break;
+        }
+
         const chatCommissionVal = parseFloat(metadata.agency_commission || "0");
         const chatCommissionRate = parseFloat(metadata.commission_rate || "0");
         const chatAmount = session.amount_total! / 100;

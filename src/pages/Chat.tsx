@@ -49,8 +49,13 @@ export default function Chat() {
     if (navState?.conversationId) {
       setConversationId(navState.conversationId);
       setLeadId(navState.leadId ?? null);
+    } else {
+      // Fallback: leer conversationId de URL params (post-pago redirect desde Stripe)
+      const params = new URLSearchParams(location.search);
+      const urlConvId = params.get("conversationId");
+      if (urlConvId) setConversationId(urlConvId);
     }
-  }, [navState]);
+  }, [navState, location.search]);
 
   useEffect(() => {
     if (!conversationId) {
@@ -276,9 +281,9 @@ export default function Chat() {
           </div>
           <p className="text-lg font-bold text-text">{parsed ? formatCurrency(parsed.amount, parsed.currency as "MXN" | "USD" | "EUR") : ""}</p>
           <p className="text-sm text-text-muted">{parsed?.concept || "Pago solicitado"}</p>
-          {!isAgencyChat && !isOwn && (msg.metadata?.stripe_session_id as string | undefined) && (
+          {!isAgencyChat && !isOwn && (msg.metadata?.stripe_session_url as string | undefined) && (
             <a
-              href={`https://checkout.stripe.com/pay/${msg.metadata!.stripe_session_id as string}`}
+              href={msg.metadata!.stripe_session_url as string}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark transition-colors"

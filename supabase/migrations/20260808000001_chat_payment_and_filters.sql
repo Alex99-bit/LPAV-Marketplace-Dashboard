@@ -25,6 +25,12 @@ DECLARE
   v_strikes INT;
   v_contains_contact BOOLEAN := FALSE;
 BEGIN
+  -- No censurar mensajes de tipo payment_request o payment_confirmed
+  -- (son JSON insertado por edge functions, no texto del usuario)
+  IF NEW.message_type IS NOT NULL AND NEW.message_type != 'text' THEN
+    RETURN NEW;
+  END IF;
+
   -- Verificar si el usuario ya esta baneado (5+ strikes)
   SELECT censorship_strikes INTO v_strikes
     FROM public.profiles WHERE id = NEW.sender_id;

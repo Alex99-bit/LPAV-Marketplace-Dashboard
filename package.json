@@ -24,6 +24,8 @@
     "react-router": "^7.6.0"
   },
   "devDependencies": {
+    "@midscene/web": "^1.12.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.1.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -35,6 +37,7 @@
     "@vitejs/plugin-react": "^4.5.0",
     "@vitest/coverage-v8": "4.1.10",
     "jsdom": "^29.1.1",
+    "playwright": "^1.62.1",
     "sharp": "^0.35.3",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.0",
