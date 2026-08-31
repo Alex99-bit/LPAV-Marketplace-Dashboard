@@ -29,7 +29,6 @@ export default function AgencyPostRegister() {
 
   const state = location.state as LocationState;
   const tenantId = state?.tenantId || profile?.tenant_id;
-  const plan = state?.plan || "Intermedio";
 
   const [stripeConnectLoading, setStripeConnectLoading] = useState(false);
   const [stripeConnectDone, setStripeConnectDone] = useState(false);

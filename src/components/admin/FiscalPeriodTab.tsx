@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 
 export default function FiscalPeriodTab() {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { addToast } = useToast();
   const [periods, setPeriods] = useState<FiscalPeriod[]>([]);
   const [loading, setLoading] = useState(true);

@@ -35,7 +35,7 @@ export default function PackageDetailPage() {
   const [requestInfoError, setRequestInfoError] = useState("");
 
   const isInCart = items.some((i) => i.package_id === id);
-  const isSoldOut = pkg && pkg.total_rooms > 0 && pkg.available_rooms <= 0;
+  const isSoldOut = !!(pkg && pkg.total_rooms > 0 && pkg.available_rooms <= 0);
 
   useEffect(() => {
     if (!id) return;

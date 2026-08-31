@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Wallet } from "lucide-react";
 import { formatPoints, formatCurrency } from "@/lib/formatters";
 import { MIN_REDEEM_POINTS, MAX_POINTS_PERCENT_PER_PURCHASE, POINT_VALUE_MXN } from "@/lib/constants";

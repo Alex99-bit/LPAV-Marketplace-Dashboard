@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { ExternalSale, TravelPackage } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -45,7 +45,7 @@ export default function ExternalSalesPanel() {
     ]);
 
     setSales((salesRes.data ?? []) as (ExternalSale & { travel_packages?: { title: string } | null })[]);
-    setPackages(pkgsRes.data ?? []);
+    setPackages((pkgsRes.data ?? []) as TravelPackage[]);
     setLoading(false);
   };
 

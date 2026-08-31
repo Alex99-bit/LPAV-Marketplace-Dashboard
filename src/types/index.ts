@@ -43,6 +43,12 @@ export type {
   NotificationPreference,
   AgencyTeamMember,
   Database,
+  FundadorRequestStatus,
+  FiscalIncomeRecord,
+  FiscalExpenseRecord,
+  FiscalPeriod,
+  WalletTransaction,
+  ExternalSale,
 } from "./database";
 
 export type {

@@ -20,10 +20,42 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const body = await req.json();
-  const { concept, amount, currency, tenant_id } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Body inválido" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { concept, amount, currency, tenant_id } = body as {
+    concept?: string;
+    amount?: number;
+    currency?: string;
+    tenant_id?: string;
+  };
+
+  if (!concept || !amount || !tenant_id || amount <= 0) {
+    return new Response(JSON.stringify({ error: "Faltan campos requeridos: concept, amount > 0, tenant_id" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const supabase = createServiceClient();
+
+  // Verify the caller owns this tenant (prevent BOLA/IDOR)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("tenant_id, role_name")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || (profile.tenant_id !== tenant_id && profile.role_name !== "SuperAdmin")) {
+    return new Response(JSON.stringify({ error: "No autorizado para este tenant" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const { data: tenant } = await supabase
     .from("agencies_tenants")

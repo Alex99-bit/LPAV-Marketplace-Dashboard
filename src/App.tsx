@@ -76,7 +76,7 @@ export default function App() {
                 </AuthGuard>
               }
             />
-            <Route path="/wallet" element={<Layout><WalletHistory /></Layout>} />
+            <Route path="/wallet" element={<WalletHistory />} />
             <Route path="/connect-demo" element={<ConnectDemo />} />
             <Route
               path="/chat"

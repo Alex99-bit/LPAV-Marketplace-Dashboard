@@ -20,9 +20,19 @@ const FUNDADOR_CONTINUITY_PRICE =
 
 const GRACE_DAYS = 15;
 
+const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
+
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Authenticate cron invocation via shared secret header
+  const authHeader = req.headers.get("authorization") || "";
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     return await handle(req, corsHeaders);

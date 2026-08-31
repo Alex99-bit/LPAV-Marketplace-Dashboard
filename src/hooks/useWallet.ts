@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import type { WalletTransaction } from "@/types";
 
 export function useWallet(userId: string | undefined) {
   const [balance, setBalance] = useState<number>(0);

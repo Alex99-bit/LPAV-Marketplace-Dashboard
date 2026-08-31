@@ -4,6 +4,13 @@ import { getStripeClient } from "../_shared/stripe/client.ts";
 
 const IVA_RATE = 0.16;
 
+const ALLOWED_REDIRECT_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://lpav.mx",
+  "https://www.lpav.mx",
+];
+
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -132,66 +139,94 @@ Deno.serve(async (req: Request) => {
   const travelerId = participantIds.find((id: string) => id !== user.id);
 
   const stripe = getStripeClient();
-  const origin = req.headers.get("origin") || "http://localhost:5173";
+  const rawOrigin = req.headers.get("origin") || "http://localhost:5173";
+  const origin = ALLOWED_REDIRECT_ORIGINS.includes(rawOrigin) ? rawOrigin : ALLOWED_REDIRECT_ORIGINS[0];
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    mode: "payment",
-    line_items: [{
-      price_data: {
-        currency: currency.toLowerCase(),
-        product_data: {
-          name: body.concept,
-          description: `Pago solicitado por ${tenant.business_name}`,
+  // Idempotency: check for recent payment_request with same conversation + amount
+  const { data: recentMsg } = await supabase
+    .from("chat_messages")
+    .select("message_id")
+    .eq("conversation_id", body.conversation_id)
+    .eq("message_type", "payment_request")
+    .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+    .limit(1);
+
+  if (recentMsg && recentMsg.length > 0) {
+    return new Response(JSON.stringify({ error: "Ya existe una solicitud de pago reciente para esta conversación" }), {
+      status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
+  try {
+    session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [{
+        price_data: {
+          currency: currency.toLowerCase(),
+          product_data: {
+            name: body.concept,
+            description: `Pago solicitado por ${tenant.business_name}`,
+          },
+          unit_amount: amountCents,
         },
-        unit_amount: amountCents,
+        quantity: 1,
+      }],
+      payment_intent_data: {
+        application_fee_amount: platformFee,
+        transfer_data: {
+          destination: tenant.stripe_account_id,
+        },
       },
-      quantity: 1,
-    }],
-    payment_intent_data: {
-      application_fee_amount: platformFee,
-      transfer_data: {
-        destination: tenant.stripe_account_id,
+      customer_email: travelerId ? undefined : undefined,
+      success_url: `${origin}/chat?conversationId=${body.conversation_id}&payment=success`,
+      cancel_url: `${origin}/chat?conversationId=${body.conversation_id}&payment=cancelled`,
+      metadata: {
+        conversation_id: body.conversation_id,
+        tenant_id: profile.tenant_id,
+        traveler_id: travelerId || "",
+        order_id: body.order_id || "",
+        concept: body.concept,
+        commission_rate: String(commissionRate),
+        agency_commission: String(agencyCommission),
+        chat_payment: "true",
       },
-    },
-    customer_email: travelerId ? undefined : undefined,
-    success_url: `${origin}/chat?conversationId=${body.conversation_id}&payment=success`,
-    cancel_url: `${origin}/chat?conversationId=${body.conversation_id}&payment=cancelled`,
-    metadata: {
-      conversation_id: body.conversation_id,
-      tenant_id: profile.tenant_id,
-      traveler_id: travelerId || "",
-      order_id: body.order_id || "",
-      concept: body.concept,
-      commission_rate: String(commissionRate),
-      agency_commission: String(agencyCommission),
-      chat_payment: "true",
-    },
-  });
+    });
+  } catch (err) {
+    const e = err as { message?: string; raw?: { message?: string } };
+    return new Response(JSON.stringify({ error: e?.raw?.message || e?.message || "Error creando sesión de pago" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   // Insertar mensaje payment_request en el chat
-  await supabase.from("chat_messages").insert({
-    conversation_id: body.conversation_id,
-    sender_id: user.id,
-    message_text: JSON.stringify({
-      amount: body.amount,
-      currency,
-      concept: body.concept,
-      stripe_session_id: session.id,
-      remaining_balance: remainingBalance,
-      commission_applied: agencyCommission,
-      commission_rate: tenant.commission_rate,
-    }),
-    message_type: "payment_request",
-    metadata: {
-      amount: body.amount,
-      currency,
-      concept: body.concept,
-      stripe_session_id: session.id,
-      stripe_session_url: session.url || "",
-      order_id: body.order_id || null,
-    },
-  });
+  try {
+    await supabase.from("chat_messages").insert({
+      conversation_id: body.conversation_id,
+      sender_id: user.id,
+      message_text: JSON.stringify({
+        amount: body.amount,
+        currency,
+        concept: body.concept,
+        stripe_session_id: session.id,
+        remaining_balance: remainingBalance,
+        commission_applied: agencyCommission,
+        commission_rate: tenant.commission_rate,
+      }),
+      message_type: "payment_request",
+      metadata: {
+        amount: body.amount,
+        currency,
+        concept: body.concept,
+        stripe_session_id: session.id,
+        stripe_session_url: session.url || "",
+        order_id: body.order_id || null,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to insert chat message:", err);
+  }
 
   return new Response(JSON.stringify({
     url: session.url,

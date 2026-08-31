@@ -169,6 +169,17 @@ Deno.serve(async (req: Request) => {
 
       const userId = metadata.user_id;
 
+      // Idempotency: skip if order already exists for this session
+      const { data: existingOrderForSession } = await supabase
+        .from("transactions_orders")
+        .select("order_id")
+        .eq("stripe_checkout_session_id", session.id)
+        .limit(1);
+
+      if (existingOrderForSession && existingOrderForSession.length > 0) {
+        break;
+      }
+
       const { data: pkg } = await supabase
         .from("travel_packages")
         .select("title")
