@@ -32,7 +32,7 @@ export default function AgencyLayout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="ml-3 text-sm font-semibold text-text">LPAV</span>
+          <span className="ml-3 text-sm font-semibold text-text">Avimo</span>
         </div>
         <Outlet />
       </main>

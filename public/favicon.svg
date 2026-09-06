@@ -1,17 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#059669"/>
-      <stop offset="100%" stop-color="#1E40AF"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
-  <g transform="translate(256,230)">
-    <ellipse cx="0" cy="0" rx="140" ry="110" fill="none" stroke="white" stroke-width="18"/>
-    <line x1="0" y1="0" x2="0" y2="-110" stroke="white" stroke-width="14" stroke-linecap="round"/>
-    <line x1="0" y1="0" x2="95" y2="-55" stroke="white" stroke-width="14" stroke-linecap="round"/>
-    <line x1="0" y1="0" x2="-95" y2="-55" stroke="white" stroke-width="14" stroke-linecap="round"/>
-    <circle cx="0" cy="0" r="24" fill="white"/>
-  </g>
-  <text x="256" y="420" text-anchor="middle" fill="white" font-family="Inter,sans-serif" font-size="72" font-weight="700" letter-spacing="8">LPAV</text>
+  <rect width="512" height="512" rx="108" fill="#E8A800"/>
+  <path d="M256 80c-15 0-28 3-40 10-30 17-50 50-55 88-3 22 2 45 15 65 18 28 45 48 75 58l15 5 15-5c30-10 57-30 75-58 13-20 18-43 15-65-5-38-25-71-55-88-12-7-25-10-40-10z" fill="#3355CC"/>
+  <path d="M256 170v120" stroke="#E8A800" stroke-width="22" stroke-linecap="round"/>
+  <path d="M256 215l50 30" stroke="#E8A800" stroke-width="22" stroke-linecap="round"/>
+  <path d="M256 215l-50 30" stroke="#E8A800" stroke-width="22" stroke-linecap="round"/>
 </svg>

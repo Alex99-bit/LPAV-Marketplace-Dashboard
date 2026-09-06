@@ -1,6 +1,6 @@
 {
   "common": {
-    "brand": "LPAV — La Plataforma de las Agencias de Viaje",
+    "brand": "Avimo — Viajes para todo tu mundo",
     "explore": "Explorar",
     "my_orders": "Mis Órdenes",
     "chat": "Chat",
@@ -20,7 +20,7 @@
     "error_generic": "Algo salió mal"
   },
   "auth": {
-    "welcome": "Bienvenido a LPAV",
+    "welcome": "Bienvenido a Avimo",
     "how_to_use": "¿Cómo quieres usar la plataforma?",
     "im_traveler": "Soy Viajero",
     "traveler_desc": "Explorar paquetes, reservar viajes y generar itinerarios con IA",

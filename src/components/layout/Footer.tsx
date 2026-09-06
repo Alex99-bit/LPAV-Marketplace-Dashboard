@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
-            <span className="text-xl font-bold text-primary">LPAV</span>
+            <img src="/avimo-logo.png" alt="Avimo" className="h-8 w-auto" />
             <p className="mt-2 text-sm text-text-muted">
               La Plataforma de las Agencias de Viaje. Conecta directamente con
               agencias y descubre paquetes turísticos exclusivos.
@@ -38,7 +38,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-10 border-t border-gray-100 pt-6 text-center text-xs text-text-muted">
-          © {new Date().getFullYear()} LPAV — La Plataforma de las Agencias de Viaje. Todos los derechos reservados.
+          © {new Date().getFullYear()} Avimo — Viajes para todo tu mundo. Todos los derechos reservados.
         </div>
       </div>
     </footer>

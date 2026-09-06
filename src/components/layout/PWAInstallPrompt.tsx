@@ -66,7 +66,7 @@ export default function PWAInstallPrompt() {
           <Download className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold">Instalar LPAV</p>
+          <p className="text-sm font-semibold">Instalar Avimo</p>
           <p className="text-xs text-white/80 truncate">
             Acceso rápido desde tu pantalla de inicio
           </p>

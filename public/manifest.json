@@ -1,6 +1,6 @@
 {
-  "name": "LPAV - La Plataforma de las Agencias de Viaje",
-  "short_name": "LPAV",
+  "name": "Avimo - Viajes para todo tu mundo",
+  "short_name": "Avimo",
   "description": "Conecta directamente con agencias de viaje. Encuentra paquetes turísticos exclusivos con itinerarios generados por Inteligencia Artificial.",
   "start_url": "/",
   "scope": "/",
@@ -8,7 +8,7 @@
   "display_override": ["window-controls-overlay", "standalone"],
   "orientation": "portrait-primary",
   "background_color": "#F9FAFB",
-  "theme_color": "#059669",
+  "theme_color": "#E8A800",
   "categories": ["travel", "lifestyle", "shopping"],
   "lang": "es-MX",
   "dir": "ltr",
@@ -58,14 +58,14 @@
       "short_name": "Viajes",
       "description": "Ver catálogo de paquetes turísticos",
       "url": "/?show=catalog",
-      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/avimo-icon.png", "sizes": "192x192" }]
     },
     {
       "name": "Soy Agencia",
       "short_name": "Agencia",
       "description": "Portal de gestión para agencias",
       "url": "/auth/agency",
-      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/avimo-icon.png", "sizes": "192x192" }]
     }
   ],
   "related_applications": [],

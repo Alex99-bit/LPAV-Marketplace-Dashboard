@@ -41,7 +41,7 @@ export default function CfdiInvoices({ tenantId }: CfdiInvoicesProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             label="Concepto"
-            placeholder="Comisión plataforma LPAV"
+            placeholder="Comisión plataforma Avimo"
             value={concept}
             onChange={(e) => setConcept(e.target.value)}
           />

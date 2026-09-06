@@ -20,8 +20,8 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-    const fromEmail = Deno.env.get("FROM_EMAIL") ?? "noreply@lpav.mx";
-    const fromName = Deno.env.get("FROM_NAME") ?? "LPAV";
+    const fromEmail = Deno.env.get("FROM_EMAIL") ?? "noreply@avimo.mx";
+    const fromName = Deno.env.get("FROM_NAME") ?? "Avimo";
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

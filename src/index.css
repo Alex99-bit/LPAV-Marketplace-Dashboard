@@ -3,15 +3,15 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Primary: azul institucional (confianza) — DOC MAESTRO §2.1 */
-  --color-primary: #3B82F6;
-  --color-primary-dark: #1E40AF;
-  --color-primary-light: #93C5FD;
+  /* Primary: azul Avimo (confianza/viajes) */
+  --color-primary: #3355CC;
+  --color-primary-dark: #2244AA;
+  --color-primary-light: #6688DD;
 
-  /* Accent: verde institucional (frescura/dinamismo) — DOC MAESTRO §2.1 */
-  --color-accent: #10B981;
-  --color-accent-dark: #059669;
-  --color-accent-light: #6EE7B7;
+  /* Accent: dorado Avimo (energía/exclusividad) */
+  --color-accent: #E8A800;
+  --color-accent-dark: #CC8800;
+  --color-accent-light: #F5C842;
 
   /* Semánticos */
   --color-success: #10B981;
@@ -23,9 +23,9 @@
   --color-danger: #EF4444;
   --color-danger-surface: #FEF2F2;
   --color-danger-foreground: #991B1B;
-  --color-info: #3B82F6;
+  --color-info: #3355CC;
   --color-info-surface: #EFF6FF;
-  --color-info-foreground: #1E40AF;
+  --color-info-foreground: #2244AA;
 
   /* Superficie */
   --color-surface: #F9FAFB;

@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
       line_items: [{
         price_data: {
           currency: (order.currency || "mxn").toLowerCase(),
-          product_data: { name: `Abono ${inst.installment_number} - LPAV` },
+          product_data: { name: `Abono ${inst.installment_number} - Avimo` },
           unit_amount: Math.round(Number(inst.amount_due) * 100),
         },
         quantity: 1,

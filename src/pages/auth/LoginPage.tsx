@@ -111,7 +111,7 @@ export default function LoginPage() {
     return (
       <div className="mx-auto flex min-h-[80vh] max-w-lg flex-col items-center justify-center px-4">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-text">Bienvenido a LPAV</h1>
+          <h1 className="text-3xl font-bold text-text">Bienvenido a Avimo</h1>
           <p className="mt-2 text-text-muted">
             ¿Cómo quieres usar la plataforma?
           </p>
