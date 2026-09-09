@@ -2,12 +2,20 @@
 .env
 .env.local
 .env.*.local
+.env.remote.bak
 
 # Dependencies
 node_modules/
 
 # Build
 dist/
+tsconfig.*.tsbuildinfo
+
+# Test coverage
+coverage/
+test-results/
+tests/e2e/fixtures/.auth/
+playwright-report/
 
 # OS
 .DS_Store
@@ -16,6 +24,19 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-tests/e2e/fixtures/.auth/
-playwright-report/
-test-results/
+
+# Vercel
+.vercel/
+
+# Python / Orquestador
+orquestador-interactivo/venv/
+orquestador-interactivo/.env
+
+# Supabase Edge Functions secrets
+supabase/functions/.env
+
+# Chainlit sessions
+.chainlit/
+
+# MCP local settings
+cline_mcp_settings.json
