@@ -1,7 +1,6 @@
 import { Outlet } from "react-router";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import PWAInstallPrompt from "./PWAInstallPrompt";
 
 export default function Layout() {
   return (
@@ -19,7 +18,6 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
-      <PWAInstallPrompt />
     </div>
   );
 }

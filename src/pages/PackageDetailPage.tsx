@@ -221,11 +221,11 @@ export default function PackageDetailPage() {
                   <img
                     src={agency.logo_url}
                     alt={agency.business_name}
-                    className="h-10 w-10 rounded-lg object-cover"
+                    className="h-12 w-12 rounded-xl object-cover"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Building2 className="h-5 w-5" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Building2 className="h-6 w-6" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">

@@ -32,7 +32,7 @@ export default function Navbar() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/avimo-logo.png" alt="Avimo" className="h-8 w-auto" />
+            <img src="/avimo-logo.png" alt="Avimo" className="h-10 w-auto" />
           </Link>
           <Link
             to="/"

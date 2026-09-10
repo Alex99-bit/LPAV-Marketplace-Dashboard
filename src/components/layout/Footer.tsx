@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
-            <img src="/avimo-logo.png" alt="Avimo" className="h-8 w-auto" />
+            <img src="/avimo-logo.png" alt="Avimo" className="h-10 w-auto" />
             <p className="mt-2 text-sm text-text-muted">
               La Plataforma de las Agencias de Viaje. Conecta directamente con
               agencias y descubre paquetes turísticos exclusivos.
