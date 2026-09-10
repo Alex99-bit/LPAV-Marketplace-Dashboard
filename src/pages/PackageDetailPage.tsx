@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router";
-import { ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle, ArrowLeft, Plane } from "lucide-react";
+import { ShoppingCart, Sparkles, MapPin, Calendar, Building2, MessageCircle, ArrowLeft, Plane, ExternalLink, ShieldCheck } from "lucide-react";
 import type { TravelPackage, ItineraryData } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { PUBLICATION_STATES } from "@/lib/constants";
+import { PUBLICATION_STATES, PLAN_DETAILS } from "@/lib/constants";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/Toast";
@@ -16,6 +16,18 @@ import ItineraryDisplay from "@/components/marketplace/ItineraryDisplay";
 import ReviewList from "@/components/marketplace/ReviewList";
 import ReviewForm from "@/components/marketplace/ReviewForm";
 
+interface AgencyInfo {
+  business_name: string;
+  tenant_id: string;
+  logo_url?: string;
+  description?: string;
+  plan_type?: string;
+  verification_status?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  website_url?: string;
+}
+
 export default function PackageDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -25,7 +37,7 @@ export default function PackageDetailPage() {
   const { addToast } = useToast();
 
   const [pkg, setPkg] = useState<TravelPackage | null>(null);
-  const [agencyName, setAgencyName] = useState("");
+  const [agency, setAgency] = useState<AgencyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [itinerary, setItinerary] = useState<ItineraryData | null>(null);
   const [itineraryLoading, setItineraryLoading] = useState(false);
@@ -42,15 +54,13 @@ export default function PackageDetailPage() {
     (async () => {
       const { data } = await supabase
         .from("travel_packages")
-        .select("*, agencies_tenants(business_name)")
+        .select("*, agencies_tenants(business_name, tenant_id, logo_url, description, plan_type, verification_status, contact_email, contact_phone, website_url)")
         .eq("package_id", id)
         .single();
       if (data) {
         setPkg(data);
-        setAgencyName(
-          (data.agencies_tenants as unknown as { business_name: string })
-            ?.business_name ?? "",
-        );
+        const ag = data.agencies_tenants as unknown as AgencyInfo | null;
+        setAgency(ag ?? null);
       }
       setLoading(false);
     })();
@@ -202,11 +212,41 @@ export default function PackageDetailPage() {
         <div className="flex flex-col gap-6">
           <div>
             <h1 className="text-3xl font-bold text-text">{pkg.title}</h1>
-            {agencyName && (
-              <p className="mt-2 flex items-center gap-1.5 text-sm text-text-muted">
-                <Building2 className="h-4 w-4" />
-                {agencyName}
-              </p>
+            {agency && (
+              <Link
+                to={`/agency/profile/${agency.tenant_id}`}
+                className="mt-3 flex items-center gap-3 rounded-xl border border-gray-100 bg-surface p-3 transition-all hover:border-primary/30 hover:shadow-sm group"
+              >
+                {agency.logo_url ? (
+                  <img
+                    src={agency.logo_url}
+                    alt={agency.business_name}
+                    className="h-10 w-10 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-text group-hover:text-primary transition-colors truncate">
+                    {agency.business_name}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {agency.verification_status === "verified" && (
+                      <span className="flex items-center gap-0.5 text-xs text-green-600">
+                        <ShieldCheck className="h-3 w-3" /> Verificada
+                      </span>
+                    )}
+                    {agency.plan_type && PLAN_DETAILS[agency.plan_type as keyof typeof PLAN_DETAILS] && (
+                      <span className="text-xs text-text-muted">
+                        Plan {agency.plan_type}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <ExternalLink className="h-4 w-4 text-text-muted group-hover:text-primary transition-colors" />
+              </Link>
             )}
           </div>
 

@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import type { TravelPackage } from "@/types";
 import { formatCurrency } from "@/lib/formatters";
 import Badge from "@/components/ui/Badge";
@@ -6,9 +6,11 @@ import Badge from "@/components/ui/Badge";
 interface FlyerCardProps {
   pkg: TravelPackage;
   agencyName?: string;
+  agencyTenantId?: string;
 }
 
-export default function FlyerCard({ pkg, agencyName }: FlyerCardProps) {
+export default function FlyerCard({ pkg, agencyName, agencyTenantId }: FlyerCardProps) {
+  const navigate = useNavigate();
   const soldOut = pkg.total_rooms > 0 && pkg.available_rooms <= 0;
   const lowStock = pkg.total_rooms > 0 && pkg.available_rooms > 0 && pkg.available_rooms <= 5;
 
@@ -29,7 +31,22 @@ export default function FlyerCard({ pkg, agencyName }: FlyerCardProps) {
             {pkg.title}
           </h3>
           {agencyName && (
-            <p className="mt-0.5 text-xs text-white/80">{agencyName}</p>
+            <p className="mt-0.5 text-xs text-white/80">
+              {agencyTenantId ? (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigate(`/agency/profile/${agencyTenantId}`);
+                  }}
+                  className="hover:underline hover:text-white cursor-pointer"
+                >
+                  {agencyName}
+                </button>
+              ) : (
+                agencyName
+              )}
+            </p>
           )}
           {pkg.departure_city && (
             <p className="mt-0.5 text-xs text-white/70">

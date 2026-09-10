@@ -29,6 +29,7 @@ import Orders from "@/pages/Orders";
 import WalletHistory from "@/components/wallet/WalletHistory";
 import Chat from "@/pages/Chat";
 import ConnectDemo from "@/pages/ConnectDemo";
+import AgencyPublicProfilePage from "@/pages/AgencyPublicProfilePage";
 import NotFound from "@/pages/NotFound";
 
 /* Wrapper para que CartProvider reciba el userId sin importar AuthContext.
@@ -77,6 +78,7 @@ export default function App() {
               }
             />
             <Route path="/wallet" element={<WalletHistory />} />
+            <Route path="/agency/profile/:tenantId" element={<AgencyPublicProfilePage />} />
             <Route path="/connect-demo" element={<ConnectDemo />} />
             <Route
               path="/chat"

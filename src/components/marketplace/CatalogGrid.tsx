@@ -36,9 +36,17 @@ export default function CatalogGrid({ packages, loading }: CatalogGridProps) {
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {packages.map((pkg) => (
-        <FlyerCard key={pkg.package_id} pkg={pkg} />
-      ))}
+      {packages.map((pkg) => {
+        const agency = (pkg as unknown as { agencies_tenants?: { business_name?: string; tenant_id?: string } }).agencies_tenants;
+        return (
+          <FlyerCard
+            key={pkg.package_id}
+            pkg={pkg}
+            agencyName={agency?.business_name}
+            agencyTenantId={agency?.tenant_id}
+          />
+        );
+      })}
     </div>
   );
 }

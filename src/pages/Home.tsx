@@ -50,7 +50,7 @@ export default function Home() {
     setLoading(true);
     let query = supabase
       .from("travel_packages")
-      .select("*")
+      .select("*, agencies_tenants(business_name, tenant_id)")
       .in("publication_status", ["published", "concluded"])
       .order("created_at", { ascending: false });
 
@@ -78,7 +78,7 @@ export default function Home() {
       console.error("[Home] Error fetching packages:", error);
     }
 
-    setPackages(data ?? []);
+    setPackages((data as unknown as TravelPackage[]) ?? []);
     setLoading(false);
   }, [debouncedSearch, region, departureCity, debouncedPriceRange]);
 
