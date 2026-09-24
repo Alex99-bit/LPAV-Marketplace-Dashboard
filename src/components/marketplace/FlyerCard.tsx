@@ -17,14 +17,14 @@ export default function FlyerCard({ pkg, agencyName, agencyTenantId }: FlyerCard
   return (
     <Link
       to={`/package/${pkg.package_id}`}
-      className={`group block overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${soldOut ? "opacity-60" : ""}`}
+      className={`group block overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${soldOut ? "opacity-60" : ""}`}
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
         <img
           src={pkg.url_flyer_storage}
           alt={pkg.title}
           loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 pt-16">
           <h3 className="text-lg font-semibold text-white leading-tight">

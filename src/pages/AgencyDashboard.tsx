@@ -263,7 +263,7 @@ export default function AgencyDashboard() {
             <Link
               key={action.to}
               to={action.to}
-              className="group flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-primary/30 hover:shadow-md"
+              className="group flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-primary/30 hover:shadow-lg"
             >
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${action.color}`}>
                 <Icon className="h-5 w-5" />
@@ -302,7 +302,7 @@ export default function AgencyDashboard() {
           {/* Skeleton KPI grid mientras carga */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-surface-raised p-4 animate-pulse">
+              <div key={i} className="rounded-xl border border-border bg-surface-raised p-5 animate-pulse">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-gray-200" />
                   <div className="flex-1 space-y-2">

@@ -32,7 +32,7 @@ export default function Navbar() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/avimo-logo.png" alt="Avimo" className="h-14 w-auto" />
+            <img src="/avimo-logo.png" alt="Avimo" className="h-20 w-auto" />
           </Link>
           <Link
             to="/"
@@ -43,7 +43,7 @@ export default function Navbar() {
           </Link>
         </div>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-8 md:flex">
           {user && !isAgency && (
             <>
               <Link
@@ -162,7 +162,7 @@ export default function Navbar() {
 
       {menuOpen && (
         <div className="border-t border-gray-100 bg-white px-4 py-4 md:hidden dark:border-gray-800 dark:bg-gray-900">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             <Link to="/" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-text hover:bg-surface">
               Explorar
             </Link>

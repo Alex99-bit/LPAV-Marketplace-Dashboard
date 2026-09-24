@@ -324,7 +324,7 @@ export default function Chat() {
   if (!conversationId) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
-        <MessageSquare className="h-16 w-16 text-text-muted/30" />
+        <MessageSquare className="h-20 w-20 text-text-muted/30" />
         <h2 className="text-xl font-semibold text-text">Sin conversación activa</h2>
         <p className="max-w-sm text-sm text-text-muted">
           Explora paquetes y usa <strong>"Solicitar información"</strong> para
@@ -409,7 +409,7 @@ export default function Chat() {
               className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                   isOwn
                     ? "bg-primary text-white"
                     : "bg-surface text-text"

@@ -14,7 +14,7 @@ export default function Layout() {
       <header>
         <Navbar />
       </header>
-      <main id="main-content" className="flex-1 pt-16">
+      <main id="main-content" className="flex-1 pt-20">
         <Outlet />
       </main>
       <Footer />

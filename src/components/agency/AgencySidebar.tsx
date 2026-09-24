@@ -43,7 +43,7 @@ export default function AgencySidebar({ isMobileOpen = false, onMobileClose }: A
     >
       <div className="flex h-16 items-center justify-between border-b border-border px-6 dark:border-gray-800">
         <div className="flex items-center gap-2">
-          <img src="/avimo-icon.png" alt="Avimo" className="h-8 w-8 rounded-lg object-cover" />
+          <img src="/avimo-icon.png" alt="Avimo" className="h-10 w-10 rounded-lg object-cover" />
           <span className="text-lg font-bold text-text">Avimo</span>
         </div>
         <div className="flex items-center gap-1">

@@ -24,7 +24,7 @@ export default function AgencyLayout() {
         onMobileClose={() => setSidebarOpen(false)}
       />
       <main className="min-h-screen lg:ml-64">
-        <div className="flex h-14 items-center border-b border-gray-100 bg-white px-4 lg:hidden">
+        <div className="flex h-16 items-center border-b border-gray-100 bg-white px-4 lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-lg p-2 text-text hover:bg-surface"

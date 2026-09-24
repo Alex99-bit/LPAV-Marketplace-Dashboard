@@ -99,7 +99,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative w-full ${sizes[size]} animate-in fade-in zoom-in-95 rounded-2xl bg-white p-6 shadow-2xl duration-200 dark:bg-gray-800`}
+        className={`relative w-full ${sizes[size]} animate-in fade-in zoom-in-95 rounded-2xl bg-white p-8 shadow-2xl duration-200 dark:bg-gray-800`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (

@@ -17,7 +17,7 @@ export default function Hero({
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-white to-primary-light/10 dark:bg-none dark:bg-gray-900">
-      <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-4xl px-4 py-24 text-center sm:px-6 sm:py-32">
         <h1 className="text-4xl font-bold tracking-tight text-text sm:text-5xl">
           Descubre tu próximo{" "}
           <span className="text-primary">viaje perfecto</span>

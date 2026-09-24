@@ -189,7 +189,7 @@ export default function PackageDetailPage() {
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="relative overflow-hidden rounded-2xl bg-gray-100">
+        <div className="relative overflow-hidden rounded-2xl bg-gray-100 shadow-lg">
           <div className="aspect-[3/4]">
             <img
               src={pkg.url_flyer_storage}

@@ -44,7 +44,7 @@ export default function Checkout() {
   if (items.length === 0) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <ShoppingCart className="h-16 w-16 text-text-muted/30" />
+        <ShoppingCart className="h-20 w-20 text-text-muted/30" />
         <h2 className="text-xl font-semibold text-text">Tu carrito está vacío</h2>
         <p className="text-sm text-text-muted">
           Explora nuestros paquetes y añade uno a tu carrito.
