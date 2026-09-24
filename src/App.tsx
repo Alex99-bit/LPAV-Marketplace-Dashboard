@@ -30,6 +30,11 @@ import WalletHistory from "@/components/wallet/WalletHistory";
 import Chat from "@/pages/Chat";
 import ConnectDemo from "@/pages/ConnectDemo";
 import AgencyPublicProfilePage from "@/pages/AgencyPublicProfilePage";
+import TermsPage from "@/pages/legal/TermsPage";
+import AgencyTermsPage from "@/pages/legal/AgencyTermsPage";
+import PrivacyPage from "@/pages/legal/PrivacyPage";
+import CookiePolicyPage from "@/pages/legal/CookiePolicyPage";
+import ContactPage from "@/pages/legal/ContactPage";
 import NotFound from "@/pages/NotFound";
 
 /* Wrapper para que CartProvider reciba el userId sin importar AuthContext.
@@ -80,6 +85,11 @@ export default function App() {
             <Route path="/wallet" element={<WalletHistory />} />
             <Route path="/agency/profile/:tenantId" element={<AgencyPublicProfilePage />} />
             <Route path="/connect-demo" element={<ConnectDemo />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/terms/agency" element={<AgencyTermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/cookies" element={<CookiePolicyPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route
               path="/chat"
               element={

@@ -25,6 +25,8 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
   // Destino original del viajero antes de que el AuthGuard lo mandara a login
   const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
@@ -65,6 +67,11 @@ export default function LoginPage() {
     const pwValidation = validatePassword(password);
     if (!pwValidation.valid) {
       setError(pwValidation.errors[0] ?? "Contraseña no válida");
+      return;
+    }
+
+    if (mode === "traveler_register" && (!acceptTerms || !acceptPrivacy)) {
+      setError("Debes aceptar los Términos y Condiciones y la Política de Privacidad para continuar");
       return;
     }
 
@@ -278,6 +285,43 @@ export default function LoginPage() {
           </button>
         )}
 
+        {mode === "traveler_register" && (
+          <div className="space-y-2">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-xs text-text-muted">
+                He leído y acepto los{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Términos y Condiciones
+                </a>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptPrivacy}
+                onChange={(e) => setAcceptPrivacy(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-xs text-text-muted">
+                He leído y acepto la{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Política de Privacidad
+                </a>{" "}
+                y el tratamiento de mis datos personales, incluyendo telemetría de comportamiento conforme a la{" "}
+                <a href="/cookies" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Política de Cookies
+                </a>.
+              </span>
+            </label>
+          </div>
+        )}
+
         {error && (
           <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">
             {error}
@@ -289,6 +333,7 @@ export default function LoginPage() {
           className="w-full"
           loading={authLoading}
           onClick={handleEmailAuth}
+          disabled={mode === "traveler_register" && (!acceptTerms || !acceptPrivacy)}
         >
           {mode === "traveler_login" ? (
             <><LogIn className="h-4 w-4" /> Iniciar Sesión</>

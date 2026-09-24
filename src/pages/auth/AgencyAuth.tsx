@@ -124,6 +124,8 @@ export default function AgencyAuth() {
     accept_ai_data_usage: false,
     accept_nda: false,
     accept_iva_disclaimer: false,
+    accept_terms: false,
+    accept_privacy: false,
   });
 
   const updateField = (field: string, value: string | boolean) =>
@@ -296,7 +298,7 @@ export default function AgencyAuth() {
   };
 
   const validateLegalStep = (): boolean => {
-    if (!legal.accept_no_refunds || !legal.accept_ai_data_usage || !legal.accept_nda || !legal.accept_iva_disclaimer) {
+    if (!legal.accept_no_refunds || !legal.accept_ai_data_usage || !legal.accept_nda || !legal.accept_iva_disclaimer || !legal.accept_terms || !legal.accept_privacy) {
       setError("Debes aceptar todos los acuerdos legales para continuar");
       return false;
     }
@@ -818,6 +820,75 @@ export default function AgencyAuth() {
             según el plan contratado (ver Sección 1.1 del contrato),
             y que el IVA de dicha comisión es acreditable para mi
             agencia vía CFDI emitido por Avimo.
+          </p>
+        </div>
+      </label>
+
+      {/* Terms & Conditions */}
+      <label
+        className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-colors cursor-pointer ${
+          legal.accept_terms
+            ? "border-primary bg-primary/5"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={legal.accept_terms}
+          onChange={() => updateLegal("accept_terms")}
+          className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <FileWarning className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-text">
+              Términos y Condiciones para Agencias
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-text-muted">
+            He leído y acepto los{" "}
+            <a href="/terms/agency" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Términos y Condiciones para Agencias de Viaje
+            </a>
+            , incluyendo las políticas de comisiones, publicación de contenido,
+            obligaciones fiscales, uso de datos para IA y confidencialidad.
+          </p>
+        </div>
+      </label>
+
+      {/* Privacy Policy */}
+      <label
+        className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-colors cursor-pointer ${
+          legal.accept_privacy
+            ? "border-primary bg-primary/5"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={legal.accept_privacy}
+          onChange={() => updateLegal("accept_privacy")}
+          className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        />
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-text">
+              Política de Privacidad
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-text-muted">
+            He leído y acepto la{" "}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Política de Privacidad
+            </a>{" "}
+            y la{" "}
+            <a href="/cookies" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Política de Cookies
+            </a>
+            , incluyendo el tratamiento de datos personales de la agencia y
+            de los viajeros, conforme a la LFPDPPP 2025, CCPA/CPRA, PIPEDA
+            y demás legislación aplicable.
           </p>
         </div>
       </label>

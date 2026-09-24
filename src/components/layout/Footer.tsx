@@ -30,10 +30,12 @@ export default function Footer() {
           <div>
             <h4 className="mb-3 text-sm font-semibold text-text">Legal</h4>
             <ul className="space-y-2 text-sm text-text-muted">
-              {/* TODO(F7-legal): crear páginas de Términos, Privacidad y Contacto */}
-              <li><Link to="/" className="hover:text-primary transition-colors">Términos y Condiciones</Link></li>
-              <li><Link to="/" className="hover:text-primary transition-colors">Aviso de Privacidad</Link></li>
-              <li><Link to="/" className="hover:text-primary transition-colors">Contacto</Link></li>
+              <li><Link to="/terms" className="hover:text-primary transition-colors">Términos y Condiciones</Link></li>
+              <li><Link to="/terms/agency" className="hover:text-primary transition-colors">Términos para Agencias</Link></li>
+              <li><Link to="/privacy" className="hover:text-primary transition-colors">Aviso de Privacidad</Link></li>
+              <li><Link to="/cookies" className="hover:text-primary transition-colors">Política de Cookies</Link></li>
+              <li><Link to="/contact" className="hover:text-primary transition-colors">Contacto</Link></li>
+              <li><a href="#do-not-sell" className="hover:text-primary transition-colors">No Vender Mi Información Personal</a></li>
             </ul>
           </div>
         </div>
