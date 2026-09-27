@@ -31,7 +31,6 @@ export default function PrivacyPage() {
             <li><strong>Datos de pago:</strong> Procesados por Stripe — Avimo no almacena números de tarjeta de crédito/débito.</li>
             <li><strong>Datos de preferencias:</strong> Intereses de viaje, destinos preferidos, presupuesto, estilo de viaje (recopilados a través del onboarding).</li>
             <li><strong>Datos de comunicación:</strong> Mensajes enviados y recibidos a través del chat de la Plataforma.</li>
-            <li><strong>Datos de billetera:</strong> Saldo de puntos Avimo, historial de canjes.</li>
           </ul>
 
           <h3 className="text-lg font-semibold text-text mt-4">2.2 Datos de Agencias</h3>
@@ -63,7 +62,6 @@ export default function PrivacyPage() {
             <li>Procesar reservas, pagos y abonos de paquetes turísticos.</li>
             <li>Facilitar la comunicación entre viajeros y agencias a través del chat.</li>
             <li>Generar itinerarios personalizados con inteligencia artificial.</li>
-            <li>Gestionar el sistema de puntos de lealtad (Avimo Puntos).</li>
             <li>Verificar la identidad y documentación de las Agencias.</li>
             <li>Procesar pagos a través de Stripe Connect.</li>
             <li>Cumplir con obligaciones legales y fiscales.</li>

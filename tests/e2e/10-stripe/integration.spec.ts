@@ -103,30 +103,6 @@ test.describe("FASE 10: Stripe Integration", () => {
     expect(result.data.error).toBeTruthy();
   });
 
-  test("10.4 create-checkout con points_to_redeem menor a 200 retorna error", async ({ page }) => {
-    await page.goto("http://localhost:5173");
-    await page.waitForLoadState("networkidle");
-
-    const token = await getAuthToken(page, "viajero1@test.com", "Test1234!");
-    const packageId = await getPublishedPackageId(page);
-
-    const result = await page.evaluate(async ({ token, packageId, anonKey }) => {
-      const r = await fetch("http://127.0.0.1:54321/functions/v1/create-checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: anonKey,
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ package_id: packageId, points_to_redeem: 50 }),
-      });
-      return { status: r.status, data: await r.json() };
-    }, { token, packageId, anonKey: ANON_KEY });
-
-    expect(result.status).toBe(400);
-    expect(result.data.error).toContain("200");
-  });
-
   test("10.5 Stripe secret key es de test mode", async ({ page }) => {
     await page.goto("http://localhost:5173");
     await page.waitForLoadState("networkidle");

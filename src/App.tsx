@@ -26,7 +26,6 @@ import AgencyAnalytics from "@/pages/AgencyAnalytics";
 import SuperAdminDashboard from "@/pages/SuperAdminDashboard";
 import Checkout from "@/pages/Checkout";
 import Orders from "@/pages/Orders";
-import WalletHistory from "@/components/wallet/WalletHistory";
 import Chat from "@/pages/Chat";
 import ConnectDemo from "@/pages/ConnectDemo";
 import AgencyPublicProfilePage from "@/pages/AgencyPublicProfilePage";
@@ -82,7 +81,6 @@ export default function App() {
                 </AuthGuard>
               }
             />
-            <Route path="/wallet" element={<WalletHistory />} />
             <Route path="/agency/profile/:tenantId" element={<AgencyPublicProfilePage />} />
             <Route path="/connect-demo" element={<ConnectDemo />} />
             <Route path="/terms" element={<TermsPage />} />

@@ -466,21 +466,22 @@ Las notificaciones se distribuyen a través de canales específicos para equilib
 
 ### **3.4 Aplicaciones Móviles Nativas (Android & iOS)**
 
-La plataforma contará con aplicaciones móviles nativas para Android e iOS, desarrolladas con React Native para maximizar la reutilización de código, acelerar el desarrollo y garantizar consistencia funcional entre plataformas.
+La plataforma cuenta con aplicaciones móviles nativas para Android e iOS, desarrolladas con implementaciones nativas para maximizar el rendimiento y la integración con las APIs de cada sistema operativo.
 
 **Estrategia de Desarrollo y Frameworks:**
 
-* **Framework Principal:** React Native con Expo (managed workflow) para build y despliegue automatizado en App Store Connect y Google Play Console.
-* **Lenguaje Base:** TypeScript en toda la base de código compartida, con módulos nativos en Swift/Kotlin únicamente para funcionalidades que requieran acceso directo a APIs de plataforma (notificaciones push, cámara, wallet, biométricos).
-* **PWA como Respaldo Inmediato:** Mientras las apps nativas están en desarrollo, la SPA actual se distribuye como Progressive Web App (PWA) con soporte offline básico, instalable desde el navegador en ambos sistemas operativos. La PWA sirve como puente de disponibilidad hasta el lanzamiento de las apps nativas.
+* **iOS:** Swift con SwiftUI. Arquitectura MVVM con `@Observable` y `NavigationStack`.
+* **Android:** Kotlin con Jetpack Compose. Arquitectura MVVM con Hilt para inyección de dependencias.
+* **Backend compartido:** Ambas aplicaciones consumen la misma infraestructura de Supabase (Auth, PostgREST, Realtime, Storage, Edge Functions) que la versión web.
+* **PWA como Respaldo:** La SPA actual se distribuye como Progressive Web App (PWA) con soporte offline básico, instalable desde el navegador en ambos sistemas operativos.
 
 **Experiencia Nativa por Plataforma:**
 
 *Android:*
 * Material Design 3 (Material You) con theming dinámico que respeta los colores del sistema del usuario.
-* Navegación con gestos predictivos (back gesture) integrada con React Navigation.
+* Navegación con gestos predictivos (back gesture) integrada con Jetpack Navigation Compose.
 * Notificaciones push nativas vía Firebase Cloud Messaging (FCM).
-* Integración con Google Wallet/Google Pay para pagos express en checkout.
+* Integración con Google Pay para pagos express en checkout.
 * Splash Screen API nativa (Android 12+).
 * Soporte para pantallas adaptables (foldables, tablets) mediante diseño responsivo con breakpoints.
 
@@ -489,32 +490,22 @@ La plataforma contará con aplicaciones móviles nativas para Android e iOS, des
 * Notificaciones push nativas vía Apple Push Notification service (APNs).
 * Integración con Apple Pay para pagos express en checkout.
 * Face ID / Touch ID para autenticación biométrica en inicio de sesión.
-* Haptic Feedback (UIImpactFeedbackGenerator) en micro-interacciones críticas: confirmación de compra, canje de puntos, agregar a favoritos.
+* Haptic Feedback (UIImpactFeedbackGenerator) en micro-interacciones críticas: confirmación de compra, agregar a favoritos.
 * Widgets en Home Screen y Lock Screen: viajes próximos del usuario, ofertas destacadas del marketplace.
 * Dynamic Island para estado de checkout en proceso y notificaciones de mensajes en chat (iPhone 14 Pro en adelante).
 
 **Funcionalidades Compartidas (Ambas Plataformas):**
 
 * **Sincronización en Tiempo Real:** Chat in-app, notificaciones de leads y actualizaciones de estado de compra mediante Supabase Realtime sobre WebSockets. Misma infraestructura de red que la versión web.
-* **Modo Offline Parcial:** Consulta de flyers guardados en favoritos, historial de puntos y resumen de viajes próximos sin conexión a internet. Sincronización automática de datos al reconectar. Los datos offline se persisten mediante AsyncStorage con expiración de caché de 7 días.
-* **Carga de Imágenes Optimizada:** Uso de FastImage (React Native) con caché agresiva de flyers en variantes thumbnail (listados) y HD (vista de detalle) según el contexto de visualización.
-* **Cartera de Puntos (Avimo Puntos):** Visualización de saldo, historial de acumulaciones y canjes, y aplicación de puntos como método de pago parcial durante el checkout, con la misma lógica de negocio que la versión web.
-* **Cámara para Documentos:** Subida de CSF, comprobantes de pago y otros documentos oficiales directamente desde la cámara del dispositivo con recorte y enderezado automático mediante react-native-vision-camera.
+* **Modo Offline Parcial:** Consulta de flyers guardados en favoritos y resumen de viajes próximos sin conexión a internet. Sincronización automática de datos al reconectar.
+* **Carga de Imágenes Optimizada:** Caché agresiva de flyers en variantes thumbnail (listados) y HD (vista de detalle) según el contexto de visualización. Coil (Android) y AsyncImage (iOS).
+* **Cámara para Documentos:** Subida de CSF, comprobantes de pago y otros documentos oficiales directamente desde la cámara del dispositivo con recorte y enderezado automático.
 * **Deep Linking Universal:** Soporte para esquemas de URL avimo:// en Android y Universal Links (apple-app-site-association) en iOS para abrir flyers específicos, completar checkouts pendientes o acceder a conversaciones de chat directamente desde notificaciones push o enlaces externos.
-
-**Rendimiento y Optimización:**
-
-* Hermes Engine (motor JavaScript de Meta) habilitado por defecto en Android para reducir tiempo de inicio y consumo de memoria. JavaScriptCore (JSC) optimizado en iOS.
-* Listas virtualizadas con FlashList (Shopify) para catálogos con desplazamiento fluido a 60 FPS independientemente del número de flyers.
-* Lazy loading de módulos pesados (cámara con visión artificial, mapas, reproductores multimedia) para minimizar el tamaño del bundle inicial.
-* Bundles optimizados con tree-shaking y división por plataforma. Assets (imágenes, fuentes) servidos por separado.
-* Telemetría de crashes con Sentry para ambas plataformas, con breadcrumbs de navegación para reproducción de errores.
 
 **Distribución y CI/CD:**
 
-* **Android:** Distribución vía Google Play Console con build automático desde GitHub Actions mediante Expo EAS Build. Canales de pruebas internas (alpha) y abiertas (beta) antes de producción.
-* **iOS:** Distribución vía App Store Connect con TestFlight para beta testing externo (hasta 10,000 testers). Build automatizado mediante Expo EAS Build conectado a GitHub Actions. Perfiles de provisionamiento gestionados por EAS.
-* **Actualizaciones Over-The-Air (OTA):** Expo EAS Update para desplegar parches de JavaScript sin pasar por revisión de tiendas. Exclusivo para cambios que no involucren código nativo (Swift/Kotlin). Permite resolver bugs críticos en minutos.
+* **Android:** Distribución vía Google Play Console con build automático desde GitHub Actions. Canales de pruebas internas (alpha) y abiertas (beta) antes de producción.
+* **iOS:** Distribución vía App Store Connect con TestFlight para beta testing externo (hasta 10,000 testers). Build automatizado mediante Xcode Cloud o GitHub Actions.
 * **Versionado Semántico (MAJOR.MINOR.PATCH):** Sincronizado entre ambas plataformas. Cada build de producción genera un tag de versión en el repositorio y un changelog automático.
 
 ## **4\. PARTE 3: OPTIMIZACIÓN, COSTOS Y SEGURIDAD DE LA IA**
@@ -718,7 +709,7 @@ Las agencias tienen la facultad de habilitar planes de financiamiento con un **p
 
 * **Gestión de Mensualidades:** Se implementa de forma estricta la **Opción B (Manual por enlace)**. El backend no realizará cobros recurrentes automatizados a la tarjeta del cliente. En su lugar, el motor de comunicación omnicanal enviará cada mes notificaciones automatizadas con un link exclusivo de Stripe Checkout para que el viajero ingrese y liquide su abono de forma manual.  
 * **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (según la tasa vigente del plan de la agencia — Sección 6.1.1) **se cobrará de manera proporcional sobre cada abono** conforme el viajero vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
-* **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de exactamente cinco días naturales (5 días) a partir de la fecha de corte**. Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en el CRM integrado y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de monederos electrónicos ni notas de crédito internas.
+* **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de 15 días naturales a partir de la fecha de corte** (`GRACE_PERIOD_DAYS = 15`). Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en el CRM integrado y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de créditos electrónicos ni notas de crédito internas.
 
 ### **6.3 Delimitación de Responsabilidad Fiscal (CFDI México)**
 
@@ -735,56 +726,38 @@ La plataforma genera automáticamente registros de ingresos fiscales (`fiscal_in
 * **Descarga:** Una vez timbrado, la agencia puede descargar el PDF y XML directamente desde la tabla de ingresos fiscales.  
 * **CFDI ya emitido:** Si el registro ya tiene un CFDI timbrado, el sistema retorna los URLs existentes sin volver a timbrar.
 
-### **6.4 Sistema de Lealtad y Cartera Virtual (Avimo Puntos)**
+### **6.4 Sistema de Lealtad y Cartera Virtual (Avimo Puntos) — TEMPORALMENTE INACTIVO**
 
-La plataforma cuenta con un programa de lealtad donde los viajeros acumulan puntos por cada compra realizada en el marketplace. Los puntos se almacenan en una cartera virtual personal y pueden canjearse como método de pago parcial para nuevas compras. El valor de los puntos canjeados es absorbido por las arcas de la empresa (Avimo), sin impacto financiero para la agencia vendedora.
+> **Estado actual (septiembre 2026):** El sistema de lealtad Avimo Puntos está **temporalmente desactivado**. La funcionalidad completa de acumulación, canje, visualización de saldo, historial y aplicación de puntos como método de pago parcial ha sido retirada del frontend (web y móvil) y del backend (edge functions y webhooks). No se generan ni descuentan puntos en ninguna transacción.
 
-#### **6.4.1 Valor y Conversión de Puntos**
+#### **6.4.1 Alcance de la Desactivación**
 
-* **Valor del Punto:** Cada punto equivale exactamente a **$1.00 MXN** (un peso mexicano). La conversión 1:1 es deliberadamente simple para que el viajero entienda de inmediato el valor real de su saldo sin fricción cognitiva.  
-* **Naturaleza:** La cartera virtual es personal, nominal e intransferible. Los puntos no son canjeables por dinero en efectivo bajo ninguna circunstancia.  
-* **Vigencia:** Los puntos **no expiran**. Se mantienen en la cuenta del viajero de forma indefinida mientras su perfil de usuario permanezca activo en la plataforma.
+* **Frontend web:** Eliminados el badge de puntos en la navbar, la ruta `/wallet`, la pantalla de historial, el slider de canje en checkout, y los textos de "Ganarás N pts".
+* **Aplicaciones móviles:** Eliminados los módulos de wallet, balance, slider de canje, y cualquier referencia a puntos en el flujo de checkout (iOS y Android).
+* **Backend:** `create-checkout` ya no acepta ni procesa `points_to_redeem`. `stripe-webhook` ya no acredita ni debita puntos. `review-package` ya no otorga puntos por reviews aprobadas.
+* **Comisiones:** La comisión se calcula sobre el monto total del pago confirmado (anticipo o abono), sin descuento por puntos. La agencia no se ve afectada.
 
-#### **6.4.2 Reglas de Acumulación de Puntos**
+#### **6.4.2 Datos Preservados**
 
-Los puntos se ganan a través de las siguientes acciones dentro de la plataforma:
+* Las tablas `user_wallets` y `wallet_transactions` permanecen en la base de datos con sus datos históricos intactos.
+* Las columnas `points_earned` y `points_redeemed` en `transactions_orders` permanecen definidas pero no reciben escrituras activas.
+* Las funciones RPC `credit_points`, `debit_points` y `get_or_create_wallet` permanecen disponibles en la base de datos pero no son invocadas por ninguna ruta de aplicación.
+* Los saldos históricos de los viajeros se conservan y serán válidos cuando el sistema se reactive.
 
-| Acción | Puntos Otorgados | Equivalencia en MXN | Notas |
-| :--- | :--- | :--- | :--- |
-| **Compra de Viaje** (por cada $100 MXN gastados) | 1 punto | $1.00 | Equivale a un 1% de cashback efectivo. Se acredita al confirmarse el pago exitoso (no en estado pending). |
-| **Bono de Bienvenida** (al completar perfil de viajero + onboarding de intereses) | 5 puntos | $5.00 | Se otorga una sola vez por cuenta. Requiere haber llenado el cuestionario de perfilamiento de intereses (Sección 4.2). |
-| **Bono por Referido** (por cada viajero referido que completa su primera compra) | 2 puntos | $2.00 | Se acredita al confirmarse el primer pago exitoso del referido. Sin límite de referidos. El referido debe usar el código o enlace único de referido al registrarse. |
-| **Review Verificada Post-Viaje** (por review publicada tras la conclusión del viaje) | 1 punto | $1.00 | Se otorga una vez por viaje completado. La review debe pasar la validación de contenido antes de acreditar los puntos. |
+#### **6.4.3 Plan de Reactivación Futura**
 
-* **Eventos Especiales con Multiplicador:** Durante las temporadas comerciales definidas por la plataforma (Buen Fin, Hot Sale, aniversario de Avimo), los puntos por compra se multiplican **x2** (2 puntos por cada $100 MXN gastados). Estos eventos son configurados manualmente por el SuperAdmin especificando fecha de inicio y fin, y se reflejan visualmente en el marketplace durante su vigencia.  
-* **Compras a Plazos Diferidos:** En compras financiadas a meses, los puntos se otorgan de forma **proporcional en cada abono confirmado**, no en el anticipo inicial ni de forma total por adelantado. Esto protege a la plataforma de otorgar puntos por montos que el viajero podría nunca llegar a liquidar.
+Cuando se decida reactivar el sistema de puntos, se seguirá el siguiente protocolo:
 
-#### **6.4.3 Reglas de Canje de Puntos**
-
-Los puntos acumulados pueden aplicarse como descuento directo en el checkout de una nueva compra, sujeto a las siguientes reglas:
-
-| Regla | Valor |
-| :--- | :--- |
-| **Mínimo de puntos para canjear** | 200 puntos ($200.00 MXN) |
-| **Cobertura máxima por compra** | 20% del valor total de la compra |
-| **Límite máximo de acumulación** | 15,000 puntos ($15,000.00 MXN) |
-
-* **Mecánica de Aplicación:** Los puntos se descuentan primero del subtotal de la compra antes de calcular la comisión de la plataforma. La comisión (según el plan y tasa vigente de la agencia — Sección 6.1.1) se aplica **únicamente sobre el remanente pagado con tarjeta u otro método de pago**, no sobre la porción cubierta con puntos.  
-* **Ejemplo Práctico (Plan Intermedio, tasa base 18%):** Compra de $5,000 MXN. El viajero decide canjear 500 puntos ($500 MXN, equivalente al 10% del total, dentro del límite del 20%). El subtotal pagado con tarjeta es de $4,500 MXN. La comisión del 18% sobre $4,500 MXN = $810.00 MXN retenidos. La agencia recibe $3,690.00 MXN netos. Los $500 MXN canjeados son absorbidos por Avimo.  
-* **Protección de la Agencia:** La agencia vendedora no se ve afectada financieramente por el canje de puntos del viajero. Recibe el total de la venta menos únicamente la comisión según su plan y tasa vigente (Sección 6.1.1) sobre el remanente pagado con tarjeta. Los puntos canjeados son cubiertos íntegramente por las arcas de la empresa.
-
-#### **6.4.4 Control de Riesgo y Políticas de Reversión**
-
-* **Reversión por Contracargo o Disputa:** Si se inicia un contracargo o disputa bancaria sobre una transacción, los puntos ganados en esa compra original se revierten automáticamente del saldo del viajero. Si el saldo disponible es insuficiente para cubrir la reversión, la cartera puede quedar en saldo negativo con un límite máximo de -200 puntos, el cual se descuenta de futuras acumulaciones hasta quedar en cero o positivo.  
-* **Límite de Acumulación:** El saldo de puntos no puede exceder los 15,000 puntos. Si una acumulación llevaría el saldo por encima de este tope, los puntos excedentes se descartan y el sistema notifica al usuario que ha alcanzado el límite máximo.  
-* **Puntos No Transferibles:** Los puntos están vinculados al user\_id del viajero y no pueden transferirse, venderse ni combinarse con la cartera de otro usuario.  
-* **Ajuste de Programa:** La plataforma se reserva el derecho de modificar la tasa de acumulación, las reglas de canje y los eventos multiplicadores con previo aviso de al menos 30 días naturales a los usuarios registrados, notificado por correo electrónico y un banner informativo en el marketplace.
-
-#### **6.4.5 Visualización en la Interfaz de Usuario**
-
-* **Barra de Navegación:** El saldo actual de puntos se muestra en la barra de navegación superior del marketplace junto al ícono del carrito, visible únicamente para usuarios autenticados. El indicador utiliza un ícono de monedero o estrella acompañado del número de puntos.  
-* **Pantalla de Checkout:** Durante el proceso de pago, el viajero visualiza su saldo disponible y un control deslizante (*slider*) o campo numérico para seleccionar cuántos puntos desea aplicar a la compra, con indicadores visuales del mínimo (200 pts) y máximo (20% del total de la compra) permitidos. El resumen del cargo se actualiza en tiempo real reflejando el descuento por puntos.  
-* **Historial de Cartera:** En la sección de perfil del usuario, se despliega un registro cronológico completo de todas las transacciones de puntos (acumulaciones, canjes, reversiones, bonos) con fecha, concepto, cantidad de puntos y saldo resultante. Cada registro es trazable a la orden de compra o evento que lo originó.
+1. **Definir política versionada:** Establecer `loyalty_policy_version = 1` con las reglas vigentes de acumulación, canje y límites.
+2. **Decidir tratamiento de saldos históricos:** Determinar si los saldos previos permanecen válidos, expiran, o requieren aceptación explícita del usuario.
+3. **No otorgar puntos retroactivos:** Las compras realizadas durante el periodo de inactividad no generarán puntos acumulados.
+4. **Activar progresivamente:**
+   - Fase 1: Lectura administrativa de wallets existentes (auditoría).
+   - Fase 2: Habilitar acumulación con procesamiento idempotente en webhooks.
+   - Fase 3: Habilitar canje en checkout (detrás de un feature flag separado).
+   - Fase 4: Habilitar bonos, promociones y eventos multiplicadores.
+5. **Safeguards operativos:** Idempotencia en cada mutación de wallet, ledger inmutable de transacciones, reversión automática por disputas, y conciliación contra eventos de Stripe.
+6. **Gate server-side obligatorio:** El flag `LOYALTY_POINTS_ENABLED` debe controlarse desde el backend (Edge Functions / RPCs), no solo desde el frontend. Los clientes deben consultar el estado del programa antes de mostrar cualquier UI de wallet.
 
 ### **6.5 Contabilidad Fiscal y Trazabilidad de Ingresos (Panel SuperAdmin)**
 
@@ -857,7 +830,7 @@ La pestaña "Periodos" muestra tarjetas mensuales con los totales, el IVA a decl
 **RPCs disponibles:**
 - `calculate_period_totals(p_start DATE, p_end DATE)` — Calcula sumas de ingresos y egresos para un rango de fechas.
 - `close_fiscal_period(p_period_id UUID)` — Cierra un periodo, calcula totales, asigna registros al periodo.
-- `credit_points` / `debit_points` — Gestión de puntos de lealtad (Sección 6.4), con trazabilidad fiscal vía `wallet_transactions`.
+- `credit_points` / `debit_points` — Gestión de puntos de lealtad (Sección 6.4). **TEMPORALMENTE INACTIVAS:** las funciones permanecen en la base de datos pero no son invocadas por ninguna ruta de aplicación mientras el programa de lealtad esté desactivado.
 
 **Cumplimiento Fiscal:**
 - Todos los ingresos por comisiones generan IVA trasladado que debe enterarse al SAT.
@@ -973,14 +946,16 @@ CREATE TABLE transactions\_orders (
     remaining\_balance NUMERIC(12, 2\) NOT NULL, \-- Control del balance pendiente de abonos  
     currency VARCHAR(3) DEFAULT 'MXN',  
     platform\_commission\_fee NUMERIC(12, 2\) NOT NULL, \-- Comisión retenida según plan y tasa vigente, proporcional por abono  
-    points\_earned INTEGER DEFAULT 0, \-- Puntos (1 pt = $1 MXN) acumulados por el viajero en esta transacción  
-    points\_redeemed INTEGER DEFAULT 0, \-- Puntos canjeados como descuento en esta transacción  
+    points\_earned INTEGER DEFAULT 0, \-- TEMPORALMENTE INACTIVO: columna preservada para compatibilidad. No recibe escrituras mientras el programa de lealtad esté desactivado (Sección 6.4).
+    points\_redeemed INTEGER DEFAULT 0, \-- TEMPORALMENTE INACTIVO: columna preservada para compatibilidad. No recibe escrituras mientras el programa de lealtad esté desactivado (Sección 6.4).
     payment\_status VARCHAR(50) DEFAULT 'pending', \-- pending, partial\_paid, paid, moroso, cancelled  
     next\_payment\_due TIMESTAMP WITH TIME ZONE, \-- Fecha límite del mes (UTC) para control de los 5 días de gracia  
     created\_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())  
 );
 
 #### **Tabla: user\_wallets**
+
+**TEMPORALMENTE INACTIVA (Sección 6.4):** La tabla y sus datos históricos permanecen preservados para compatibilidad y futura reactivación del programa de lealtad. No recibe escrituras ni lecturas activas desde la aplicación.
 
 Almacena el saldo de puntos de lealtad para cada usuario viajero registrado en la plataforma.
 
@@ -995,6 +970,8 @@ CREATE TABLE user\_wallets (
 );
 
 #### **Tabla: wallet\_transactions**
+
+**TEMPORALMENTE INACTIVA (Sección 6.4):** La tabla y sus datos históricos permanecen preservados para compatibilidad y futura reactivación del programa de lealtad. No recibe escrituras ni lecturas activas desde la aplicación.
 
 Registro de auditoría de todas las operaciones de puntos (acumulaciones, canjes, reversiones, bonos).
 
@@ -1034,7 +1011,7 @@ CREATE TABLE user\_saved\_packages (
   * **Lógica:** Invoca al SDK de Supabase Storage para generar una dirección URL de subida directa con firma criptográfica simétrica y expiración de 300 segundos, evitando la transferencia de binarios pesados a través del servidor central de la plataforma.  
 * POST /api/v1/payments/checkout-session  
   * **Acceso:** Privado (EndUser registrado y autenticado).  
-  * **Lógica:** Configura e inicializa una sesión de Stripe Checkout inyectando los parámetros de Stripe Connect. Procesa la compra en el siguiente orden: (1) Valida disponibilidad de inventario: si el paquete tiene `total_rooms > 0` y `available_rooms <= 0`, rechaza con error "Paquete agotado". (2) Si el paquete tiene inventario limitado, crea un hold temporal de 15 minutos mediante `create_inventory_hold` para prevenir race conditions. El hold_id se transmite en los metadatos de Stripe para su consumo en el webhook. (3) Valida y aplica los puntos canjeados por el viajero (mínimo 200 puntos, máximo 20% del total de la compra), descontándolos del subtotal. (4) Calcula el subtotal remanente a pagar con tarjeta u otro método de pago. (5) Calcula la comisión según el plan y tasa vigente de la agencia (`commission_rate` en `agencies_tenants`) sobre el remanente pagado con tarjeta y configura el split de Stripe Connect reteniendo ese monto hacia la plataforma, dispersando el resto a la cuenta Express de la agencia. (6) Calcula los puntos a ganar por esta compra (1 punto por cada $100 MXN del total de la compra, independientemente de los puntos canjeados). (7) Si el pago es diferido en plazos, programa las alertas de cobro mensual manual en el sistema de mensajería omnicanal con recordatorios y links exclusivos de Stripe Checkout.
+   * **Lógica:** Configura e inicializa una sesión de Stripe Checkout inyectando los parámetros de Stripe Connect. Procesa la compra en el siguiente orden: (1) Valida disponibilidad de inventario: si el paquete tiene `total_rooms > 0` y `available_rooms <= 0`, rechaza con error "Paquete agotado". (2) Si el paquete tiene inventario limitado, crea un hold temporal de 15 minutos mediante `create_inventory_hold` para prevenir race conditions. El hold_id se transmite en los metadatos de Stripe para su consumo en el webhook. (3) Calcula el monto del anticipo según el `deposit_percent` (mínimo 20% del precio del paquete). (4) Calcula la comisión según el plan y tasa vigente de la agencia (`commission_rate` en `agencies_tenants`) sobre el monto del anticipo y configura el split de Stripe Connect reteniendo ese monto hacia la plataforma, dispersando el resto a la cuenta Express de la agencia. (5) Si el pago es diferido en plazos, programa las alertas de cobro mensual manual en el sistema de mensajería omnicanal con recordatorios y links exclusivos de Stripe Checkout. Nota: el sistema de puntos de lealtad (Sección 6.4) está temporalmente inactivo; no se validan ni aplican puntos en el flujo de checkout.
 * POST /api/v1/inventory/sync
   * **Acceso:** Privado (Agencia autenticada con JWT). Edge Function: `sync-inventory`.
   * **Lógica (action=sync):** Permite a la agencia sincronizar manualmente o vía API externa el inventario de un paquete. Valida que `package_id` pertenezca al `tenant_id` del usuario autenticado. Actualiza `total_rooms` y `available_rooms` en `travel_packages` mediante la RPC `sync_inventory_external`. Registra automáticamente el cambio en `inventory_audit_log` con tipo `sync` y origen configurable (default: `external_pms`). Rechaza si `available_rooms > total_rooms`.

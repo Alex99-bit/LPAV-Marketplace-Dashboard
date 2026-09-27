@@ -51,8 +51,6 @@ describe("Security: Multi-Tenant Isolation", () => {
         "installment_schedules",
         "saas_subscriptions",
         "stripe_accounts",
-        "user_wallets",
-        "wallet_transactions",
         "package_reviews",
         "traveler_documents",
         "rooming_lists",

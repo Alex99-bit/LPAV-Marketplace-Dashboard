@@ -15,7 +15,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let body: { package_id: string; deposit_percent?: number; points_to_redeem?: number };
+  let body: { package_id: string; deposit_percent?: number };
   try {
     body = await req.json();
   } catch {
@@ -68,37 +68,6 @@ Deno.serve(async (req: Request) => {
   const packageBasePrice = pkg.price;
   const depositPercent = body.deposit_percent ?? Number((pkg as unknown as { deposit_percent?: number }).deposit_percent) ?? 0.2;
   const depositAmount = Math.round(packageBasePrice * depositPercent * 100);
-  const pointsToRedeem = body.points_to_redeem ?? 0;
-
-  if (pointsToRedeem > 0) {
-    if (pointsToRedeem < 200) {
-      return new Response(JSON.stringify({ error: "Minimo 200 puntos para canjear" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (pointsToRedeem > packageBasePrice * 0.20) {
-      return new Response(JSON.stringify({ error: "Los puntos no pueden exceder el 20% del precio total del paquete" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: wallet, error: walletError } = await supabase
-      .from("user_wallets")
-      .select("points_balance")
-      .eq("user_id", user.id)
-      .single();
-
-    if (walletError || !wallet) {
-      return new Response(JSON.stringify({ error: "No se pudo consultar tu cartera de puntos" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (wallet.points_balance < pointsToRedeem) {
-      return new Response(JSON.stringify({ error: "Puntos insuficientes en tu cartera" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-  }
 
   const commissionRate = agency.commission_rate / 100;
   const agencyCommission = Math.round(depositAmount * commissionRate);
@@ -107,8 +76,7 @@ Deno.serve(async (req: Request) => {
   const packageSubtotal = packageBasePrice / (1 + IVA_RATE);
   const packageIVA = packageBasePrice - packageSubtotal;
 
-  const pointsOffset = pointsToRedeem * 100;
-  const totalCharge = Math.max(0, depositAmount - pointsOffset);
+  const totalCharge = depositAmount;
 
   let holdId: string | null = null;
   if (pkgRooms.total_rooms > 0) {
@@ -153,7 +121,6 @@ Deno.serve(async (req: Request) => {
           tenant_id: pkg.tenant_id,
           user_id: user.id,
           order_type: "deposit",
-          points_redeemed: String(pointsToRedeem),
           package_total: String(packageBasePrice),
           agency_commission: String(agencyCommission / 100),
           commission_rate: String(commissionRate),
@@ -169,7 +136,6 @@ Deno.serve(async (req: Request) => {
         tenant_id: pkg.tenant_id,
         user_id: user.id,
         order_type: "deposit",
-        points_redeemed: String(pointsToRedeem),
         package_total: String(packageBasePrice),
         agency_commission: String(agencyCommission / 100),
         commission_rate: String(commissionRate),
@@ -205,6 +171,5 @@ Deno.serve(async (req: Request) => {
     agency_commission: agencyCommission / 100,
     commission_rate: commissionRate,
     ...(holdId ? { hold_id: holdId } : {}),
-    ...(pointsToRedeem > 0 ? { points_redeemed: pointsToRedeem } : {}),
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });

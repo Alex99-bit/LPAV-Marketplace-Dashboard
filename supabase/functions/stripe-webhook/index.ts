@@ -190,7 +190,6 @@ Deno.serve(async (req: Request) => {
       const packageTotal = metadata.package_total
         ? parseFloat(metadata.package_total)
         : session.amount_total! / 100;
-      const pointsEarned = Math.floor(packageTotal / 100);
 
       const agencyCommissionVal = parseFloat(metadata.agency_commission || "0");
       const commissionRate = parseFloat(metadata.commission_rate || "0");
@@ -208,7 +207,6 @@ Deno.serve(async (req: Request) => {
         package_iva: parseFloat(metadata.package_iva || "0"),
         payment_status: "partial_paid",
         next_payment_due: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        points_earned: pointsEarned,
       }).select().single();
 
       if (order) {
@@ -220,27 +218,6 @@ Deno.serve(async (req: Request) => {
         } else {
           await supabase.rpc("decrement_available_rooms", {
             p_package_id: metadata.package_id,
-          });
-        }
-
-        if (pointsEarned > 0) {
-          await supabase.rpc("credit_points", {
-            p_user_id: userId,
-            p_points: pointsEarned,
-            p_type: "earn",
-            p_description: `Compra: ${metadata.package_id || ""}`,
-            p_reference_order_id: order.id,
-          });
-        }
-
-        const pointsRedeemed = parseInt(metadata.points_redeemed || "0", 10);
-        if (pointsRedeemed > 0) {
-          await supabase.rpc("debit_points", {
-            p_user_id: userId,
-            p_points: pointsRedeemed,
-            p_type: "redeem",
-            p_description: `Redención en compra: ${metadata.package_id || ""}`,
-            p_reference_order_id: order.id,
           });
         }
 
@@ -331,15 +308,6 @@ Deno.serve(async (req: Request) => {
               });
             }
 
-            if (order.points_earned > 0) {
-              await supabase.rpc("debit_points", {
-                p_user_id: order.user_id,
-                p_points: order.points_earned,
-                p_type: "reversal",
-                p_description: `Disputa: ${dispute.id}`,
-                p_reference_order_id: order.id,
-              });
-            }
           }
         }
       }

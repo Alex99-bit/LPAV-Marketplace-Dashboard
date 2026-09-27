@@ -75,27 +75,6 @@ test.describe("FASE 8: Viajero Orders", () => {
   });
 });
 
-test.describe("FASE 8: Viajero Wallet", () => {
-  test("8.6 wallet page carga", async ({ page }) => {
-    await loginAsTraveler(page);
-    await navigateTo(page, "/wallet");
-    await page.waitForTimeout(3000);
-    const body = await page.textContent("body");
-    expect(body!.length).toBeGreaterThan(20);
-  });
-
-  test("8.7 wallet muestra puntos o balance", async ({ page }) => {
-    await loginAsTraveler(page);
-    await navigateTo(page, "/wallet");
-    await page.waitForTimeout(3000);
-    const body = await page.textContent("body");
-    const hasWallet = body!.includes("Punto") || body!.includes("punto") ||
-      body!.includes("Balance") || body!.includes("balance") || body!.includes("Wallet") ||
-      body!.includes("wallet") || body!.includes("Cartera") || body!.includes("puntos");
-    expect(hasWallet).toBeTruthy();
-  });
-});
-
 test.describe("FASE 8: Viajero Package Detail", () => {
   test("8.8 detalle de paquete accesible desde home", async ({ page }) => {
     await loginAsTraveler(page);

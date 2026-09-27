@@ -106,26 +106,6 @@ Deno.serve(async (req: Request) => {
     .update({ status: "reviewed", review_notes: reviewNotes })
     .eq("report_id", body.report_id);
 
-  if (newStatus === "published") {
-    const { data: existingPoints } = await supabase
-      .from("points")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("type", "review")
-      .eq("description", `Reseña publicada: ${report.package_id}`)
-      .maybeSingle();
-
-    if (!existingPoints) {
-      await supabase.rpc("credit_points", {
-        p_user_id: user.id,
-        p_points: 1,
-        p_type: "review",
-        p_description: `Reseña publicada: ${report.package_id}`,
-        p_reference_order_id: null,
-      });
-    }
-  }
-
   const { data: admins } = await supabase
     .from("profiles")
     .select("id")

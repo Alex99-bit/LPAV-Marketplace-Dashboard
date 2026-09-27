@@ -199,16 +199,6 @@ export const MAX_CENSORSHIP_STRIKES = 5;
 export const AI_DAILY_LIMIT = 5;
 export const AI_PER_MINUTE_LIMIT = 3;
 
-export const POINTS_PER_100_MXN = 1;
-export const POINT_VALUE_MXN = 1;
-export const MIN_REDEEM_POINTS = 200;
-export const MAX_POINTS_PERCENT_PER_PURCHASE = 0.2;
-export const MAX_WALLET_BALANCE = 15000;
-export const WELCOME_BONUS_POINTS = 5;
-export const REFERRAL_BONUS_POINTS = 2;
-export const REVIEW_BONUS_POINTS = 1;
-export const MAX_NEGATIVE_BALANCE = 200;
-
 export const CRM_LEAD_STATUS: Record<
   CRMLeadStatus,
   { label: string; variant: "default" | "success" | "warning" | "danger" | "info" }

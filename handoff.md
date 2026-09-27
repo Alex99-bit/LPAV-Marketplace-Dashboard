@@ -95,7 +95,7 @@
 | Auth | `login.spec.ts`, `registration.spec.ts` | 10 |
 | Marketplace | `browse.spec.ts`, `package-detail.spec.ts` | 5 |
 | Agency | `dashboard.spec.ts`, `crm.spec.ts`, `chat.spec.ts`, `finance.spec.ts`, `settings.spec.ts`, `roles.spec.ts` | 22 |
-| Traveler | `checkout.spec.ts`, `wallet.spec.ts` | 5 |
+| Traveler | `checkout.spec.ts` | 3 |
 | Admin | `agencies.spec.ts`, `moderation.spec.ts`, `fiscal.spec.ts` | 10 |
 | Cross-cutting | `auth-guards.spec.ts`, `censorship.spec.ts` | 11 |
 | Setup | `auth.setup.ts` | 5 (login por rol) |
@@ -189,7 +189,7 @@ npx playwright show-report
 | `DOC MAESTRO.md` | PRD completo del proyecto |
 | `skills.md` | Guía de implementación |
 | `CRM-Embebed.md` | Documentación del CRM |
-| `src/lib/constants.ts` | Constantes de negocio (planes, comisiones, puntos) |
+| `src/lib/constants.ts` | Constantes de negocio (planes, comisiones, IVA, Stripe fees). Nota: las constantes de puntos fueron retiradas temporalmente (septiembre 2026). |
 | `src/types/database.ts` | Tipos TypeScript de todas las tablas |
 | `supabase/migrations/` | Todas las migraciones SQL |
 | `supabase/functions/` | Todas las edge functions |

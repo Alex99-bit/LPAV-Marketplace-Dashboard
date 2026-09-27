@@ -48,7 +48,7 @@ export default function TermsPage() {
           </p>
           <p>El proceso de pago funciona de la siguiente manera:</p>
           <ul className="list-disc pl-6 space-y-1">
-            <li><strong>Anticipo:</strong> Para reservar un paquete, el Viajero debe pagar un anticipo equivalente al 30% del precio total del paquete, menos el valor de los puntos canjeados (si aplica).</li>
+            <li><strong>Anticipo:</strong> Para reservar un paquete, el Viajero debe pagar un anticipo equivalente al 20% del precio total del paquete.</li>
             <li><strong>Abonos:</strong> El saldo restante puede pagarse mediante abonos parciales hasta completar el pago total antes de la fecha de salida del viaje.</li>
             <li><strong>Procesamiento de pagos:</strong> Todos los pagos se procesan de forma segura a través de Stripe Connect. Avimo no almacena información de tarjetas de crédito o débito.</li>
             <li><strong>Moneda:</strong> Los precios pueden estar expresados en pesos mexicanos (MXN), dólares estadounidenses (USD) o euros (EUR), según lo indique la Agencia.</li>
@@ -72,21 +72,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">6. Sistema de Puntos Avimo</h2>
-          <p>
-            La Plataforma cuenta con un sistema de lealtad (&ldquo;Avimo Puntos&rdquo;) mediante el cual los Viajeros acumulan puntos por cada compra realizada. Los puntos se calculan a razón de 1 punto por cada $100 MXN gastados.
-          </p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>Los puntos pueden canjearse como descuento en futuras compras, con un máximo del 20% del valor total del paquete.</li>
-            <li>El valor de cada punto es de $1.00 MXN.</li>
-            <li>El mínimo para canjear puntos es de 200 puntos.</li>
-            <li>Los puntos no son transferibles, no pueden convertirse en efectivo y no generan intereses.</li>
-            <li>Avimo se reserva el derecho de modificar, suspender o cancelar el programa de puntos con previo aviso.</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="text-xl font-semibold text-text">7. Itinerarios Generados por Inteligencia Artificial</h2>
+          <h2 className="text-xl font-semibold text-text">6. Itinerarios Generados por Inteligencia Artificial</h2>
           <p>
             La Plataforma ofrece la generación de itinerarios de viaje personalizados mediante inteligencia artificial. El Viajero acepta que:
           </p>
@@ -99,7 +85,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">8. Sistema de Chat y Censura</h2>
+          <h2 className="text-xl font-semibold text-text">7. Sistema de Chat y Censura</h2>
           <p>
             La Plataforma ofrece un sistema de mensajería directa entre el Viajero y la Agencia. El Viajero acepta que:
           </p>
@@ -112,7 +98,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">9. Obligaciones del Viajero</h2>
+          <h2 className="text-xl font-semibold text-text">8. Obligaciones del Viajero</h2>
           <p>El Viajero se compromete a:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Utilizar la Plataforma únicamente para fines lícitos y conforme a estos Términos.</li>
@@ -125,7 +111,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">10. Propiedad Intelectual</h2>
+          <h2 className="text-xl font-semibold text-text">9. Propiedad Intelectual</h2>
           <p>
             Todos los contenidos de la Plataforma, incluyendo pero no limitándose a textos, imágenes, logotipos, iconos, diseño gráfico, código fuente y software, son propiedad de Avimo o de sus respectivos titulares y están protegidos por las leyes de propiedad intelectual aplicables.
           </p>
@@ -135,7 +121,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">11. Limitación de Responsabilidad</h2>
+          <h2 className="text-xl font-semibold text-text">10. Limitación de Responsabilidad</h2>
           <p>
             EN LA MÁXIMA EXTENSIÓN PERMITIDA POR LA LEY APLICABLE:
           </p>
@@ -149,7 +135,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">12. Protección de Datos Personales y Telemetría</h2>
+          <h2 className="text-xl font-semibold text-text">11. Protección de Datos Personales y Telemetría</h2>
           <p>
             El tratamiento de datos personales del Viajero se rige por nuestra <Link to="/privacy" className="text-primary hover:underline">Política de Privacidad</Link>, la cual forma parte integral de estos Términos.
           </p>
@@ -169,7 +155,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">13. Modificaciones a la Plataforma y los Términos</h2>
+          <h2 className="text-xl font-semibold text-text">12. Modificaciones a la Plataforma y los Términos</h2>
           <p>
             Avimo se reserva el derecho de modificar estos Términos en cualquier momento. Las modificaciones serán notificadas al Viajero mediante un aviso en la Plataforma o por correo electrónico con al menos 15 días de antelación a su entrada en vigor.
           </p>
@@ -182,7 +168,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">14. Suspensión y Terminación</h2>
+          <h2 className="text-xl font-semibold text-text">13. Suspensión y Terminación</h2>
           <p>
             Avimo podrá suspender o terminar la cuenta del Viajero, total o parcialmente, de forma temporal o permanente, en cualquier momento y sin previo aviso, en caso de:
           </p>
@@ -196,7 +182,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">15. Ley Aplicable y Resolución de Disputas</h2>
+          <h2 className="text-xl font-semibold text-text">14. Ley Aplicable y Resolución de Disputas</h2>
           <h3 className="text-lg font-semibold text-text mt-4">15.1 Usuarios en México</h3>
           <p>
             Para usuarios residentes en México, estos Términos se rigen por la Ley Federal de Protección al Consumidor (LFPC), el Código de Comercio, la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y demás legislación aplicable. Las disputas se someterán a los tribunales competentes de la Ciudad de México, renunciando a cualquier otro fuero que pudiera corresponderles.
@@ -234,7 +220,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">16. Disposiciones Generales</h2>
+          <h2 className="text-xl font-semibold text-text">15. Disposiciones Generales</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Acuerdo completo:</strong> Estos Términos, junto con la Política de Privacidad y la Política de Cookies, constituyen el acuerdo completo entre el Viajero y Avimo respecto al uso de la Plataforma.</li>
             <li><strong>Severabilidad:</strong> Si alguna disposición de estos Términos es declarada inválida o inaplicable, las demás disposiciones mantendrán su plena vigencia y efecto.</li>
@@ -245,7 +231,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">17. Contacto</h2>
+          <h2 className="text-xl font-semibold text-text">16. Contacto</h2>
           <p>
             Para preguntas, quejas o aclaraciones sobre estos Términos, el Viajero puede contactarnos a través de:
           </p>

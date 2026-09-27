@@ -47,7 +47,6 @@ export type {
   FiscalIncomeRecord,
   FiscalExpenseRecord,
   FiscalPeriod,
-  WalletTransaction,
   ExternalSale,
 } from "./database";
 

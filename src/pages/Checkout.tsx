@@ -1,45 +1,21 @@
 import { Link } from "react-router";
-import { useState, useEffect } from "react";
-import { Trash2, ShoppingCart, ArrowRight, AlertTriangle, Search, Wallet } from "lucide-react";
+import { useState } from "react";
+import { Trash2, ShoppingCart, ArrowRight, AlertTriangle, Search } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/lib/supabaseClient";
-import { formatCurrency, formatPoints } from "@/lib/formatters";
+import { formatCurrency } from "@/lib/formatters";
 import {
   IVA_RATE,
   MIN_DEPOSIT_PERCENTAGE,
-  MIN_REDEEM_POINTS,
-  MAX_POINTS_PERCENT_PER_PURCHASE,
-  POINTS_PER_100_MXN,
-  POINT_VALUE_MXN,
 } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 
 export default function Checkout() {
   const { items, removeItem, total } = useCart();
-  const { user } = useAuth();
   const { addToast } = useToast();
   const [processing, setProcessing] = useState(false);
-  const [pointsToRedeem, setPointsToRedeem] = useState(0);
-  const [walletBalance, setWalletBalance] = useState(0);
   const hasMultipleItems = items.length > 1;
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("user_wallets")
-      .select("points_balance")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) {
-          setWalletBalance(0);
-          return;
-        }
-        setWalletBalance(data.points_balance);
-      });
-  }, [user]);
 
   if (items.length === 0) {
     return (
@@ -59,28 +35,8 @@ export default function Checkout() {
   const packageSubtotal = Math.round((total / (1 + IVA_RATE)) * 100) / 100;
   const packageIVA = Math.round((total - packageSubtotal) * 100) / 100;
 
-  const depositBase = total - pointsToRedeem * POINT_VALUE_MXN;
-  const depositAmount = Math.round(depositBase * MIN_DEPOSIT_PERCENTAGE * 100) / 100;
+  const depositAmount = Math.round(total * MIN_DEPOSIT_PERCENTAGE * 100) / 100;
   const totalToPay = depositAmount;
-  const pointsEarned = Math.floor(total / 100) * POINTS_PER_100_MXN;
-  const maxRedeemable = Math.floor(total * MAX_POINTS_PERCENT_PER_PURCHASE);
-  const pointsMxnValue = pointsToRedeem * POINT_VALUE_MXN;
-
-  const pointsValidation = (() => {
-    if (walletBalance < MIN_REDEEM_POINTS) {
-      return "Necesitas mínimo 200 puntos para canjear. Sigue comprando para acumular más.";
-    }
-    if (pointsToRedeem > walletBalance) {
-      return "No tienes suficientes puntos.";
-    }
-    if (pointsToRedeem > 0 && pointsToRedeem < MIN_REDEEM_POINTS) {
-      return "El mínimo para canjear es 200 puntos.";
-    }
-    if (pointsToRedeem > maxRedeemable) {
-      return "Máximo 20% del total de la compra.";
-    }
-    return null;
-  })();
 
   const handleCheckout = async () => {
     if (processing || hasMultipleItems || items.length === 0) return;
@@ -91,7 +47,6 @@ export default function Checkout() {
         body: {
           package_id: item.package_id,
           deposit_percent: MIN_DEPOSIT_PERCENTAGE,
-          points_to_redeem: pointsToRedeem,
         },
       });
       if (error) throw error;
@@ -160,15 +115,6 @@ export default function Checkout() {
               <span>{formatCurrency(packageIVA)}</span>
             </div>
 
-            {pointsToRedeem > 0 && (
-              <div className="flex justify-between pt-1">
-                <span className="text-text-muted">Puntos canjeados</span>
-                <span className="font-medium text-green-600">
-                  −{formatCurrency(pointsMxnValue)}
-                </span>
-              </div>
-            )}
-
             <div className="border-t border-gray-100 pt-2">
               <div className="flex justify-between">
                 <span className="text-text-muted">
@@ -188,47 +134,7 @@ export default function Checkout() {
                 </span>
               </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-text-muted">Ganarás</span>
-              <span className="font-medium text-primary">
-                +{formatPoints(pointsEarned)} pts con esta compra
-              </span>
-            </div>
           </div>
-
-          {user && (
-            <div className="mt-5 border-t border-gray-100 pt-5">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
-                <Wallet className="h-4 w-4" /> Avimo Puntos
-              </h2>
-              <p className="mt-1 text-xs text-text-muted">
-                Tienes {formatPoints(walletBalance)} puntos ({formatCurrency(walletBalance * POINT_VALUE_MXN, "MXN")})
-              </p>
-              <div className="mt-3">
-                <input
-                  type="number"
-                  min={0}
-                  max={Math.min(walletBalance, maxRedeemable)}
-                  value={pointsToRedeem || ""}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    setPointsToRedeem(isNaN(val) || val < 0 ? 0 : val);
-                  }}
-                  disabled={walletBalance < MIN_REDEEM_POINTS}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-text placeholder:text-text-muted/50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-text-muted"
-                  placeholder="0"
-                />
-                {pointsValidation && (
-                  <p className="mt-1.5 text-xs text-amber-600">{pointsValidation}</p>
-                )}
-                {pointsToRedeem > 0 && !pointsValidation && (
-                  <p className="mt-1.5 text-xs text-green-600">
-                    = {formatCurrency(pointsMxnValue, "MXN")}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
 
           {hasMultipleItems && (
             <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-sm text-amber-800">

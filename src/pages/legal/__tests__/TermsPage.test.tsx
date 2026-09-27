@@ -19,25 +19,24 @@ describe('TermsPage', () => {
     expect(screen.getByText(/Última actualización: 24 de septiembre de 2026/)).toBeInTheDocument();
   });
 
-  it('renders all 17 sections', () => {
+  it('renders all 16 sections', () => {
     render(<TermsPage />);
     expect(screen.getByText('1. Partes y Aceptación')).toBeInTheDocument();
     expect(screen.getByText('2. Objeto')).toBeInTheDocument();
     expect(screen.getByText('3. Elegibilidad y Registro')).toBeInTheDocument();
     expect(screen.getByText('4. Compras, Pagos y Depósitos')).toBeInTheDocument();
     expect(screen.getByText('5. Política de Reembolsos y Cancelaciones')).toBeInTheDocument();
-    expect(screen.getByText('6. Sistema de Puntos Avimo')).toBeInTheDocument();
-    expect(screen.getByText('7. Itinerarios Generados por Inteligencia Artificial')).toBeInTheDocument();
-    expect(screen.getByText('8. Sistema de Chat y Censura')).toBeInTheDocument();
-    expect(screen.getByText('9. Obligaciones del Viajero')).toBeInTheDocument();
-    expect(screen.getByText('10. Propiedad Intelectual')).toBeInTheDocument();
-    expect(screen.getByText('11. Limitación de Responsabilidad')).toBeInTheDocument();
-    expect(screen.getByText('12. Protección de Datos Personales y Telemetría')).toBeInTheDocument();
-    expect(screen.getByText('13. Modificaciones a la Plataforma y los Términos')).toBeInTheDocument();
-    expect(screen.getByText('14. Suspensión y Terminación')).toBeInTheDocument();
-    expect(screen.getByText('15. Ley Aplicable y Resolución de Disputas')).toBeInTheDocument();
-    expect(screen.getByText('16. Disposiciones Generales')).toBeInTheDocument();
-    expect(screen.getByText('17. Contacto')).toBeInTheDocument();
+    expect(screen.getByText('6. Itinerarios Generados por Inteligencia Artificial')).toBeInTheDocument();
+    expect(screen.getByText('7. Sistema de Chat y Censura')).toBeInTheDocument();
+    expect(screen.getByText('8. Obligaciones del Viajero')).toBeInTheDocument();
+    expect(screen.getByText('9. Propiedad Intelectual')).toBeInTheDocument();
+    expect(screen.getByText('10. Limitación de Responsabilidad')).toBeInTheDocument();
+    expect(screen.getByText('11. Protección de Datos Personales y Telemetría')).toBeInTheDocument();
+    expect(screen.getByText('12. Modificaciones a la Plataforma y los Términos')).toBeInTheDocument();
+    expect(screen.getByText('13. Suspensión y Terminación')).toBeInTheDocument();
+    expect(screen.getByText('14. Ley Aplicable y Resolución de Disputas')).toBeInTheDocument();
+    expect(screen.getByText('15. Disposiciones Generales')).toBeInTheDocument();
+    expect(screen.getByText('16. Contacto')).toBeInTheDocument();
   });
 
   it('contains links to privacy and cookie policies', () => {

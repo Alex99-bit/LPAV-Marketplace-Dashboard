@@ -7,7 +7,9 @@
 
 ## 1. Resumen ejecutivo
 
-**LPAV Marketplace** es una plataforma que conecta directamente a **viajeros** con **agencias de viaje**. Las agencias publican paquetes turísticos ("flyers"), los viajeros los exploran, compran (anticipo o pago diferido), chatean con la agencia y acumulan puntos de lealtad. Las agencias gestionan su operación (CRM de leads, finanzas, logística, roles de equipo) desde un dashboard propio. Un **SuperAdmin** supervisa toda la plataforma.
+**LPAV Marketplace** es una plataforma que conecta directamente a **viajeros** con **agencias de viaje**. Las agencias publican paquetes turísticos ("flyers"), los viajeros los exploran, compran (anticipo o pago diferido), y chatean con la agencia. Las agencias gestionan su operación (CRM de leads, finanzas, logística, roles de equipo) desde un dashboard propio. Un **SuperAdmin** supervisa toda la plataforma.
+
+> **Nota (septiembre 2026):** El sistema de puntos de lealtad (Avimo Puntos) está temporalmente desactivado. No se generan ni descuentan puntos. Las tablas y datos históricos se conservan para futura reactivación.
 
 El cobro se hace con **Stripe Connect (destination charges)**: el viajero paga a la plataforma, la plataforma retiene su comisión (`application_fee_amount`) y el remanente se transfiere automáticamente a la cuenta conectada de la agencia (`transfer_data.destination`).
 
@@ -84,9 +86,9 @@ flowchart LR
 .
 ├── src/                        # Frontend React
 │   ├── components/             # admin/, agency/, auth/, crm/, layout/, marketplace/,
-│   │                           #   notifications/, ui/, wallet/
+│   │                           #   notifications/, ui/
 │   ├── context/                # AuthContext, CartContext, ThemeContext
-│   ├── hooks/                  # useDebounce, useSupabase, useWallet
+│   ├── hooks/                  # useDebounce, useSupabase
 │   ├── lib/                    # constants, errors, formatters, i18n, supabaseClient, validation
 │   ├── locales/                # en/, es-MX/
 │   ├── pages/                  # rutas de la app
@@ -163,8 +165,8 @@ flowchart LR
 > - `seller_stripe_accounts` → flujo refactorizado `onboard-seller` (repositorio `seller-accounts.repo.ts`).
 > - `connect_accounts` → demo `/connect-demo`.
 
-### Cartera y puntos
-`user_wallets`, `wallet_transactions`
+### Cartera y puntos (TEMPORALMENTE INACTIVO — Sección 6.4 DOC MAESTRO)
+`user_wallets`, `wallet_transactions` — Las tablas y datos históricos se conservan para futura reactivación. No reciben escrituras ni lecturas activas desde la aplicación.
 
 ### Logística / Operaciones
 `rooming_lists`, `travel_incidents`, `traveler_documents`, `inventory_pools`, `inventory_holds`, `inventory_audit_log`, `external_sales_log`
@@ -217,7 +219,6 @@ flowchart LR
 | `/auth/accept-invite` | `AcceptInvitation` | invitado |
 | `/checkout` | `Checkout` | viajero |
 | `/orders` | `Orders` | viajero |
-| `/wallet` | `WalletHistory` | viajero |
 | `/chat` | `Chat` | autenticado |
 | `/connect-demo` | `ConnectDemo` | demo Stripe Connect |
 | `/agency/dashboard` | `AgencyDashboard` | agencia |
@@ -235,7 +236,6 @@ flowchart LR
 
 - **Marketplace**: `CatalogGrid`, `FlyerCard`, `Hero`, filtros (`DepartureCityFilter`, `PriceFilter`, `RegionFilter`), `ReviewForm`, `ReviewList`, `OnboardingModal`.
 - **Agencia**: `AgencyLayout`/`AgencySidebar`, finanzas (`AgencyFiscalIncome`, `AgencyPnlStatement`, `AgencyExpenseTracking`), `ExternalSalesPanel`, `PlanManagement`, `StripeConnectStatus`, `TeamManagement`, `DocumentVault`, `IncidentCenter`, `CfdiInvoices`.
-- **Wallet**: `PointsBalance`, `PointsSlider`, `WalletHistory`.
 - **UI base**: `Button`, `Modal`, `Table`, `Tabs`, `Toast`, `Stepper`, etc.
 
 ---
@@ -269,7 +269,7 @@ flowchart LR
 | Función | Descripción |
 |---------|-------------|
 | `create-connect-account` | Crea cuenta Express **V2** (`v2.core.accounts` recipient) + account link para la agencia |
-| `create-checkout` | Checkout hosted de un paquete (destination charge + puntos) |
+| `create-checkout` | Checkout hosted de un paquete (destination charge) |
 | `create-chat-payment` | Solicitud de pago desde el chat (destination charge) |
 | `create-payment-intent` | PaymentIntent destination charge (implementación DI con servicios/repos) |
 | `stripe-webhook` | Webhook principal (checkout, chat, disputas, suscripciones) |
@@ -385,7 +385,7 @@ El **account link** de onboarding también usa V2 (`stripe.v2.core.accountLinks.
 
 ### 10.4 Webhooks
 
-- `stripe-webhook`: procesa `checkout.session.completed` (crea órdenes, consume holds, acredita puntos, registra fiscales, envía recibo), `charge.dispute.created`, `customer.subscription.updated/deleted`, `invoice.payment_failed`.
+- `stripe-webhook`: procesa `checkout.session.completed` (crea órdenes, consume holds, registra fiscales, envía recibo), `charge.dispute.created`, `customer.subscription.updated/deleted`, `invoice.payment_failed`. Nota: no acredita ni debita puntos mientras el programa esté inactivo.
 - `stripe-marketplace-webhook`: procesa `payment_intent.succeeded/failed`, `account.updated`, `charge.refunded`, `charge.dispute.created` (vía `StripeWebhookService`).
 - `connect-webhook`: demo que soporta eventos V1 y **thin events V2**.
 - Ambos endpoints verifican la firma con `STRIPE_WEBHOOK_SECRET` (`constructEvent` sobre el payload raw).
@@ -423,11 +423,9 @@ El **account link** de onboarding también usa V2 (`stripe.v2.core.accountLinks.
 - IVA del 16 % (`IVA_RATE`); se desglosa subtotal/IVA en `fiscal_income_records`.
 - Fee de Stripe estimado: `4.1 % + $3 MXN` (`STRIPE_FEE_RATE`/`STRIPE_FEE_FIXED`).
 
-### Puntos de lealtad
+### Puntos de lealtad (TEMPORALMENTE INACTIVO)
 
-- 1 punto por cada $100 MXN (`POINTS_PER_100_MXN`).
-- Redención: mínimo 200 puntos, máx. 20 % del precio del paquete.
-- Bonos: bienvenida 5, referido 2, reseña 1.
+> **Estado actual:** El sistema de puntos está desactivado. No se generan ni descuentan puntos en ninguna transacción. Las constantes (`POINTS_PER_100_MXN`, `POINT_VALUE_MXN`, etc.) fueron retiradas de `constants.ts`. Las tablas `user_wallets` y `wallet_transactions` permanecen en la BD con datos históricos para futura reactivación. Ver Sección 6.4 del DOC MAESTRO para el plan de reactivación.
 
 ### Pagos diferidos (abonos)
 
@@ -481,7 +479,7 @@ docker logs --tail 100 supabase_edge_runtime_LPAV-Marketplace-Dashboard
 - **SuperAdmin**: `admin@lpav.com`
 - **Agencias**: `agencia1@viajes.com` (Intermedio), `agencia2@tours.com` (Premium); colaboradores `ventas1@viajes.com`, `ventas2@viajes.com`
 - **Viajeros**: `viajero1@test.com`, `viajero2@test.com`, `viajero3@test.com`
-- 4 agencias, 8 paquetes, 12 leads CRM, 6 órdenes, carteras con puntos, 2 reportes, notificaciones, 1 rol personalizado.
+- 4 agencias, 8 paquetes, 12 leads CRM, 6 órdenes, 2 reportes, notificaciones, 1 rol personalizado.
 - `SEED_SKIP_STRIPE=1` omite la creación de cuentas Stripe falsas (para hacer onboarding real).
 
 ### Simulación de cuenta conectada
