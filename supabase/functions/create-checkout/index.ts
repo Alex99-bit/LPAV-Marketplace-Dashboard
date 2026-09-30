@@ -3,6 +3,16 @@ import { getUser, createServiceClient } from "../_shared/auth.ts";
 import { getStripeClient } from "../_shared/stripe/client.ts";
 
 const IVA_RATE = 0.16;
+const STRIPE_RATE = 0.036;
+const STRIPE_FIXED_FEE = 3;
+const DEPOSIT_PERCENT = 0.20;
+
+function calculateProcessingFee(baseAmount: number): number {
+  // The fee is charged to the traveler and is itself included in the Stripe charge.
+  const grossedUp = ((baseAmount * STRIPE_RATE) + STRIPE_FIXED_FEE) * (1 + IVA_RATE)
+    / (1 - STRIPE_RATE * (1 + IVA_RATE));
+  return Math.ceil(grossedUp * 100) / 100;
+}
 
 Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -65,18 +75,21 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const packageBasePrice = pkg.price;
-  const depositPercent = body.deposit_percent ?? Number((pkg as unknown as { deposit_percent?: number }).deposit_percent) ?? 0.2;
+  const packageBasePrice = Number(pkg.price);
+  // The initial deposit is a platform-wide rule, not an agency-configurable value.
+  const depositPercent = DEPOSIT_PERCENT;
   const depositAmount = Math.round(packageBasePrice * depositPercent * 100);
+  const processingFeeAmount = Math.round(calculateProcessingFee(depositAmount / 100) * 100);
 
   const commissionRate = agency.commission_rate / 100;
   const agencyCommission = Math.round(depositAmount * commissionRate);
-  const platformFee = agencyCommission;
+  const platformFee = agencyCommission + processingFeeAmount;
 
-  const packageSubtotal = packageBasePrice / (1 + IVA_RATE);
-  const packageIVA = packageBasePrice - packageSubtotal;
+  const depositBasePrice = depositAmount / 100;
+  const packageSubtotal = depositBasePrice / (1 + IVA_RATE);
+  const packageIVA = depositBasePrice - packageSubtotal;
 
-  const totalCharge = depositAmount;
+  const totalCharge = depositAmount + processingFeeAmount;
 
   let holdId: string | null = null;
   if (pkgRooms.total_rooms > 0) {
@@ -106,7 +119,7 @@ Deno.serve(async (req: Request) => {
         price_data: {
           currency: (pkg.currency || "mxn").toLowerCase(),
           product_data: { name: pkg.title },
-          unit_amount: totalCharge,
+           unit_amount: totalCharge,
         },
         quantity: 1,
       }],
@@ -121,9 +134,13 @@ Deno.serve(async (req: Request) => {
           tenant_id: pkg.tenant_id,
           user_id: user.id,
           order_type: "deposit",
-          package_total: String(packageBasePrice),
-          agency_commission: String(agencyCommission / 100),
-          commission_rate: String(commissionRate),
+           package_total: String(packageBasePrice),
+           deposit_amount: String(depositBasePrice),
+           deposit_percent: String(depositPercent),
+           agency_commission: String(agencyCommission / 100),
+           payment_processing_fee: String(processingFeeAmount / 100),
+           payment_processing_fee_iva: String((processingFeeAmount / 100) * IVA_RATE / (1 + IVA_RATE)),
+           commission_rate: String(commissionRate),
           package_subtotal: packageSubtotal.toFixed(2),
           package_iva: packageIVA.toFixed(2),
           agency_name: agency.business_name,
@@ -136,8 +153,12 @@ Deno.serve(async (req: Request) => {
         tenant_id: pkg.tenant_id,
         user_id: user.id,
         order_type: "deposit",
-        package_total: String(packageBasePrice),
-        agency_commission: String(agencyCommission / 100),
+         package_total: String(packageBasePrice),
+         deposit_amount: String(depositBasePrice),
+         deposit_percent: String(depositPercent),
+         agency_commission: String(agencyCommission / 100),
+         payment_processing_fee: String(processingFeeAmount / 100),
+         payment_processing_fee_iva: String((processingFeeAmount / 100) * IVA_RATE / (1 + IVA_RATE)),
         commission_rate: String(commissionRate),
         package_subtotal: packageSubtotal.toFixed(2),
         package_iva: packageIVA.toFixed(2),
@@ -169,6 +190,7 @@ Deno.serve(async (req: Request) => {
     currency: pkg.currency,
     platform_fee: platformFee / 100,
     agency_commission: agencyCommission / 100,
+    payment_processing_fee: processingFeeAmount / 100,
     commission_rate: commissionRate,
     ...(holdId ? { hold_id: holdId } : {}),
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

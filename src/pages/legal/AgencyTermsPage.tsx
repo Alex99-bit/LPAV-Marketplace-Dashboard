@@ -56,7 +56,7 @@ export default function AgencyTermsPage() {
             <li><strong>Plan Fundador:</strong> Todos los beneficios Premium más beneficios exclusivos, sujeto a aprobación de Avimo.</li>
           </ul>
           <p>
-            <strong>Comisión por transacción:</strong> Avimo retendrá una comisión sobre cada transacción completada a través de la Plataforma. La tasa de comisión varía según el plan contratado y se detalla en la configuración de la cuenta de la Agencia.
+             <strong>Comisión por transacción:</strong> Avimo retendrá una comisión sobre cada pago confirmado a través de la Plataforma. La tasa de comisión varía según el plan contratado y se detalla en la configuración de la cuenta de la Agencia. Esta comisión se descuenta de la liquidación de la Agencia.
           </p>
           <p>
             <strong>Pagos:</strong> Los pagos de la suscripción SaaS se procesan a través de Stripe. Los ingresos por ventas de paquetes se depositan directamente en la cuenta bancaria de la Agencia una vez completado el proceso de verificación de Stripe Connect, menos la comisión aplicable de Avimo.
@@ -109,7 +109,8 @@ export default function AgencyTermsPage() {
           </p>
           <ul className="list-disc pl-6 space-y-1">
             <li>El viajero paga a través de Stripe Checkout.</li>
-            <li>Stripe retiene la comisión de Avimo y transfiere el neto a la cuenta bancaria de la Agencia.</li>
+             <li>El Viajero paga el precio del servicio y la tarifa de procesamiento mostrada en el checkout; la comisión de Avimo se descuenta de la liquidación de la Agencia.</li>
+             <li>Stripe transfiere a la Agencia el importe del servicio menos la comisión aplicable de Avimo. La tarifa de procesamiento se utiliza para cubrir el costo del cobro electrónico y puede ajustarse contra el costo real de Stripe.</li>
             <li>Los tiempos de liquidación dependen de la configuración de Stripe Connect y la institución bancaria de la Agencia.</li>
             <li>La Agencia es responsable de proporcionar información bancaria veraz y actualizada.</li>
           </ul>
@@ -119,14 +120,17 @@ export default function AgencyTermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-text">8. Política de No Reembolsos</h2>
+          <h2 className="text-xl font-semibold text-text">8. Cancelaciones, Reembolsos y Reserva Financiera</h2>
           <p>
-            La Agencia acepta y se compromete a cumplir con la política de no reembolso de anticipos establecida en la Plataforma:
+            La Agencia acepta que la política de cancelación de Avimo es parte del contrato celebrado con el Viajero y no puede ser sustituida por condiciones particulares menos favorables que no hayan sido informadas y aceptadas previamente.
           </p>
           <ul className="list-disc pl-6 space-y-1">
-            <li>Los anticipos pagados por los viajeros no son reembolsables en caso de cancelación por motivos del viajero.</li>
-            <li>En caso de cancelación por parte de la Agencia, esta será responsable de gestionar el reembolso directo al viajero.</li>
-            <li>La Agencia debe tener políticas claras de cancelación visibles en sus flyers.</li>
+            <li>El anticipo inicial estándar es del 20% del precio total del paquete.</li>
+            <li>La Agencia debe mantener actualizados los costos no recuperables y las condiciones de sus proveedores.</li>
+            <li>La Agencia absorbe las comisiones, tarifas de procesamiento, reversos y costos que resulten de una cancelación imputable a ella.</li>
+            <li>Avimo puede descontar dichos importes de liquidaciones futuras, revertir transferencias de Stripe o registrar un saldo negativo exigible a la Agencia.</li>
+            <li>Avimo puede establecer una reserva financiera mínima y suspender nuevas liquidaciones mientras exista un saldo negativo o reembolso pendiente.</li>
+            <li>La Agencia debe colaborar con la documentación fiscal y operativa de cada reembolso.</li>
           </ul>
         </section>
 

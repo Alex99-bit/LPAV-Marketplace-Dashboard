@@ -120,14 +120,27 @@ export interface TransactionOrder {
   stripe_checkout_session_id: string;
   user_id: string;
   total_amount: number;
+  package_total_amount: number;
+  paid_amount: number;
   remaining_balance: number;
+  deposit_percent: number;
   currency: Currency;
   platform_commission_fee: number;
+  payment_processing_fee: number;
+  payment_processing_fee_iva: number;
+  stripe_fee_actual: number | null;
   package_subtotal: number;
   package_iva: number;
   points_earned: number;
   points_redeemed: number;
   payment_status: PaymentStatus;
+  cancellation_status: CancellationStatus;
+  cancellation_reason: CancellationReason | null;
+  cancellation_requested_at: string | null;
+  cancellation_penalty: number;
+  refund_amount: number;
+  agency_debit: number;
+  policy_version: string;
   next_payment_due: string | null;
   created_at: string;
 }
@@ -136,8 +149,13 @@ export type PaymentStatus =
   | "pending"
   | "partial_paid"
   | "paid"
-  | "moroso"
-  | "cancelled";
+   | "moroso"
+   | "cancelled"
+   | "refunded"
+  | "partially_refunded";
+
+export type CancellationStatus = "not_requested" | "pending" | "processed" | "failed";
+export type CancellationReason = "traveler_request" | "agency_cancelled" | "force_majeure";
 
 export interface UserRecommendationProfile {
   user_id: string;

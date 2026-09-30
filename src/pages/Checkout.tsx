@@ -8,6 +8,8 @@ import { formatCurrency } from "@/lib/formatters";
 import {
   IVA_RATE,
   MIN_DEPOSIT_PERCENTAGE,
+  STRIPE_FEE_RATE,
+  STRIPE_FEE_FIXED,
 } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 
@@ -36,7 +38,11 @@ export default function Checkout() {
   const packageIVA = Math.round((total - packageSubtotal) * 100) / 100;
 
   const depositAmount = Math.round(total * MIN_DEPOSIT_PERCENTAGE * 100) / 100;
-  const totalToPay = depositAmount;
+  const processingFee = Math.ceil(
+    (((depositAmount * STRIPE_FEE_RATE) + STRIPE_FEE_FIXED) * (1 + IVA_RATE)
+      / (1 - STRIPE_FEE_RATE * (1 + IVA_RATE))) * 100,
+  ) / 100;
+  const totalToPay = depositAmount + processingFee;
 
   const handleCheckout = async () => {
     if (processing || hasMultipleItems || items.length === 0) return;
@@ -103,7 +109,7 @@ export default function Checkout() {
           <h2 className="text-lg font-semibold text-text">Resumen</h2>
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-text-muted">Subtotal (IVA incluido)</span>
+               <span className="text-text-muted">Precio del paquete (IVA incluido)</span>
               <span className="font-medium text-text">{formatCurrency(total)}</span>
             </div>
             <div className="flex justify-between text-xs text-text-muted ml-3">
@@ -113,6 +119,13 @@ export default function Checkout() {
             <div className="flex justify-between text-xs text-text-muted ml-3">
               <span>IVA (16%)</span>
               <span>{formatCurrency(packageIVA)}</span>
+            </div>
+
+            <div className="border-t border-gray-100 pt-2">
+              <div className="flex justify-between text-xs text-text-muted">
+                <span>Tarifa de procesamiento de pago</span>
+                <span>{formatCurrency(processingFee)}</span>
+              </div>
             </div>
 
             <div className="border-t border-gray-100 pt-2">

@@ -9,6 +9,7 @@ interface ReceiptData {
   packageTitle: string;
   packageSubtotal: number;
   packageIVA: number;
+  processingFee: number;
   total: number;
   agencyName: string;
   orderId: string;
@@ -33,6 +34,10 @@ function generateReceiptHtml(data: ReceiptData): string {
     <tr style="border-bottom:2px solid #111827;color:#6B7280;font-size:13px">
       <td style="padding:4px 0 8px 16px">IVA (16%)</td>
       <td style="text-align:right">$${formatMxn(data.packageIVA)}</td>
+    </tr>
+    <tr style="border-bottom:1px solid #E5E7EB;color:#6B7280;font-size:13px">
+      <td style="padding:4px 0 8px 16px">Tarifa de procesamiento</td>
+      <td style="text-align:right">$${formatMxn(data.processingFee)}</td>
     </tr>
     <tr>
       <td style="padding:12px 0;font-size:16px"><strong>Total pagado</strong></td>
@@ -89,7 +94,7 @@ Deno.serve(async (req: Request) => {
         const chatAmount = session.amount_total! / 100;
         const chatCurrency = (session.currency || "mxn").toUpperCase();
 
-        const stripeFeeBase = (session.amount_total! * 0.041 / 100) + 3;
+        const stripeFeeBase = (session.amount_total! * 0.036 / 100) + 3;
         const stripeFeeIVA = stripeFeeBase * 0.16;
         const commSubtotal = chatCommissionVal / (1 + IVA_RATE);
         const commIVA = chatCommissionVal - commSubtotal;
@@ -190,6 +195,11 @@ Deno.serve(async (req: Request) => {
       const packageTotal = metadata.package_total
         ? parseFloat(metadata.package_total)
         : session.amount_total! / 100;
+      const depositAmount = metadata.deposit_amount
+        ? parseFloat(metadata.deposit_amount)
+        : session.amount_total! / 100;
+      const processingFee = parseFloat(metadata.payment_processing_fee || "0");
+      const processingFeeIva = parseFloat(metadata.payment_processing_fee_iva || "0");
 
       const agencyCommissionVal = parseFloat(metadata.agency_commission || "0");
       const commissionRate = parseFloat(metadata.commission_rate || "0");
@@ -199,10 +209,15 @@ Deno.serve(async (req: Request) => {
         stripe_checkout_session_id: session.id,
         user_id: userId,
         package_id: metadata.package_id || null,
-        total_amount: session.amount_total! / 100,
-        remaining_balance: (session.amount_total! / 100) * (1 / 0.2 - 1),
+        total_amount: packageTotal,
+        package_total_amount: packageTotal,
+        paid_amount: depositAmount,
+        deposit_percent: parseFloat(metadata.deposit_percent || "0.2"),
+        remaining_balance: Math.max(0, packageTotal - depositAmount),
         currency: (session.currency || "mxn").toUpperCase() as "MXN",
         platform_commission_fee: agencyCommissionVal,
+        payment_processing_fee: processingFee,
+        payment_processing_fee_iva: processingFeeIva,
         package_subtotal: parseFloat(metadata.package_subtotal || "0"),
         package_iva: parseFloat(metadata.package_iva || "0"),
         payment_status: "partial_paid",
@@ -228,7 +243,7 @@ Deno.serve(async (req: Request) => {
           message: "Tu anticipo ha sido procesado exitosamente.",
         });
 
-        const stripeFeeBase = (session.amount_total! * 0.041 / 100) + 3;
+        const stripeFeeBase = (session.amount_total! * 0.036 / 100) + 3;
         const stripeFeeIVA = stripeFeeBase * 0.16;
 
         const agencyCommissionSubtotal = agencyCommissionVal / (1 + IVA_RATE);
@@ -269,6 +284,7 @@ Deno.serve(async (req: Request) => {
                 packageTitle: pkgTitle,
                 packageSubtotal: parseFloat(metadata.package_subtotal || "0"),
                 packageIVA: parseFloat(metadata.package_iva || "0"),
+                processingFee,
                 total: session.amount_total! / 100,
                 agencyName: metadata.agency_name || "Agencia",
                 orderId: order.order_id,

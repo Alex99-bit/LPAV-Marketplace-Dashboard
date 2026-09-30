@@ -190,7 +190,7 @@ export const PLAN_PREFERENTIAL_THRESHOLDS: Partial<Record<PlanType, number>> = {
   Intermedio: 5,
   Premium: 8,
 };
-export const STRIPE_FEE_RATE = 0.041;
+export const STRIPE_FEE_RATE = 0.036;
 export const STRIPE_FEE_FIXED = 3;
 export const MIN_DEPOSIT_PERCENTAGE = 0.2;
 export const MAX_DEFERRED_MONTHS = 4;

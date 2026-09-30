@@ -23,7 +23,7 @@ describe('AgencyTermsPage', () => {
     expect(screen.getByText('5. Publicación de Flyers y Contenido')).toBeInTheDocument();
     expect(screen.getByText('6. Obligaciones Fiscales')).toBeInTheDocument();
     expect(screen.getByText('7. Pagos y Stripe Connect')).toBeInTheDocument();
-    expect(screen.getByText('8. Política de No Reembolsos')).toBeInTheDocument();
+    expect(screen.getByText('8. Cancelaciones, Reembolsos y Reserva Financiera')).toBeInTheDocument();
     expect(screen.getByText('9. Uso de Datos para Inteligencia Artificial')).toBeInTheDocument();
     expect(screen.getByText('10. Confidencialidad y NDA')).toBeInTheDocument();
     expect(screen.getByText('11. Transferencia de Datos Personales')).toBeInTheDocument();

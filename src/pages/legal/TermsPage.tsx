@@ -51,6 +51,7 @@ export default function TermsPage() {
             <li><strong>Anticipo:</strong> Para reservar un paquete, el Viajero debe pagar un anticipo equivalente al 20% del precio total del paquete.</li>
             <li><strong>Abonos:</strong> El saldo restante puede pagarse mediante abonos parciales hasta completar el pago total antes de la fecha de salida del viaje.</li>
             <li><strong>Procesamiento de pagos:</strong> Todos los pagos se procesan de forma segura a través de Stripe Connect. Avimo no almacena información de tarjetas de crédito o débito.</li>
+            <li><strong>Tarifa de procesamiento:</strong> El resumen de compra mostrará por separado la tarifa asociada al procesamiento electrónico del pago, incluyendo el IVA aplicable. Esta tarifa no constituye la comisión comercial de Avimo.</li>
             <li><strong>Moneda:</strong> Los precios pueden estar expresados en pesos mexicanos (MXN), dólares estadounidenses (USD) o euros (EUR), según lo indique la Agencia.</li>
           </ul>
         </section>
@@ -58,14 +59,20 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-semibold text-text">5. Política de Reembolsos y Cancelaciones</h2>
           <p>
-            <strong>Política de No Reembolso del Anticipo:</strong> Una vez realizado el pago del anticipo, este no es reembolsable en caso de que el Viajero decida cancelar la reserva por motivos personales. El anticipo queda en poder de la Agencia como compensación por la reserva realizada.
-          </p>
-          <p>
-            <strong>Morosidad:</strong> Si el Viajero no completa el pago total del paquete antes de la fecha de salida indicada, la reserva podrá ser cancelada automáticamente sin derecho a reembolso del anticipo.
-          </p>
-          <p>
-            <strong>Cancelación por la Agencia:</strong> Si la Agencia cancela el paquete por causas imputables a ella, la Agencia será responsable de gestionar el reembolso directo al Viajero conforme a sus propias políticas y a la legislación aplicable.
-          </p>
+             <strong>Cancelación por el Viajero:</strong> El anticipo del 20% confirma la reserva, pero no elimina los derechos legales aplicables. La devolución se calcula conforme a la fecha de cancelación, la fecha de inicio del viaje y los costos no recuperables informados para el paquete.
+           </p>
+           <p>
+             <strong>Calendario de cancelación:</strong> Como regla general, las cancelaciones con 60 días o más de anticipación podrán recibir el importe pagado menos costos no recuperables comprobables; entre 30 y 59 días se podrá aplicar hasta 25% de penalización; entre 15 y 29 días hasta 50%; y con menos de 15 días podrá no existir importe recuperable. La condición aplicable se mostrará antes del pago.
+           </p>
+           <p>
+             <strong>Servicios iniciados o no presentación:</strong> No procede la devolución de servicios ya iniciados, abandonados voluntariamente o no utilizados por causas imputables al Viajero, salvo el importe que el proveedor final autorice recuperar.
+           </p>
+           <p>
+             <strong>Cancelación por la Agencia:</strong> Si la Agencia cancela, incumple o no puede prestar el servicio contratado por causas imputables a ella, Avimo gestionará el reembolso que corresponda al Viajero y podrá cargar los costos, comisiones y penalizaciones resultantes a la Agencia.
+           </p>
+           <p>
+             <strong>Fuerza mayor:</strong> Cuando el servicio no pueda prestarse por causas ajenas a las partes, Avimo gestionará reprogramación, crédito o reembolso del importe recuperable conforme a las condiciones del proveedor final y la legislación aplicable.
+           </p>
           <p>
             <strong>Impuestos:</strong> Los precios publicados incluyen el Impuesto al Valor Agregado (IVA) cuando aplique. El Viajero recibirá un desglose del subtotal y el IVA en el resumen de su orden.
           </p>

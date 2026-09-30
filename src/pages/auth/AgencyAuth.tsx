@@ -701,7 +701,7 @@ export default function AgencyAuth() {
 
   const StepLegal = () => (
     <div className="space-y-4">
-      {/* No Refunds */}
+      {/* Cancellation policy */}
       <label
         className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-colors cursor-pointer ${
           legal.accept_no_refunds
@@ -719,14 +719,14 @@ export default function AgencyAuth() {
           <div className="flex items-center gap-2">
             <FileWarning className="h-4 w-4 text-amber-500" />
             <span className="text-sm font-semibold text-text">
-              Cláusula de No Reembolsos
+              Política de Cancelación y Reembolsos
             </span>
           </div>
           <p className="mt-1 text-xs text-text-muted">
-            La plataforma opera bajo una política estricta de no reembolsos.
-            Cualquier pago realizado por servicios de suscripción o comisiones
-            de plataforma no será reembolsado bajo ninguna circunstancia, salvo
-            disposición legal aplicable.
+            La Agencia acepta la política global de cancelación y reembolsos de
+            Avimo. Las devoluciones se determinan por fecha, causa, costos no
+            recuperables y la legislación aplicable; esta aceptación no elimina
+            derechos irrenunciables del consumidor.
           </p>
         </div>
       </label>
@@ -941,7 +941,7 @@ export default function AgencyAuth() {
             {legal.accept_no_refunds && (
               <div className="flex items-center gap-2 text-sm">
                 <CheckCircle className="h-3 w-3 text-success" />
-                <span>Cláusula de No Reembolsos</span>
+                <span>Política de Cancelación y Reembolsos</span>
               </div>
             )}
             {legal.accept_ai_data_usage && (

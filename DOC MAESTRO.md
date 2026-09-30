@@ -567,7 +567,7 @@ Cuando un paquete de viaje supera la fecha límite establecida para la salida de
 
 ### **6.1 Modelo de Comisión Variable por Plan**
 
-La plataforma opera bajo un modelo de comisión variable aplicada exclusivamente a la agencia vendedora, determinado por el plan contratado y, en los planes Intermedio y Premium, por el desempeño en conversión de leads (Sección 1.1.3). El viajero final no paga ninguna tarifa de servicio adicional.
+La plataforma opera bajo un modelo de intermediación con dos componentes económicos separados: una comisión variable aplicada a la agencia vendedora, determinada por el plan contratado y, en los planes Intermedio y Premium, por el desempeño en conversión de leads (Sección 1.1.3); y una tarifa de procesamiento de pago mostrada por separado al viajero. La tarifa de procesamiento se calcula para cubrir el costo electrónico de Stripe más el IVA aplicable y no constituye la comisión comercial de Avimo.
 
 #### **6.1.1 Tabla Resumen de Comisiones por Plan**
 
@@ -594,20 +594,23 @@ Todas las tasas de comisión indicadas **ya incluyen el IVA (16%)** y se calcula
 #### **6.1.2 Cálculo de la Comisión — Fórmula General**
 
 ```
-Comisión Total = Precio del Paquete (IVA incluido) × Tasa de Comisión del Plan
+Comisión Total del Abono = Importe del abono confirmado (IVA incluido) × Tasa de Comisión del Plan
 
 Subtotal Comisión = Comisión Total / 1.16
 IVA Comisión = Comisión Total − Subtotal Comisión
 
-Monto Agencia = Precio del Paquete − Comisión Total
-Monto Avimo (application_fee_amount) = Comisión Total
+Monto Agencia = Importe del abono − Comisión Total
+Tarifa de Procesamiento = costo Stripe estimado + IVA de la tarifa
+Monto Avimo (application_fee_amount) = Comisión Total + Tarifa de Procesamiento
 ```
 
-* **Base de cálculo:** El precio del paquete publicado por la agencia, que por contrato debe incluir el IVA del 16%.  
+* **Base de cálculo:** Cada abono confirmado, cuyo precio publicado debe incluir el IVA aplicable. El sistema conserva el total del paquete separado del importe efectivamente cobrado.
 * **Tasa aplicable:** La tasa de comisión vigente para la agencia al momento de la transacción, determinada por su `plan_type` y el campo `commission_rate` en `agencies_tenants`.  
 * **IVA de la comisión:** La agencia recibe un CFDI por el IVA de la comisión retenida, que es 100% acreditable contra sus propias obligaciones fiscales.
 
 #### **6.1.3 Desglose por Plan — Ejemplo sobre Venta de $10,000 MXN**
+
+Estos ejemplos representan una liquidación completa de $10,000 MXN. En el checkout inicial solo se cobra el anticipo global del 20%; la comisión se calcula proporcionalmente sobre cada abono y la tarifa de procesamiento se muestra al viajero por separado.
 
 **Plan Básico — Tasa 20% (Fija):**
 
@@ -622,7 +625,7 @@ Monto Avimo (application_fee_amount) = Comisión Total
 | IVA comisión (16%) | | $275.86 |
 | **Monto dispersado a la agencia** | $10,000 − $2,000 | **$8,000.00** |
 | **Monto Avimo (application\_fee\_amount)** | $2,000 | **$2,000.00** |
-| Stripe: 4.1% × $10,000 + $3 MXN | | $413.00 |
+| Stripe: tarifa vigente sobre el cargo total | | Se concilia con Stripe |
 | IVA Stripe (acreditable) | | $66.08 |
 | Total costo Stripe | | $479.08 |
 | **Neto Avimo** | | **$1,520.92** |
@@ -637,7 +640,7 @@ Monto Avimo (application_fee_amount) = Comisión Total
 | IVA comisión | $248.28 | $234.48 |
 | **Monto agencia** | **$8,200.00** | **$8,300.00** |
 | Monto Avimo | $1,800.00 | $1,700.00 |
-| Stripe (4.1% + $3) + IVA | $479.08 | $479.08 |
+| Tarifa Stripe + IVA | Se concilia con Stripe | Se concilia con Stripe |
 | **Neto Avimo** | **$1,320.92** | **$1,220.92** |
 | IVA neto al SAT | $182.20 | $168.40 |
 | Ahorro para agencia vs. tasa base | — | **+$100.00 por venta** |
@@ -651,7 +654,7 @@ Monto Avimo (application_fee_amount) = Comisión Total
 | IVA comisión | $206.90 | $165.52 |
 | **Monto agencia** | **$8,500.00** | **$8,800.00** |
 | Monto Avimo | $1,500.00 | $1,200.00 |
-| Stripe (4.1% + $3) + IVA | $479.08 | $479.08 |
+| Tarifa Stripe + IVA | Se concilia con Stripe | Se concilia con Stripe |
 | **Neto Avimo** | **$1,020.92** | **$720.92** |
 | IVA neto al SAT | $140.82 | $99.44 |
 | Ahorro para agencia vs. tasa base | — | **+$300.00 por venta** |
@@ -665,7 +668,7 @@ Monto Avimo (application_fee_amount) = Comisión Total
 | IVA comisión (16%) | | $103.45 |
 | **Monto agencia** | $10,000 − $750 | **$9,250.00** |
 | Monto Avimo | $750 | $750.00 |
-| Stripe (4.1% + $3) + IVA | | $479.08 |
+| Tarifa Stripe + IVA | | Se concilia con Stripe |
 | **Neto Avimo** | | **$270.92** |
 | IVA neto al SAT | | $37.37 |
 
@@ -687,9 +690,11 @@ Monto Avimo (application_fee_amount) = Comisión Total
 * **Plan Fundador:** El Plan Fundador se asigna exclusivamente por aprobación del SuperAdmin desde el panel de administración. La agencia no puede hacer upgrade hacia Plan Fundador desde el portal de autoservicio. Una agencia Fundador puede solicitar cambio a otro plan (Básico, Intermedio o Premium), pero pierde su plaza de Fundador de forma irreversible y no podrá recuperarla. Una vez que las 10 plazas han sido ocupadas, el Plan Fundador se cierra de forma permanente. Ver Sección 1.1.5 para las reglas de transición al cumplirse el año del Plan Fundador.
 * **Periodo de prueba:** Las agencias nuevas en los planes de paga (Plan Intermedio y Plan Premium) gozan de los primeros 30 días sin cobro de mensualidad (periodo de prueba, gestionado mediante `trial_period_days` de Stripe Billing). El periodo de prueba es de **una sola vez por agencia**: si ya se consumió en uno de los dos planes, no se otorga nuevamente al cambiarse al otro. A partir del día 31, inicia la facturación recurrente mensual. Durante el periodo de prueba, la tasa de comisión base del plan (18% Intermedio / 15% Premium) aplica normalmente.
 
-#### **6.1.6 Absorción de Tarifas de Stripe**
+#### **6.1.6 Tarifa de Procesamiento de Pago**
 
-Las tarifas de Stripe (procesamiento de pago) son absorbidas por la plataforma y se descuentan de la comisión retenida a la agencia. La agencia recibe su pago neto libre de tarifas bancarias. **La agencia NO paga tarifas de Stripe.** Esto aplica a todos los planes por igual.
+El viajero observa y paga una tarifa de procesamiento separada en el checkout. La tarifa se calcula con base en el método de pago, la tasa vigente de Stripe, el cargo fijo y el IVA aplicable. Debido a que Stripe calcula su costo sobre el cargo total, el checkout utiliza un cálculo de ajuste y el webhook debe conciliar el importe real contra el `balance_transaction`.
+
+La tarifa no se presenta como una comisión comercial de Avimo. La comisión de Avimo se descuenta de la liquidación de la agencia. En caso de cancelación imputable a la agencia, la agencia absorbe el costo de procesamiento y cualquier diferencia no recuperable.
 
 #### **6.1.7 Esquema de Split Payments (Stripe Connect)**
 
@@ -705,11 +710,28 @@ Como parte del registro corporativo, las agencias aceptan obligatoriamente el Co
 
 ### **6.2 Planes de Pago Diferidos e Impagos B2C**
 
-Las agencias tienen la facultad de habilitar planes de financiamiento con un **plazo máximo de 4 meses** para liquidar el viaje. La agencia es la única encargada de designar el porcentaje de anticipo inicial requerido en el checkout (estableciendo la plataforma una sugerencia mínima del 20%).
+Las agencias tienen la facultad de habilitar planes de financiamiento con un **plazo máximo de 4 meses** para liquidar el viaje. El anticipo inicial es una regla global de Avimo y corresponde al **20% del precio total del paquete**. La agencia no puede sustituir este porcentaje desde el checkout.
 
 * **Gestión de Mensualidades:** Se implementa de forma estricta la **Opción B (Manual por enlace)**. El backend no realizará cobros recurrentes automatizados a la tarjeta del cliente. En su lugar, el motor de comunicación omnicanal enviará cada mes notificaciones automatizadas con un link exclusivo de Stripe Checkout para que el viajero ingrese y liquide su abono de forma manual.  
-* **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (según la tasa vigente del plan de la agencia — Sección 6.1.1) **se cobrará de manera proporcional sobre cada abono** conforme el viajero vaya pagando mes con mes, protegiendo el flujo de caja operativo de la agencia en el pago inicial del anticipo.  
-* **Regla de Tolerancia por Morosidad y Cero Reembolsos:** En los acuerdos de usuario y términos legales que los viajeros aceptan de forma obligatoria para registrarse, se estipula un disclaimer explícito de **Cero Reembolsos**, ya que los fondos se dispersan de inmediato y las agencias comprometen el capital en apartados fijos de proveedores turísticos. Si un viajero se atrasa en su pago mensual, el backend le otorgará un **periodo de tolerancia de 15 días naturales a partir de la fecha de corte** (`GRACE_PERIOD_DAYS = 15`). Si el abono no se registra en ese lapso, la orden se actualiza automáticamente al estado de Cancelada por falta de pago. El sistema notificará de inmediato a la agencia, actualizará el estado en el CRM integrado y **los montos que el usuario ya había abonado se quedarán congelados a favor de la agencia de viajes de manera definitiva**, sin emisión de créditos electrónicos ni notas de crédito internas.
+* **Corte Proporcional de Comisión:** La comisión correspondiente a la plataforma (según la tasa vigente del plan de la agencia — Sección 6.1.1) **se cobrará de manera proporcional sobre cada abono** conforme el viajero vaya pagando mes con mes.
+* **Morosidad:** El backend otorga un **periodo de tolerancia de 15 días naturales a partir de la fecha de corte** (`GRACE_PERIOD_DAYS = 15`). La cancelación por falta de pago no elimina automáticamente los derechos de devolución que pudieran aplicar; debe evaluarse conforme a la política de cancelación, la fecha de salida y los costos no recuperables informados.
+
+#### **6.2.1 Política de Cancelación y Reembolsos**
+
+Avimo actúa como intermediario entre el viajero y la agencia. El viajero contrata el servicio turístico con la agencia identificada en la orden, mientras que Avimo procesa el pago, conserva la trazabilidad y administra el flujo de reembolso.
+
+* **Anticipo:** La reserva requiere un anticipo estándar del 20% del precio total del paquete. El anticipo confirma la intención de compra, pero no elimina los derechos legales aplicables.
+* **Ventana inicial:** Las solicitudes realizadas dentro de los cinco días hábiles posteriores a la contratación se procesan sin penalización cuando el servicio no haya comenzado ni sido consumido, sujeto a las excepciones legales aplicables.
+* **Cancelación con 60 días o más:** Se devuelve el importe pagado menos costos no recuperables comprobables e informados antes del pago.
+* **Cancelación entre 30 y 59 días:** Puede aplicarse una penalización máxima operativa del 25% del importe pagado, además de costos no recuperables que correspondan conforme a la política publicada.
+* **Cancelación entre 15 y 29 días:** Puede aplicarse una penalización máxima operativa del 50% del importe pagado, además de costos no recuperables que correspondan.
+* **Cancelación con menos de 15 días:** Se devuelve únicamente el importe que los proveedores finales autoricen recuperar, salvo derechos legales o incumplimiento del proveedor.
+* **Servicio iniciado o no presentación:** No se devuelve el importe de servicios ya iniciados, abandonados voluntariamente o no utilizados por causas imputables al viajero, salvo que el proveedor final autorice una devolución.
+* **Cancelación imputable a la agencia:** La agencia absorbe la comisión de Avimo, el costo de procesamiento no recuperable y los costos de reembolso. El viajero recibe el reembolso que corresponda sin que la tarifa de procesamiento se convierta en una pérdida imputable a él.
+* **Fuerza mayor:** Avimo gestiona reprogramación, crédito aceptado por el viajero o devolución del importe recuperable conforme a las condiciones del proveedor final y la legislación aplicable.
+* **Protección financiera:** Avimo puede retener liquidaciones, revertir transferencias de Stripe, utilizar la reserva financiera de la agencia o registrar un saldo negativo para cubrir importes a cargo de la agencia.
+
+El sistema guarda la versión de la política aceptada, la fecha de aceptación, el motivo de cancelación, el importe pagado, la penalización, el reembolso y el cargo a la agencia. Los reembolsos se procesan de forma idempotente y regresan al medio de pago original cuando Stripe lo permite.
 
 ### **6.3 Delimitación de Responsabilidad Fiscal (CFDI México)**
 
@@ -721,7 +743,7 @@ Las agencias tienen la facultad de habilitar planes de financiamiento con un **p
 La plataforma genera automáticamente registros de ingresos fiscales (`fiscal_income_records`) por cada comisión retenida, pero el timbrado del CFDI ante el SAT se realiza **exclusivamente bajo demanda de la agencia** desde el Dashboard Contable:
 
 * **Flujo:** La agencia navega a Finanzas → Ingresos Fiscales, identifica el registro pendiente y hace clic en **"Timbrar CFDI"**.  
-* **Procesamiento:** El endpoint `generate-cfdi` construye el payload CFDI 3.3 (tipo Ingreso, uso G03, régimen 601) con los datos fiscales de la agencia (RFC, razón social, dirección) y lo envía a la API de Facturama.  
+* **Procesamiento:** El endpoint `generate-cfdi` construye el payload CFDI 4.0 (tipo Ingreso, uso G03 y régimen fiscal validado) con los datos fiscales de la agencia (RFC, razón social, dirección) y lo envía a la API de Facturama.
 * **Persistencia:** Al recibir respuesta exitosa de Facturama, el sistema actualiza el registro fiscal con `cfdi_uuid`, `cfdi_status = 'issued'`, `cfdi_pdf_url` y `cfdi_xml_url`.  
 * **Descarga:** Una vez timbrado, la agencia puede descargar el PDF y XML directamente desde la tabla de ingresos fiscales.  
 * **CFDI ya emitido:** Si el registro ya tiene un CFDI timbrado, el sistema retorna los URLs existentes sin volver a timbrar.

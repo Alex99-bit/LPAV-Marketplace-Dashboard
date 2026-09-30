@@ -47,6 +47,22 @@ export interface CreateCheckoutResponse {
   tenant_id?: string;
   stripe_account_id?: string;
   note?: string;
+  payment_processing_fee?: number;
+  agency_commission?: number;
+}
+
+export type CancellationReason = "traveler_request" | "agency_cancelled" | "force_majeure";
+
+export interface CancelOrderRequest {
+  order_id: string;
+  reason: CancellationReason;
+}
+
+export interface CancelOrderResponse {
+  cancellation_id: string;
+  refund_id: string;
+  refund_amount: number;
+  penalty_amount: number;
 }
 
 export interface ReportPackageRequest {

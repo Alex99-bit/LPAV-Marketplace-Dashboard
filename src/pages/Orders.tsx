@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Clock, CreditCard, ShieldCheck, ShoppingCart } from "lucide-react";
+import { Clock, CreditCard, ShieldCheck, ShoppingCart, XCircle } from "lucide-react";
 import type { TransactionOrder, InstallmentSchedule } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -25,6 +25,8 @@ const STATUS_CONFIG: Record<
   paid: { label: "Pagado", variant: "success" },
   moroso: { label: "Moroso", variant: "danger" },
   cancelled: { label: "Cancelado", variant: "danger" },
+  refunded: { label: "Reembolsado", variant: "success" },
+  partially_refunded: { label: "Reembolso parcial", variant: "warning" },
 };
 
 const MAX_CONFIRM_ATTEMPTS = 10;
@@ -42,6 +44,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   // Tras volver de Stripe, el webhook puede tardar unos segundos en registrar la orden
   const [confirmingPayment, setConfirmingPayment] = useState(Boolean(sessionId));
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const cartClearedRef = useRef(false);
 
   const fetchOrders = useCallback(async (): Promise<TransactionOrder[]> => {
@@ -121,6 +124,21 @@ export default function Orders() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, sessionId]);
+
+  const requestCancellation = async (orderId: string) => {
+    if (!window.confirm("¿Quieres solicitar la cancelación de esta orden? El reembolso se calculará según la política aplicable.")) return;
+    setCancellingOrderId(orderId);
+    const { data, error } = await supabase.functions.invoke("cancel-order", {
+      body: { order_id: orderId, reason: "traveler_request" },
+    });
+    setCancellingOrderId(null);
+    if (error || data?.error) {
+      addToast("error", "No se pudo cancelar", data?.error || "Inténtalo de nuevo o contacta a soporte.");
+      return;
+    }
+    addToast("success", "Cancelación procesada", `Reembolso: ${formatCurrency(data.refund_amount, "MXN")}.`);
+    await fetchOrders();
+  };
 
   if (loading) {
     return (
@@ -203,6 +221,19 @@ export default function Orders() {
                     </p>
                     {/* TODO(F3-orders-cta): si payment_status === "moroso",
                         mostrar CTA "Contactar soporte" o "Regularizar pago" */}
+                  </div>
+                )}
+
+                {!["cancelled", "refunded", "partially_refunded"].includes(order.payment_status) && (
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => requestCancellation(order.order_id)}
+                      loading={cancellingOrderId === order.order_id}
+                    >
+                      <XCircle className="h-3.5 w-3.5" /> Solicitar cancelación
+                    </Button>
                   </div>
                 )}
 
